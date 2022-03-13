@@ -12,8 +12,10 @@
 
 {
     type token = 
-         T_eof  | T_id | T_constint | T_constreal
-        
+          T_eof | T_id | T_constint | T_constreal
+        | T_constchar | T_string  
+
+        | T_comment
         (* Keywords *)
         (* bool break byref char continue delete
            double else for false if int
@@ -48,17 +50,23 @@
 (* Definitions Section *)
 
 let digit = ['0'-'9']
+let hex_digit = digit | ['a'-'f']
 let letter = ['a'-'z''A'-'Z']
 let whitespace = [' ''\n''\t']
 
+let id_trail = letter | digit | '_'
+
 let exp_part = digit+ (['e''E'] (['+''-']?) digit+)? 
 
-let id_trail = letter | digit | '_'
+(* Characters Regex *)
+let common_char = [^'\"''\'''\\'] 
+let hex_code = hex_digit hex_digit
+let esc_char = '\\' (['n''t''r''0''\\''\'''\"'] | ('x' hex_code))
 
 (* Comments Regex *)
 let one_liner = "//" [^'\n']* '\n'
-let multiliner = "/*" _* "*/" (* Is this enough? (* It is if we have a lazy evaluator *) *)
-(* https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch07s06.html *)
+let multiliner = "/*" ([^'*']* | ('*'+ [^'/']) )* "*/" 
+(*  https://stackoverflow.com/a/32320759 *)
 
 
 (* Rules Section *)
@@ -126,17 +134,20 @@ rule lexer = parse
 
     (* Rest *)
 
-    | letter (id_trail)+         { T_id }        (* Identifiers *)
-    | digit+                     { T_constint }  (* Unsigned integer constants *)
-    | digit+ '.' exp_part?       { T_constreal } (* Unsigned real constants *)
+    | letter (id_trail)+                        { T_id }        (* Identifiers *)
+    | digit+                                    { T_constint }  (* Unsigned integer constants *)
+    | digit+ '.' exp_part?                      { T_constreal } (* Unsigned real constants *)
 
+    | '\'' (common_char | esc_char ) '\''       { T_constchar }
+    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string } (* Simple incomplete implementation *)
+    (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
-    | (one_liner | multiliner)   { lexer lexbuf } (* Ignore all comments *)
-    | whitespace+                { lexer lexbuf } (* Ignore all whitespaces *)
+    | (one_liner | multiliner)                  { T_comment (* Added for testing only *) (*lexer lexbuf*) } (* Ignore all comments *)
+    | whitespace+                               { lexer lexbuf } (* Ignore all whitespaces *)
 
-    |  eof          { T_eof }
-    |  _ as chr     { Printf.eprintf "Invalid character: '%c' (ascii: %d)" chr (Char.code chr);
-                      lexer lexbuf }
+    |  eof                                      { T_eof }
+    |  _ as chr                                 { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" chr (Char.code chr);
+                                                  lexer lexbuf }
 
 (* Trailer Section *)
 {
@@ -146,7 +157,11 @@ rule lexer = parse
         | T_id              -> "T_id"
         | T_constint        -> "T_constint"
         | T_constreal       -> "T_constreal"
+        | T_constchar       -> "T_constchar"
+        | T_string          -> "T_string"
 
+        (* For testing purposes *)
+        | T_comment         -> "T_comment"
         (* More to insert here *)
 
         | T_bool            -> "T_bool"
