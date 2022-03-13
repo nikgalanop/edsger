@@ -134,7 +134,7 @@ rule lexer = parse
 
     (* Rest *)
 
-    | letter (id_trail)+                        { T_id }        (* Identifiers *)
+    | letter (id_trail)*                        { T_id }        (* Identifiers *)
     | digit+                                    { T_constint }  (* Unsigned integer constants *)
     | digit+ '.' exp_part?                      { T_constreal } (* Unsigned real constants *)
 
