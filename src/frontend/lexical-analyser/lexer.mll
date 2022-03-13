@@ -52,7 +52,7 @@
 let digit = ['0'-'9']
 let hex_digit = digit | ['a'-'f']
 let letter = ['a'-'z''A'-'Z']
-let whitespace = [' ''\n''\t']
+let whitespace = [' ''\n''\t''\r']
 
 let id_trail = letter | digit | '_'
 
