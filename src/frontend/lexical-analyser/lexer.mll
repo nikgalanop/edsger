@@ -11,11 +11,15 @@
 (* Header Section *)
 
 {
+    type buffer =  {mutable lexbuf: Lexing.lexbuf;}
+    let s :(Lexing.lexbuf Stack.t) = Stack.create()
+    let l :buffer = {lexbuf = (Lexing.from_channel stdin)}
+
     type token = 
           T_eof | T_id | T_constint | T_constreal
         | T_constchar | T_string  
 
-        | T_comment
+        | T_comment | T_dir
         (* Keywords *)
         (* bool break byref char continue delete
            double else for false if int
@@ -68,14 +72,30 @@ let one_liner = "//" [^'\n']* '\n'
 let multiliner = "/*" ([^'*']* | ('*'+ [^'/']) )* "*/" 
 (*  https://stackoverflow.com/a/32320759 *)
 
+(* Directives Regex *)
+
+(* Have not taken care of the "starting at the beggining of line" requirement *)
+(* let name = '\"'(letter | digit)+ "\"" *)
+let incl = "#include"
 
 (* Rules Section *)
 
 rule lexer = parse 
-    
+
+    (* Directives *)
+
+    incl whitespace* '\"' (([^'"' '\n'])+ as filename) '\"'     
+                    { 
+                      Printf.printf "filename = %s\n" filename;
+                      Stack.push l.lexbuf s;
+                      let c = open_in filename in
+                      l.lexbuf <- (Lexing.from_channel c);
+                      lexer l.lexbuf
+                    }
+
     (* Keywords *)
 
-      "bool"        { T_bool }
+    | "bool"        { T_bool }
     | "break"       { T_break }
     | "byref"       { T_byref }
     | "char"        { T_char }
@@ -142,12 +162,14 @@ rule lexer = parse
     | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string } (* Simple incomplete implementation *)
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
-    | (one_liner | multiliner)                  { T_comment (* Added for testing only *) (*lexer lexbuf*) } (* Ignore all comments *)
-    | whitespace+                               { lexer lexbuf } (* Ignore all whitespaces *)
+    | (one_liner | multiliner)                  { T_comment (* Added for testing only *) (*lexer !lexbuf*) } (* Ignore all comments *)
+    | whitespace+                               { lexer l.lexbuf } (* Ignore all whitespaces *)
 
-    |  eof                                      { T_eof }
+    |  eof                                      { if (not (Stack.is_empty s) ) 
+                                                  then  ( l.lexbuf <- (Stack.pop s); lexer l.lexbuf) 
+                                                  else ( T_eof ) }
     |  _ as chr                                 { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" chr (Char.code chr);
-                                                  lexer lexbuf }
+                                                  lexer l.lexbuf }
 
 (* Trailer Section *)
 {
@@ -162,6 +184,7 @@ rule lexer = parse
 
         (* For testing purposes *)
         | T_comment         -> "T_comment"
+        | T_dir             -> "T_dir"
         (* More to insert here *)
 
         | T_bool            -> "T_bool"
@@ -217,11 +240,10 @@ rule lexer = parse
         | T_rightbr         -> "T_rightbr"
 
   let main =
-    let lexbuf = Lexing.from_channel stdin in
     let rec loop () =
-      let token = lexer lexbuf in
+      let token = lexer l.lexbuf in
       Printf.printf "token=%s, lexeme=\"%s\"\n"
-        (string_of_token token) (Lexing.lexeme lexbuf);
+        (string_of_token token) (Lexing.lexeme l.lexbuf);
       if token <> T_eof then loop () in
     loop ()
 }
