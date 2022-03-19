@@ -13,13 +13,20 @@
 {
     type buffer =  {mutable lexbuf: Lexing.lexbuf;}
     let s :(Lexing.lexbuf Stack.t) = Stack.create()
+
+(*
     let l :buffer = {lexbuf = (Lexing.from_channel stdin)}
+*)
+
+(*
+    module StringSet = Set.Make(String)
+    let globalset :StringSet.t = {set = (StringSet.empty)}
+*)
 
     type token = 
           T_eof | T_id | T_constint | T_constreal
         | T_constchar | T_string  
 
-        | T_comment | T_dir
         (* Keywords *)
         (* bool break byref char continue delete
            double else for false if int
@@ -84,11 +91,10 @@ rule lexer = parse
     (* Directives *)
 
       incl          { 
-                      Stack.push l.lexbuf s;
                       let c = open_in filename in
-                      l.lexbuf <- (Lexing.from_channel c);
-                      Lexing.set_filename l.lexbuf filename;
-                      lexer l.lexbuf
+                      Stack.push (Lexing.from_channel c) s;
+                      Lexing.set_filename (Stack.top s) filename;
+                      lexer (Stack.top s)
                     }
 
     (* Keywords *)
@@ -160,25 +166,29 @@ rule lexer = parse
     | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string } (* Simple incomplete implementation *)
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
-    | one_liner                                 { Lexing.new_line l.lexbuf; lexer l.lexbuf } (* Ignore one-liner comments *)
-    | "/*"                                      { multi_comment l.lexbuf }  (* Ignore multi-line comments *)
-    | '\n'                                      { Lexing.new_line l.lexbuf; lexer l.lexbuf } (* New Line *)
-    | whitespace+                               { lexer l.lexbuf } (* Ignore all whitespaces *)
+    | one_liner                                 { Lexing.new_line (Stack.top s); lexer (Stack.top s) } (* Ignore one-liner comments *)
+    | "/*"                                      { multi_comment (Stack.top s) }  (* Ignore multi-line comments *)
+    | '\n'                                      { Lexing.new_line (Stack.top s); lexer (Stack.top s) } (* New Line *)
+    | whitespace+                               { lexer (Stack.top s) } (* Ignore all whitespaces *)
 
-    |  eof                                      { if (not (Stack.is_empty s) ) 
-                                                  then  ( l.lexbuf <- (Stack.pop s); lexer l.lexbuf) 
-                                                  else ( T_eof ) }
-    |  _ as chr                                 { let pos = l.lexbuf.Lexing.lex_curr_p 
+    |  eof                                      { 
+                                                  let _ = Stack.pop s;
+                                                  in
+                                                    if (not (Stack.is_empty s) ) 
+                                                    then ( lexer (Stack.top s) )
+                                                    else ( T_eof ) 
+                                                  }
+    |  _ as chr                                 { let pos = (Stack.top s).Lexing.lex_curr_p 
                                                   in Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
                                                       pos.pos_fname pos.pos_lnum chr (Char.code chr);
-                                                  lexer l.lexbuf }
+                                                  lexer (Stack.top s) }
 
 (* Count the lines of the multilined comments *)
 and multi_comment = parse 
-    "*/"          { lexer l.lexbuf }
-  | '\n'          { Lexing.new_line l.lexbuf; multi_comment l.lexbuf }
-  | '*'           { multi_comment l.lexbuf } (* Ignored *)
-  | [^'*''\n']    { multi_comment l.lexbuf } (* Ignored. Handled above. *)
+    "*/"          { lexer (Stack.top s) }
+  | '\n'          { Lexing.new_line (Stack.top s); multi_comment (Stack.top s) }
+  | '*'           { multi_comment (Stack.top s) } (* Ignored *)
+  | [^'*''\n']    { multi_comment (Stack.top s) } (* Ignored. Handled above. *)
 
 
 
@@ -246,10 +256,13 @@ and multi_comment = parse
         | T_rightbr         -> "T_rightbr"
 
   let main =
+    Stack.push (Lexing.from_channel stdin) s;
     let rec loop () =
-      let token = lexer l.lexbuf in
-      Printf.printf "token=%s, lexeme=\"%s\"\n"
-        (string_of_token token) (Lexing.lexeme l.lexbuf);
-      if token <> T_eof then loop () in
+      let token = lexer (Stack.top s) in
+      if token <> T_eof 
+      then (
+          Printf.printf "token=%s, lexeme=\"%s\"\n"
+          (string_of_token token) (Lexing.lexeme (Stack.top s));
+          loop () ) in
     loop ()
 }
