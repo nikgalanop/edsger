@@ -1,0 +1,70 @@
+/*                    Magic Square Generator in Edsger   
+ *   Based on the Ex. 10 of the 5th Assignment of the "Progintro" class: 
+ *   https://courses.softlab.ntua.gr/progintro/2020b/exercises/exer05p.pdf 
+ *   
+ *   > If you are interested about the algorithm, check here:
+ *   https://courses.softlab.ntua.gr/progintro/2020b/slides-20201204.pdf (p. 179)
+ */
+
+#include "stdio.h"
+
+void main (){
+    int side_len;
+    
+    void magicSquare(){
+
+        void readInput(){        
+            writeString("Insert the side_len length of the magic square.\n");
+            writeString("(An odd integer between 3 and 19\n)");
+
+            side_len = readInteger();
+        }
+
+        bool validInput(){
+            return (side_len % 2 == 1) &&  (side_len >= 3) && (side_len <= 19); 
+        }
+
+        void generateSquare(){
+            int a[17][17], i, j, k, h, m;
+            
+            i = side_len/2; 
+            j = side_len; 
+            k = 0;
+            
+            for (h = 1; h <= side_len; h++) {
+                j -= 1; 
+                a[i][j] = k; 
+                k += 1;
+                for (m = 2; m <= side_len; m++) {
+                    j = (j + 1) % side_len; i = (i + 1) % side_len;
+                    a[i][j] = k; k = k+1;
+                }
+            }
+            
+            for (i = 0; i <= n-1; i++) {
+                for (j = 0; j <= n-1; j++)
+                    WRITE(FORM(a[i][j], 4));
+                writeChar('\n');
+            }
+        }
+
+        readInput();
+        if (validInput()){
+            generateSquare();
+        } 
+        else {
+            writeString("Invalid side_len length\n");
+        }
+    }
+
+    char inp; 
+
+    while (true){
+        magicSquare();
+        redo_input: 
+            writeString("Would you like to execute the program again? (Type y if yes & n if no)");
+        inp = readChar();
+        if (inp == 'n') break;
+        else if (inp != 'y') continue redo_input;
+    }
+}
