@@ -56,7 +56,7 @@
 let digit = ['0'-'9']
 let hex_digit = digit | ['a'-'f']
 let letter = ['a'-'z''A'-'Z']
-let whitespace = [' ''\n''\t''\r']
+let whitespace = [' ''\t''\r']
 
 let id_trail = letter | digit | '_'
 
@@ -69,14 +69,13 @@ let esc_char = '\\' (['n''t''r''0''\\''\'''\"'] | ('x' hex_code))
 
 (* Comments Regex *)
 let one_liner = "//" [^'\n']* '\n'
-let multiliner = "/*" ([^'*']* | ('*'+ [^'/']) )* "*/" 
 (*  https://stackoverflow.com/a/32320759 *)
 
 (* Directives Regex *)
 
-(* Have not taken care of the "starting at the beggining of line" requirement *)
-(* let name = '\"'(letter | digit)+ "\"" *)
-let incl = "#include"
+(* Have not taken care of the "starting at the beginning of line" requirement *)
+let name = '\"' (([^'"' '\n'])+ as filename) '\"'
+let incl = "#include" whitespace* name 
 
 (* Rules Section *)
 
@@ -84,12 +83,11 @@ rule lexer = parse
 
     (* Directives *)
 
-    incl whitespace* '\"' (([^'"' '\n'])+ as filename) '\"'     
-                    { 
-                      Printf.printf "filename = %s\n" filename;
+      incl          { 
                       Stack.push l.lexbuf s;
                       let c = open_in filename in
                       l.lexbuf <- (Lexing.from_channel c);
+                      Lexing.set_filename l.lexbuf filename;
                       lexer l.lexbuf
                     }
 
@@ -162,14 +160,27 @@ rule lexer = parse
     | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string } (* Simple incomplete implementation *)
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
-    | (one_liner | multiliner)                  { T_comment (* Added for testing only *) (*lexer !lexbuf*) } (* Ignore all comments *)
+    | one_liner                                 { Lexing.new_line l.lexbuf; lexer l.lexbuf } (* Ignore one-liner comments *)
+    | "/*"                                      { multi_comment l.lexbuf }  (* Ignore multi-line comments *)
+    | '\n'                                      { Lexing.new_line l.lexbuf; lexer l.lexbuf } (* New Line *)
     | whitespace+                               { lexer l.lexbuf } (* Ignore all whitespaces *)
 
     |  eof                                      { if (not (Stack.is_empty s) ) 
                                                   then  ( l.lexbuf <- (Stack.pop s); lexer l.lexbuf) 
                                                   else ( T_eof ) }
-    |  _ as chr                                 { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" chr (Char.code chr);
+    |  _ as chr                                 { let pos = l.lexbuf.Lexing.lex_curr_p 
+                                                  in Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
+                                                      pos.pos_fname pos.pos_lnum chr (Char.code chr);
                                                   lexer l.lexbuf }
+
+(* Count the lines of the multilined comments *)
+and multi_comment = parse 
+    "*/"          { lexer l.lexbuf }
+  | '\n'          { Lexing.new_line l.lexbuf; multi_comment l.lexbuf }
+  | '*'           { multi_comment l.lexbuf } (* Ignored *)
+  | [^'*''\n']    { multi_comment l.lexbuf } (* Ignored. Handled above. *)
+
+
 
 (* Trailer Section *)
 {
@@ -181,11 +192,6 @@ rule lexer = parse
         | T_constreal       -> "T_constreal"
         | T_constchar       -> "T_constchar"
         | T_string          -> "T_string"
-
-        (* For testing purposes *)
-        | T_comment         -> "T_comment"
-        | T_dir             -> "T_dir"
-        (* More to insert here *)
 
         | T_bool            -> "T_bool"
         | T_break           -> "T_break"
