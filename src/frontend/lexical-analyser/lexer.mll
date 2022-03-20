@@ -1,27 +1,26 @@
-(* To-do? *)
-(* Test whatever I've written up to this version. *)
-(* Character constants and strings? *)
-(* Handle #include *)
-(* Anything else? *)
-
-(* Edsger Lexical Analyser 
-   Heavily inspired by: 
-   https://courses.softlab.ntua.gr/compilers/2011a/examples/minibasic/OCaml/lexer/Lexer.mll *)
+(* 
+  Edsger Lexical Analyser 
+  Heavily inspired by: 
+  https://courses.softlab.ntua.gr/compilers/2011a/examples/minibasic/OCaml/lexer/Lexer.mll 
+*)
 
 (* Header Section *)
 
 {
-    type buffer =  {mutable lexbuf: Lexing.lexbuf;}
+    (* type buffer =  {mutable lexbuf: Lexing.lexbuf;} *)
     let s :(Lexing.lexbuf Stack.t) = Stack.create()
 
 (*
     let l :buffer = {lexbuf = (Lexing.from_channel stdin)}
 *)
 
-(*
     module StringSet = Set.Make(String)
-    let globalset :StringSet.t = {set = (StringSet.empty)}
-*)
+    type globalset = {mutable s: StringSet.t}
+    let set: globalset = {s = StringSet.empty}
+    
+    let safe_find filename (set:globalset) = 
+      try Some (StringSet.find filename set.s) with
+          | Not_found -> None 
 
     type token = 
           T_eof | T_id | T_constint | T_constreal
@@ -91,11 +90,18 @@ rule lexer = parse
     (* Directives *)
 
       incl          { 
-                      let c = open_in filename in
-                      Stack.push (Lexing.from_channel c) s;
-                      Lexing.set_filename (Stack.top s) filename;
-                      lexer (Stack.top s)
-                    }
+                      let res = safe_find filename set in
+                      match res with
+                        | None    ->  ( 
+                                        set.s <- StringSet.add filename set.s;
+                                        let c = open_in filename in
+                                          Stack.push (Lexing.from_channel c) s;
+                                        Lexing.set_filename (Stack.top s) filename;
+                                        lexer (Stack.top s)
+                                      )
+                        | _       -> ( lexer (Stack.top s) )
+                    } (* In case we face a cyclical inclusion or many files including one file,
+                         we ignore the latest problematic inclusion *)
 
     (* Keywords *)
 
