@@ -86,15 +86,16 @@ rule lexer = parse
 
       incl          { 
                       let res = safe_find filename set in
-                      match res with
-                        | None    ->  ( 
-                                        set.s <- StringSet.add filename set.s;
-                                        let c = open_in filename in
-                                          Stack.push (Lexing.from_channel c) s;
-                                        Lexing.set_filename (Stack.top s) filename;
-                                        lexer (Stack.top s)
-                                      )
-                        | _       -> ( lexer (Stack.top s) )
+                      (match res with
+                          | None    ->  ( 
+                                          set.s <- StringSet.add filename set.s;
+                                          let c = open_in filename in
+                                            Stack.push (Lexing.from_channel c) s;
+                                          Lexing.set_filename (Stack.top s) filename;
+                                        )
+                          | _       -> ()
+                      );
+                        lexer (Stack.top s)
                     } (* In case we face a cyclical inclusion or many files including one file,
                          we ignore the latest problematic inclusion *)
 
