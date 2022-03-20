@@ -14,7 +14,7 @@ void main () {
     void magicSquare () {
 
         void readInput () {        
-            writeString("Insert the side_len length of the magic square.\n");
+            writeString("Insert the side length of the magic square.\n");
             writeString("(An odd integer between 3 and 19\n)");
 
             side_len = readInteger();
