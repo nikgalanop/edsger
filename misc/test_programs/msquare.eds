@@ -8,12 +8,12 @@
 
 #include "stdio.h"
 
-void main (){
+void main () {
     int side_len;
     
-    void magicSquare(){
+    void magicSquare () {
 
-        void readInput(){        
+        void readInput () {        
             writeString("Insert the side_len length of the magic square.\n");
             writeString("(An odd integer between 3 and 19\n)");
 
@@ -22,11 +22,11 @@ void main (){
             return;
         }
 
-        bool validInput(){
-            return (side_len % 2 == 1) &&  (side_len >= 3) && (side_len <= 19); 
+        bool validInput () {
+            return (side_len % 2 == 1) && (side_len >= 3) && (side_len <= 19); 
         }
 
-        void generateSquare(){
+        void generateSquare () {
             int * a[side_len];
             int i, j, k, h, m;
             
