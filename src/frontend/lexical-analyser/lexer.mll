@@ -7,12 +7,7 @@
 (* Header Section *)
 
 {
-    (* type buffer =  {mutable lexbuf: Lexing.lexbuf;} *)
     let s :(Lexing.lexbuf Stack.t) = Stack.create()
-
-(*
-    let l :buffer = {lexbuf = (Lexing.from_channel stdin)}
-*)
 
     module StringSet = Set.Make(String)
     type globalset = {mutable s: StringSet.t}
