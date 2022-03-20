@@ -172,11 +172,11 @@ rule lexer = parse
     | whitespace+                               { lexer (Stack.top s) } (* Ignore all whitespaces *)
 
     |  eof                                      { 
-                                                  let _ = Stack.pop s;
+                                                  let t = Stack.pop s;
                                                   in
                                                     if (not (Stack.is_empty s) ) 
                                                     then ( lexer (Stack.top s) )
-                                                    else ( T_eof ) 
+                                                    else ( Stack.push t s; T_eof ) 
                                                   }
     |  _ as chr                                 { let pos = (Stack.top s).Lexing.lex_curr_p 
                                                   in Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
@@ -259,10 +259,8 @@ and multi_comment = parse
     Stack.push (Lexing.from_channel stdin) s;
     let rec loop () =
       let token = lexer (Stack.top s) in
-      if token <> T_eof 
-      then (
-          Printf.printf "token=%s, lexeme=\"%s\"\n"
+      Printf.printf "token=%s, lexeme=\"%s\"\n"
           (string_of_token token) (Lexing.lexeme (Stack.top s));
-          loop () ) in
+      if token <> T_eof then loop () in
     loop ()
 }
