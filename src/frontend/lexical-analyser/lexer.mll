@@ -86,7 +86,8 @@ rule lexer = parse
 
       incl          { 
                       let res = safe_find filename set in
-                      (match res with
+                      (
+                        match res with
                           | None    ->  ( 
                                           set.s <- StringSet.add filename set.s;
                                           let c = open_in filename in
@@ -179,11 +180,14 @@ rule lexer = parse
                                                     if (not (Stack.is_empty s) ) 
                                                     then ( lexer (Stack.top s) )
                                                     else ( Stack.push t s; T_eof ) 
-                                                  }
-    |  _ as chr                                 { let pos = (Stack.top s).Lexing.lex_curr_p 
+                                                }
+    
+    |  _ as chr                                 { 
+                                                  let pos = (Stack.top s).Lexing.lex_curr_p 
                                                   in Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
                                                       pos.pos_fname pos.pos_lnum chr (Char.code chr);
-                                                  lexer (Stack.top s) }
+                                                  lexer (Stack.top s) 
+                                                }
 
 (* Count the lines of the multilined comments *)
 and multi_comment = parse 
