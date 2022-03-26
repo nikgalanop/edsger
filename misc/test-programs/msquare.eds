@@ -79,13 +79,15 @@ void main () {
 
     char inp; 
 
+main_loop:
     for ( ; ; ){
         magicSquare();
-        redo_input: 
+        for ( ; ; ) { 
             writeString("Would you like to execute the program again? (Type y if yes & n if no):\n");
-        inp = readChar();
-        if (inp == 'n') break;
-        else if (inp != 'y') continue redo_input;
+            inp = readChar();
+            if (inp == 'y') break;
+            else if (inp == 'n') break main_loop;
+        }
     }
 
     return;
