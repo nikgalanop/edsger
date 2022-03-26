@@ -19,7 +19,7 @@
       try Some (StringSet.find filename set.s) with
           | Not_found -> None 
 
-    type token = 
+    (* type token = 
           T_eof | T_id | T_constint | T_constreal
         | T_constchar | T_string  
 
@@ -51,7 +51,7 @@
         (* ; ( ) [ ] { } *)
 
         | T_semicolon | T_leftpar | T_rightpar | T_leftsqbr 
-        | T_rightsqbr | T_leftbr | T_rightbr
+        | T_rightsqbr | T_leftbr | T_rightbr *)
 }
 
 (* Definitions Section *)
