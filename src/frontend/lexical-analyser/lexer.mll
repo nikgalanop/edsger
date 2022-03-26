@@ -92,10 +92,11 @@ rule lexer = parse
                             one column wide)." 
                             (Source: https://ocaml.org/api/Lexing.html)
                         *)
-                        if (pos.pos_cnum <> pos.pos_bol ) then 
+                      let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
+                        if (line_pos <> 0) then 
                         (
-                          Printf.eprintf "(File %s - Line %d) Directives should be in the beginning of a line.\n" 
-                              pos.pos_fname pos.pos_lnum;
+                          Printf.eprintf "(File %s - Line %d, Character %d) Directives should be in the beginning of a line.\n" 
+                              pos.pos_fname pos.pos_lnum (line_pos + 1);
                           exit 1;
                         );
                       let res = safe_find filename set in
@@ -198,8 +199,9 @@ rule lexer = parse
     
     |  _ as chr                                 { 
                                                   let pos = (Stack.top s).Lexing.lex_curr_p in  
-                                                    Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
-                                                      pos.pos_fname pos.pos_lnum chr (Char.code chr);
+                                                  let chr_pos = pos.pos_cnum - pos.pos_bol + 1   in
+                                                    Printf.eprintf "(File '%s' - Line %d, Character %d) Invalid character: '%c' (ASCII Code: %d)\n" 
+                                                      pos.pos_fname pos.pos_lnum chr_pos chr (Char.code chr);
                                                   lexer (Stack.top s) 
                                                 }
 
