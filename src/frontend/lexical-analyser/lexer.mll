@@ -97,7 +97,6 @@ rule lexer = parse
                         (
                           Printf.eprintf "(File %s - Line %d, Character %d) Directives should be in the beginning of a line.\n" 
                               pos.pos_fname pos.pos_lnum (line_pos + 1);
-                          exit 1;
                         );
                       let res = safe_find filename set in
                       (
