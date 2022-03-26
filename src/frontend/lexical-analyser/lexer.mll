@@ -76,7 +76,7 @@ let one_liner = "//" [^'\n']* '\n'
 
 (* Have not taken care of the "starting at the beginning of line" requirement *)
 let name = '\"' (([^'"' '\n'])+ as filename) '\"'
-let incl = "#include" whitespace* name 
+let incl = "#include" whitespace* name
 
 (* Rules Section *)
 
@@ -84,14 +84,29 @@ rule lexer = parse
 
     (* Directives *)
 
-      incl          { 
+      incl    {       let pos = (Stack.top s).Lexing.lex_start_p in
+                        (*  
+                            " The difference between pos_cnum and pos_bol 
+                            is the character offset within the line (i.e.
+                            the column number, assuming each character is
+                            one column wide)." 
+                            (Source: https://ocaml.org/api/Lexing.html)
+                        *)
+                        if (pos.pos_cnum <> pos.pos_bol ) then 
+                        (
+                          Printf.eprintf "(File %s - Line %d) Directives should be in the beginning of a line.\n" 
+                              pos.pos_fname pos.pos_lnum;
+                          exit 1;
+                        );
                       let res = safe_find filename set in
                       (
                         match res with
                           | None    ->  ( 
                                           set.s <- StringSet.add filename set.s;
                                           let c = open_in filename in
+                                          (
                                             Stack.push (Lexing.from_channel c) s;
+                                          );
                                           Lexing.set_filename (Stack.top s) filename;
                                         )
                           | _       -> ()
@@ -175,16 +190,15 @@ rule lexer = parse
     | whitespace+                               { lexer (Stack.top s) } (* Ignore all whitespaces *)
 
     |  eof                                      { 
-                                                  let t = Stack.pop s;
-                                                  in
+                                                  let t = Stack.pop s; in
                                                     if (not (Stack.is_empty s) ) 
                                                     then ( lexer (Stack.top s) )
                                                     else ( Stack.push t s; T_eof ) 
                                                 }
     
     |  _ as chr                                 { 
-                                                  let pos = (Stack.top s).Lexing.lex_curr_p 
-                                                  in Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
+                                                  let pos = (Stack.top s).Lexing.lex_curr_p in  
+                                                    Printf.eprintf "(File '%s' - Line %d) Invalid character: '%c' (ASCII Code: %d)\n" 
                                                       pos.pos_fname pos.pos_lnum chr (Char.code chr);
                                                   lexer (Stack.top s) 
                                                 }
