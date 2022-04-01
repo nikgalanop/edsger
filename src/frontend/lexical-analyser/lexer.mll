@@ -94,19 +94,16 @@ rule lexer = parse
                         *)
                       let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
                         if (line_pos <> 0) then 
-                        (
                           Printf.eprintf "(File %s - Line %d, Character %d) Directives should be in the beginning of a line.\n" 
                               pos.pos_fname pos.pos_lnum (line_pos + 1);
-                        );
+
                       let res = safe_find filename set in
                       (
                         match res with
                           | None    ->  ( 
                                           set.s <- StringSet.add filename set.s;
                                           let c = open_in filename in
-                                          (
                                             Stack.push (Lexing.from_channel c) s;
-                                          );
                                           Lexing.set_filename (Stack.top s) filename;
                                         )
                           | _       -> ()
