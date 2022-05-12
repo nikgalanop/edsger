@@ -202,7 +202,7 @@ and multi_comment = parse
 
 (* Trailer Section *)
 {
-    let string_of_token token =
+    (* let string_of_token token =
     match token with
           T_eof             -> "T_eof"
         | T_id              -> "T_id"
@@ -270,5 +270,5 @@ and multi_comment = parse
       Printf.printf "token=%s, lexeme=\"%s\"\n"
           (string_of_token token) (Lexing.lexeme (Stack.top s));
       if token <> T_eof then loop () in
-    loop ()
+    loop () *)
 }

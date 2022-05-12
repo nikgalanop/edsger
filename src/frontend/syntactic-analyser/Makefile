@@ -23,7 +23,7 @@ Lexer.ml: Lexer.mll
 	ocamllex -o $@ $<
 
 Parser.ml Parser.mli: Parser.mly
-	ocamlyacc -v Parser.mly
+	menhir -v Parser.mly
 
 .PHONY: clean distclean
 
@@ -33,7 +33,7 @@ depend: Lexer.ml Lexer.mli Parser.ml Parser.mli Main.ml
 	$(OCAMLDEP) $^ > .depend
 
 clean:
-	$(RM) lexer.ml *.cmo *.cmi *~
+	$(RM) Lexer.ml Parser.ml Parser.mli *.automaton *.conflicts *.cmo *.cmi *~
 
 distclean: clean
-	$(RM) lexer$(EXE)
+	$(RM) main$(EXE)
