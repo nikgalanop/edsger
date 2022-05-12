@@ -61,6 +61,7 @@
  * Ternary operator has this precedence [?:]
  * Paragraph 4.2.1: http://cambium.inria.fr/~fpottier/menhir/manual.html 
  */
+%left TTERNARY
 
 %left T_or
 %left T_and 
@@ -69,6 +70,7 @@
 %left T_times T_div T_mod 
 
 /* Type conversion has this precedence [()] */
+%left TCAST
 
 %nonassoc T_plusplus T_minusminus
 %nonassoc T_new T_delete
@@ -77,6 +79,9 @@
  * Same "symbol" for different operators. How do we face that. 
  * https://www.gnu.org/software/bison/manual/html_node/Contextual-Precedence.html 
  */
+%nonassoc TUOP
+%nonassoc TUAPOST
+%nonassoc TARR TFUNC  // Rethink associativity of these "tokens"
 
 %start program
 %type <unit> program
@@ -202,15 +207,15 @@ expression:
         | T_constreal                                           { () }
         | T_string                                              { () }
         | T_id T_leftpar T_rightpar                   { () }
-        | T_id T_leftpar expression_list T_rightpar   { () }
-        | expression T_leftsqbr expression T_rightsqbr          { () }
+        | T_id T_leftpar expression_list T_rightpar   %prec TFUNC { () }
+        | expression T_leftsqbr expression T_rightsqbr %prec TARR         { () }
         | unary_operator expression                             { () }
         | expression binary_operator expression                 { () }
         | unary_assignment expression                           { () }
-        | expression unary_assignment                           { () }
+        | expression unary_assignment     %prec TUAPOST                      { () }
         | expression binary_assignment expression               { () }
-        | T_leftpar type T_rightpar expression                  { () }
-        | expression T_question expression T_colon expression   { () }
+        | T_leftpar type T_rightpar expression                  %prec TCAST { () }
+        | expression T_question expression T_colon expression  %prec TTERNARY { () }
         | dynamic_allocation                                    { () }
         | T_delete expression                                   { () }
 ;
