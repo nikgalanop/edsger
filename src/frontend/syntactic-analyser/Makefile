@@ -19,11 +19,14 @@ OCAMLDEP=ocamldep
 %.cmo %.cmi: %.ml
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 
+edsger$(EXE): Lexer.cmo Parser.cmo Main.cmo
+	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
+
 Lexer.ml: Lexer.mll
 	ocamllex -o $@ $<
 
 Parser.ml Parser.mli: Parser.mly
-	menhir -v Parser.mly
+	menhir -v --infer Parser.mly
 
 .PHONY: clean distclean
 
@@ -36,4 +39,4 @@ clean:
 	$(RM) Lexer.ml Parser.ml Parser.mli *.automaton *.conflicts *.cmo *.cmi *~
 
 distclean: clean
-	$(RM) main$(EXE)
+	$(RM) edsger$(EXE)

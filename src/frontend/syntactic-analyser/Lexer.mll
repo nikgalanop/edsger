@@ -19,6 +19,15 @@
       try Some (StringSet.find filename set.s) with
           | Not_found -> None 
 
+    let init = 
+        Stack.push (Lexing.from_channel stdin) s
+
+    let push_buffer buffer =
+        Stack.push buffer s
+    
+    let current_buffer = 
+        Stack.top s
+
     (* type token = 
           T_eof | T_id | T_constint | T_constreal
         | T_constchar | T_string  
