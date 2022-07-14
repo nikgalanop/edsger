@@ -1,4 +1,5 @@
 %token T_eof
+%token T_include
 %token T_id 
 %token T_int T_constint 
 %token T_double T_constreal
@@ -36,7 +37,7 @@
 %token T_or 
 %token T_question 
 %token T_colon 
-%token T_comma 
+%token T_comma
 %token T_plusplus 
 %token T_minusminus 
 %token T_plusequals
@@ -52,10 +53,11 @@
 %token T_leftbr 
 %token T_rightbr
 
-%left T_comma
+%nonassoc LOW
+%nonassoc T_else
+%left  T_comma
 %right T_assign T_plusequals T_minusequals 
        T_timesequals T_divequals T_modequals
-
 /* 
  * Ternary operator has this precedence [?:]
  * Paragraph 4.2.1: http://cambium.inria.fr/~fpottier/menhir/manual.html 
@@ -77,78 +79,85 @@
 /* 
  * Same "symbol" for different operators. How do we face that. 
  * https://www.gnu.org/software/bison/manual/html_node/Contextual-Precedence.html 
- */
+ */ 
 %nonassoc TUOP
-%nonassoc TUAPOST
-%left T_leftsqbr TFUNC  // Rethink associativity of these "tokens"
+%left T_leftsqbr  // Rethink associativity of these "tokens"
 
 %start <unit> program
 
 %% /* Grammar rules and actions follow */
 
 program: 
-          nonempty_list(declaration) T_eof { () }
+        | nonempty_list(line) T_eof { () }
+
+line:
+        | declaration { () }
+        | T_include   { () }
+;
 
 declaration:  
-          variable_declaration   { () }
+        | variable_declaration   { () }
         | function_declaration   { () }
         | function_definition    { () }       
 ;
 
 variable_declaration: 
-          data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { () }
+        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { () }
 ;
 
+pointer:
+        | T_times pointer { () }
+        | %prec LOW { () }
+
 data_type: 
-          basic_data_type list(T_times) { () }
+        | basic_data_type pointer { () }
 ;
 
 %inline basic_data_type:
-          T_int      { () }
+        | T_int      { () }
         | T_char     { () }
         | T_bool     { () }
         | T_double   { () }
-        
 ;
 
 declarator: 
-          T_id option(bracketed_const_expression)    { () }
+        | T_id option(bracketed_const_expression)    { () }
 ;
 
 bracketed_const_expression:
-          T_leftsqbr const_expression T_rightsqbr { () }
+        | T_leftsqbr const_expression T_rightsqbr { () }
 ;
 
 function_declaration: 
-          result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { () }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { () }
 ;
 
 %inline function_header:                                                 
-          result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { () }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { () }
 ;
 
 %inline function_body:
-          T_leftbr list(declaration) list(statement) T_rightbr    { () } 
+        | T_leftbr list(declaration) list(statement) T_rightbr    { () } 
 ;
 
 %inline result_data_type:
-          data_type { () }
+        | data_type { () }
         | T_void    { () }
 ;
 
 parameter:
-          option(T_byref) data_type T_id     { () }
+        | option(T_byref) data_type T_id     { () }
 ;
 
 function_definition: 
-          function_header function_body   { () }
+        | function_header function_body   { () }
 ;
 
 statement:
-          T_semicolon                                                                         { () } 
+        | T_semicolon                                                                         { () } 
         | expression T_semicolon                                                              { () } 
         | T_leftbr list(statement) T_rightbr                                                  { () } 
-        | T_if T_leftpar expression T_rightpar statement                                      { () } 
+        | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { () } 
         | T_if T_leftpar expression T_rightpar statement T_else statement                     { () }  
         | T_for for_control statement                                                         { () }
         | T_id T_colon T_for for_control statement                                            { () }
@@ -158,11 +167,11 @@ statement:
 ;
 
 %inline for_control:
-         T_leftpar option(expression) T_semicolon option(expression) T_semicolon  option(expression) T_rightpar   { () }         
+        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon  option(expression) T_rightpar   { () }         
 ;
 
 expression:
-          T_id                                                                    { () }
+        | T_id                                                                    { () }
         | T_leftpar expression T_rightpar                                         { () }
         | T_true                                                                  { () }
         | T_false                                                                 { () }
@@ -171,29 +180,30 @@ expression:
         | T_constchar                                                             { () }
         | T_constreal                                                             { () }
         | T_string                                                                { () }
-        | T_id T_leftpar option(expression) T_rightpar             %prec TFUNC    { () } // PROBLEMATIC!!!!!
+      //  | T_id T_leftpar separated_list(T_comma, expression) T_rightpar           { () } // PROBLEMATIC!!!!!
         | expression T_leftsqbr expression T_rightsqbr                            { () }
         | unary_operator expression                             %prec TUOP        { () }
         | expression binary_operator expression                                   { () }
         | unary_assignment expression                                             { () }
-        | expression unary_assignment                           %prec TUAPOST     { () }
+        | expression unary_assignment                                             { () }
         | expression binary_assignment expression                                 { () }
         | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { () } // Not sure
         | expression T_question expression T_colon expression   %prec T_question  { () } // Not sure
-        | T_new data_type option(array_allocation)              %prec T_new       { () } // Not sure
+        | dynamic_allocation                                                      { () } // Not sure
         | T_delete expression                                                     { () }
 ; 
 
-array_allocation:
-          T_leftsqbr expression T_rightsqbr   { () }
+dynamic_allocation:
+        | T_new data_type T_leftsqbr expression T_rightsqbr   { () }
+        | T_new data_type { }
 ;
 
 const_expression:
-          expression   { () }
+        | expression   { () }
 ;
 
 %inline unary_operator:
-          T_ref     { () }    
+        | T_ref     { () }    
         | T_times   { () }
         | T_plus    { () }
         | T_minus   { () }
@@ -201,7 +211,7 @@ const_expression:
 ;
 
 %inline binary_operator:
-          T_times   { () }
+        | T_times   { () }
         | T_div     { () }
         | T_mod     { () }
         | T_plus    { () }
@@ -218,15 +228,16 @@ const_expression:
 ;
 
 %inline unary_assignment:
-          T_plusplus     { () }
+        | T_plusplus     { () }
         | T_minusminus   { () }
 ;
 
 %inline binary_assignment:
-          T_assign        { () }      
+        | T_assign        { () }      
         | T_timesequals   { () } 
         | T_divequals     { () }
         | T_modequals     { () }
         | T_plusequals    { () }
         | T_minusequals   { () }
 ;
+%%
