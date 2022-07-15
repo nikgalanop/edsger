@@ -180,7 +180,7 @@ expression:
         | T_constchar                                                             { () }
         | T_constreal                                                             { () }
         | T_string                                                                { () }
-      //  | T_id T_leftpar separated_list(T_comma, expression) T_rightpar           { () } // PROBLEMATIC!!!!!
+        | T_id T_leftpar option(expression) T_rightpar                            { () } // PROBLEMATIC!!!!! Maybe "flatten" commas that we face?
         | expression T_leftsqbr expression T_rightsqbr                            { () }
         | unary_operator expression                             %prec TUOP        { () }
         | expression binary_operator expression                                   { () }
@@ -240,4 +240,5 @@ const_expression:
         | T_plusequals    { () }
         | T_minusequals   { () }
 ;
+
 %%

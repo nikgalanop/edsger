@@ -57,19 +57,18 @@ rule lexer = parse
                             one column wide)." 
                             (Source: https://ocaml.org/api/Lexing.html)
                         *)
-                      let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
+                        let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
                         if (line_pos <> 0) then  
                         ( 
-                          Printf.eprintf "(File: '%s' - Line %d, Character %d) Directives should be in the beginning of a line.\n" 
-                                          pos.pos_fname pos.pos_lnum (line_pos + 1); 
+                          Utilities.print_msg pos "Directives should be in the beginning of a line" Utilities.Error;
                           exit 1
                         ) 
                         else
                         (
                           if (not @@ Sys.file_exists filename) then 
                           (
-                            Printf.eprintf "(File: '%s' - Line %d) Cannot include non-existing file '%s'.\n" 
-                                            pos.pos_fname pos.pos_lnum filename; 
+                            let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
+                            Utilities.print_msg pos msg Utilities.Error;
                             exit 1
                           )
                           else 
@@ -83,12 +82,15 @@ rule lexer = parse
                                     let c = Stdlib.open_in filename in
                                     ( 
                                       let lb = Lexing.from_channel c in
-                                        Lexing.set_filename lb filename;
-                                        let _ = Parser.program lexer lb in (* Use this when AST is implemented *)
-                                        ()
+                                      Lexing.set_filename lb filename;
+                                      let _ = Parser.program lexer lb in (* Use this when AST is implemented *)
+                                      ()
                                     )
                                   )
-                              | _       -> ()
+                              | _       -> ( 
+                                              let msg = Printf.sprintf "Tried to include '%s' twice" filename
+                                              in Utilities.print_msg pos msg Utilities.Warning;
+                                            )
                             );
                             Printf.printf "INCL\n";
                             T_include
@@ -178,9 +180,10 @@ rule lexer = parse
     
     |  _ as chr                                 { 
                                                   let pos = lexbuf.Lexing.lex_curr_p in  
-                                                  let chr_pos = pos.pos_cnum - pos.pos_bol + 1  in
-                                                    Printf.eprintf "(File: '%s' - Line %d, Column %d) Invalid character: '%c' (ASCII Code: %d)\n" 
-                                                      pos.pos_fname pos.pos_lnum chr_pos chr (Char.code chr);
+                                                  let msg = Printf.sprintf "Invalid Character '%c' (ASCII Code: %d)" 
+                                                             chr (Char.code chr)
+                                                  in
+                                                  Utilities.print_msg pos msg Utilities.Error;
                                                   lexer lexbuf 
                                                 }
 
