@@ -4,10 +4,17 @@
    parameter lists since we have to deal with 
    byref instances.
 *)
-
 type var = string
 type fname = string
 type label = string
+type uop = O_ref | O_dref | O_psgn | O_nsgn | O_neg
+type binop = O_times | O_div | O_mod | O_plus | O_minus
+             | O_lt | O_gt | O_ge | O_eq | O_neq 
+             | O_and | O_or | O_comma
+type uassign = O_plpl | O_mimi
+type bassign = O_asgn | O_mulasgn | O_divasgn 
+              | O_modasng | O_plasgn | O_minasgn
+
 
 type primitive = INT | CHAR | BOOL | DOUBLE 
 and vartype =  PTR of primitive * int
@@ -36,8 +43,12 @@ and ast_expr
   | E_char of char 
   | E_double of float 
   | E_string of string
+  | E_uop of uop * ast_expr
+  | E_binop of ast_expr * binop * ast_expr
+  | E_uasgnpre of uassign * ast_expr
+  | E_uasgnpost of ast_expr * uassign
+  | E_basgn of ast_expr * binop * ast_expr
   | TODO
-
 (* 
   Have to add "function calls", "array accesses",
   unary operators, binary operators, unary assignments 
