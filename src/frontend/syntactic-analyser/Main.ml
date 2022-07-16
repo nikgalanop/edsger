@@ -3,7 +3,12 @@ let main =
   else 
   (
     let fn = Sys.argv.(1) in
-      if (not @@ Sys.file_exists fn) then (Printf.eprintf "File: '%s' does not exist\n" fn; exit 1);
+      if (not @@ Sys.file_exists fn) then 
+        (
+          let msg = Printf.sprintf "File '%s' does not exist" fn in
+          Utilities.print_diagnostic ~p:None msg Utilities.Error;
+          exit 1
+        );
     let c = Stdlib.open_in fn in
     let lb = Lexing.from_channel c in 
       Lexing.set_filename lb fn;
@@ -11,9 +16,6 @@ let main =
         Parser.program Lexer.lexer lb; exit 0
     with _ -> 
         let pos = lb.Lexing.lex_curr_p in
-        (* let line_pos = (pos.pos_cnum - pos.pos_bol + 1) in *)
-        Utilities.print_msg pos "Syntax Error" Utilities.Error;
-        (* Printf.eprintf "(File: '%s' - Line %d, Column %d) Syntax Error\n"
-                            pos.pos_fname pos.pos_lnum line_pos *)
+        Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
   );   
   exit 1;
