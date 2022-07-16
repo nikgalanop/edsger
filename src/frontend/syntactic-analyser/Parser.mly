@@ -2,6 +2,7 @@
         open Ast
 %}
 
+(* Token Declarations *)
 %token T_eof T_include
 %token T_id 
 %token T_int T_constint 
@@ -9,15 +10,12 @@
 %token T_char T_constchar 
 %token T_string  
 %token T_bool  
-%token T_break  
+%token T_break T_continue  
 %token T_byref  
-%token T_continue  
-%token T_delete  
-%token T_else
+%token T_new T_delete  
 %token T_for  
 %token T_false  
-%token T_if  
-%token T_new 
+%token T_if T_else 
 %token T_NULL 
 %token T_return  
 %token T_true  
@@ -29,22 +27,17 @@
        T_div T_mod 
 %token T_ref 
 %token T_not T_and T_or 
-%token T_question 
-%token T_colon 
-%token T_comma
+%token T_question T_colon
+       T_comma T_semicolon
 %token T_plusplus T_minusminus 
-       T_plusequals T_minusequals 
-%token T_timesequals 
-%token T_divequals 
-%token T_modequals
-%token T_semicolon 
-%token T_leftpar 
-%token T_rightpar 
-%token T_leftsqbr 
-%token T_rightsqbr 
-%token T_leftbr 
-%token T_rightbr
+%token T_plusequals T_minusequals 
+       T_timesequals T_divequals 
+       T_modequals
+%token T_leftpar T_rightpar 
+       T_leftsqbr T_rightsqbr 
+       T_leftbr T_rightbr
 
+(* Precedence & Associativity Declarations *)
 %nonassoc LOW
 %nonassoc T_else
 %left  T_comma
@@ -71,6 +64,7 @@
 %nonassoc TUOP
 %left T_leftsqbr  // Rethink associativity of these "tokens"
 
+(* Type declarations *)
 %start program
 %type <ast_stmt list> program
 %type <ast_stmt> statement
