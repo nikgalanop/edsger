@@ -60,7 +60,7 @@ rule lexer = parse
                         let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
                         if (line_pos <> 0) then  
                         ( 
-                          Utilities.print_msg pos "Directives should be in the beginning of a line" Utilities.Error;
+                          Utilities.print_diagnostic ~p:(Some pos) "Directives should be in the beginning of a line" Utilities.Error;
                           exit 1
                         ) 
                         else
@@ -68,7 +68,7 @@ rule lexer = parse
                           if (not @@ Sys.file_exists filename) then 
                           (
                             let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
-                            Utilities.print_msg pos msg Utilities.Error;
+                            Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                             exit 1
                           )
                           else 
@@ -89,7 +89,7 @@ rule lexer = parse
                                   )
                               | _       -> ( 
                                               let msg = Printf.sprintf "Tried to include '%s' twice" filename
-                                              in Utilities.print_msg pos msg Utilities.Warning;
+                                              in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
                                             )
                             );
                             Printf.printf "INCL\n";
@@ -183,7 +183,7 @@ rule lexer = parse
                                                   let msg = Printf.sprintf "Invalid Character '%c' (ASCII Code: %d)" 
                                                              chr (Char.code chr)
                                                   in
-                                                  Utilities.print_msg pos msg Utilities.Error;
+                                                  Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                                                   lexer lexbuf 
                                                 }
 
