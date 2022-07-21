@@ -27,6 +27,8 @@ type parameter =
   byref : bool
 }
 
+
+(* We have to take care of initializations of the form int a[10]; *)
 type ast_decls 
   | D_var of var * vartype
   | D_fun of fname * rettype * (parameter list) option  (* Reconsider the parameter list type *)
