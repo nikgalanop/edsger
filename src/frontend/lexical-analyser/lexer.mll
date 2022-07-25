@@ -1,21 +1,26 @@
-(* To-do? *)
-(* Test whatever I've written up to this version. *)
-(* Character constants and strings? *)
-(* Handle #include *)
-(* Anything else? *)
-
-(* Edsger Lexical Analyser 
-   Heavily inspired by: 
-   https://courses.softlab.ntua.gr/compilers/2011a/examples/minibasic/OCaml/lexer/Lexer.mll *)
+(* 
+  Edsger Lexical Analyser 
+  Heavily inspired by: 
+  https://courses.softlab.ntua.gr/compilers/2011a/examples/minibasic/OCaml/lexer/Lexer.mll 
+*)
 
 (* Header Section *)
 
 {
+    let s :(Lexing.lexbuf Stack.t) = Stack.create()
+
+    module StringSet = Set.Make(String)
+    type globalset = {mutable s: StringSet.t}
+    let set: globalset = {s = StringSet.empty}
+    
+    let safe_find filename (set:globalset) = 
+      try Some (StringSet.find filename set.s) with
+          | Not_found -> None 
+
     type token = 
           T_eof | T_id | T_constint | T_constreal
         | T_constchar | T_string  
 
-        | T_comment
         (* Keywords *)
         (* bool break byref char continue delete
            double else for false if int
@@ -52,7 +57,7 @@
 let digit = ['0'-'9']
 let hex_digit = digit | ['a'-'f']
 let letter = ['a'-'z''A'-'Z']
-let whitespace = [' ''\n''\t']
+let whitespace = [' ''\t''\r']
 
 let id_trail = letter | digit | '_'
 
@@ -65,17 +70,51 @@ let esc_char = '\\' (['n''t''r''0''\\''\'''\"'] | ('x' hex_code))
 
 (* Comments Regex *)
 let one_liner = "//" [^'\n']* '\n'
-let multiliner = "/*" ([^'*']* | ('*'+ [^'/']) )* "*/" 
 (*  https://stackoverflow.com/a/32320759 *)
 
+(* Directives Regex *)
+
+(* Have not taken care of the "starting at the beginning of line" requirement *)
+let name = '\"' (([^'"' '\n'])+ as filename) '\"'
+let incl = "#include" whitespace* name
 
 (* Rules Section *)
 
 rule lexer = parse 
-    
+
+    (* Directives *)
+
+      incl    {       let pos = (Stack.top s).Lexing.lex_start_p in
+                        (*  
+                            " The difference between pos_cnum and pos_bol 
+                            is the character offset within the line (i.e.
+                            the column number, assuming each character is
+                            one column wide)." 
+                            (Source: https://ocaml.org/api/Lexing.html)
+                        *)
+                      let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
+                        if (line_pos <> 0) then 
+                          Printf.eprintf "(File %s - Line %d, Character %d) Directives should be in the beginning of a line.\n" 
+                              pos.pos_fname pos.pos_lnum (line_pos + 1);
+
+                      let res = safe_find filename set in
+                      (
+                        match res with
+                          | None    ->  ( 
+                                          set.s <- StringSet.add filename set.s;
+                                          let c = open_in filename in
+                                            Stack.push (Lexing.from_channel c) s;
+                                          Lexing.set_filename (Stack.top s) filename;
+                                        )
+                          | _       -> ()
+                      );
+                        lexer (Stack.top s)
+                    } (* In case we face a cyclical inclusion or many files including one file,
+                         we ignore the latest problematic inclusion *)
+
     (* Keywords *)
 
-      "bool"        { T_bool }
+    | "bool"        { T_bool }
     | "break"       { T_break }
     | "byref"       { T_byref }
     | "char"        { T_char }
@@ -134,7 +173,7 @@ rule lexer = parse
 
     (* Rest *)
 
-    | letter (id_trail)+                        { T_id }        (* Identifiers *)
+    | letter (id_trail)*                        { T_id }        (* Identifiers *)
     | digit+                                    { T_constint }  (* Unsigned integer constants *)
     | digit+ '.' exp_part?                      { T_constreal } (* Unsigned real constants *)
 
@@ -142,12 +181,34 @@ rule lexer = parse
     | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string } (* Simple incomplete implementation *)
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
-    | (one_liner | multiliner)                  { T_comment (* Added for testing only *) (*lexer lexbuf*) } (* Ignore all comments *)
-    | whitespace+                               { lexer lexbuf } (* Ignore all whitespaces *)
+    | one_liner                                 { Lexing.new_line (Stack.top s); lexer (Stack.top s) } (* Ignore one-liner comments *)
+    | "/*"                                      { multi_comment (Stack.top s) }  (* Ignore multi-line comments *)
+    | '\n'                                      { Lexing.new_line (Stack.top s); lexer (Stack.top s) } (* New Line *)
+    | whitespace+                               { lexer (Stack.top s) } (* Ignore all whitespaces *)
 
-    |  eof                                      { T_eof }
-    |  _ as chr                                 { Printf.eprintf "Invalid character: '%c' (ascii: %d)\n" chr (Char.code chr);
-                                                  lexer lexbuf }
+    |  eof                                      { 
+                                                  let t = Stack.pop s; in
+                                                    if (not (Stack.is_empty s) ) 
+                                                    then ( lexer (Stack.top s) )
+                                                    else ( Stack.push t s; T_eof ) 
+                                                }
+    
+    |  _ as chr                                 { 
+                                                  let pos = (Stack.top s).Lexing.lex_curr_p in  
+                                                  let chr_pos = pos.pos_cnum - pos.pos_bol + 1   in
+                                                    Printf.eprintf "(File '%s' - Line %d, Character %d) Invalid character: '%c' (ASCII Code: %d)\n" 
+                                                      pos.pos_fname pos.pos_lnum chr_pos chr (Char.code chr);
+                                                  lexer (Stack.top s) 
+                                                }
+
+(* Count the lines of the multilined comments *)
+and multi_comment = parse 
+    "*/"          { lexer (Stack.top s) }
+  | '\n'          { Lexing.new_line (Stack.top s); multi_comment (Stack.top s) }
+  | '*'           { multi_comment (Stack.top s) } (* Ignored *)
+  | [^'*''\n']    { multi_comment (Stack.top s) } (* Ignored. Handled above. *)
+
+
 
 (* Trailer Section *)
 {
@@ -159,10 +220,6 @@ rule lexer = parse
         | T_constreal       -> "T_constreal"
         | T_constchar       -> "T_constchar"
         | T_string          -> "T_string"
-
-        (* For testing purposes *)
-        | T_comment         -> "T_comment"
-        (* More to insert here *)
 
         | T_bool            -> "T_bool"
         | T_break           -> "T_break"
@@ -217,11 +274,11 @@ rule lexer = parse
         | T_rightbr         -> "T_rightbr"
 
   let main =
-    let lexbuf = Lexing.from_channel stdin in
+    Stack.push (Lexing.from_channel stdin) s;
     let rec loop () =
-      let token = lexer lexbuf in
+      let token = lexer (Stack.top s) in
       Printf.printf "token=%s, lexeme=\"%s\"\n"
-        (string_of_token token) (Lexing.lexeme lexbuf);
+          (string_of_token token) (Lexing.lexeme (Stack.top s));
       if token <> T_eof then loop () in
     loop ()
 }
