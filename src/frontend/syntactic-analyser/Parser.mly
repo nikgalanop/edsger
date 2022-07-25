@@ -108,7 +108,7 @@ data_type:
 ;
 
 declarator: 
-        | T_id option(bracketed_const_expression)    { () }
+        | T_id option(bracketed_const_expression)    { () } // Should somehow "remember" if var is an array or not.
 ;
 
 bracketed_const_expression:
@@ -124,7 +124,7 @@ function_declaration:
 ;
 
 %inline function_body:
-        | T_leftbr list(declaration) list(statement) T_rightbr    { () } 
+        | T_leftbr list(declaration) list(statement) T_rightbr { () } 
 ;
 
 %inline result_data_type:
@@ -133,7 +133,7 @@ function_declaration:
 ;
 
 parameter:
-        | option(T_byref) data_type T_id     { () }
+        | option(T_byref) data_type T_id     { { n = $3; t = $2; byref = ($1 = None) } }
 ;
 
 function_definition: 
@@ -141,43 +141,43 @@ function_definition:
 ;
 
 statement:
-        | T_semicolon                                                                         { () } 
-        | expression T_semicolon                                                              { () } 
-        | T_leftbr list(statement) T_rightbr                                                  { () } 
-        | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { () } 
-        | T_if T_leftpar expression T_rightpar statement T_else statement                     { () }  
-        | T_for for_control statement                                                         { () }
-        | T_id T_colon T_for for_control statement                                            { () }
-        | T_continue option(T_id) T_semicolon                                                 { () } 
-        | T_break option(T_id) T_semicolon                                                    { () } 
-        | T_return option(expression) T_semicolon                                             { () }
+        | T_semicolon                                                                         { () } // Should not do anything
+        | expression T_semicolon                                                              { S_TODO } 
+        | T_leftbr list(statement) T_rightbr                                                  { S_TODO } 
+        | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { S_if ($3, $5, None) } 
+        | T_if T_leftpar expression T_rightpar statement T_else statement                     { S_if ($3, $5, Some $7) }
+        | T_for for_control statement                                                         { S_TODO } // Will need some pattern matching
+        | T_id T_colon T_for for_control statement                                            { S_TODO } //      <<      <<       << 
+        | T_continue option(T_id) T_semicolon                                                 { S_cont $2 } 
+        | T_break option(T_id) T_semicolon                                                    { S_break $2 } 
+        | T_return option(expression) T_semicolon                                             { S_ret $2 }
 ;
 
 %inline for_control:
-        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon  option(expression) T_rightpar   { () }         
+        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { () }         
 ;
 
 expression:
         | T_id                                                                    { E_var $1 }
-        | T_leftpar expression T_rightpar                                         { E_TODO }
+        | T_leftpar expression T_rightpar                                         { E_TODO } // Bracketed expression
         | T_true                                                                  { E_bool true }
         | T_false                                                                 { E_bool false }
-        | T_NULL                                                                  { E_TODO }
+        | T_NULL                                                                  { E_TODO } // Null
         | T_constint                                                              { E_int $1 }
         | T_constchar                                                             { E_char $1 } 
         | T_constreal                                                             { E_double $1 }
         | T_string                                                                { E_str $1 }
-        | T_id T_leftpar option(expression) T_rightpar                            { E_TODO } // PROBLEMATIC!!!!! Maybe "flatten" commas that we face?
-        | expression T_leftsqbr expression T_rightsqbr                            { E_TODO }
-        | unary_operator expression                             %prec TUOP        { E_uop $1 $2 }
-        | expression binary_operator expression                                   { E_binop $1 $2 $3 }
-        | unary_assignment expression                                             { E_uasgnpre $1 $2 }
-        | expression unary_assignment                                             { E_uasgnpost $1 $2 }
-        | expression binary_assignment expression                                 { E_basgn $1 $2 $3 }
-        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_TODO } // Not sure: Typecasting
-        | expression T_question expression T_colon expression   %prec T_question  { E_ternary $1 $3 $5 } // Not sure: Ternary Operator
-        | dynamic_allocation                                                      { E_TODO } // Not sure
-        | T_delete expression                                                     { E_TODO }
+        | T_id T_leftpar option(expression) T_rightpar                            { E_TODO } // Function call
+        | expression T_leftsqbr expression T_rightsqbr                            { E_TODO } // Array access
+        | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
+        | expression binary_operator expression                                   { E_binop ($1, $2, $3) }
+        | unary_assignment expression                                             { E_uasgnpre ($1, $2) }
+        | expression unary_assignment                                             { E_uasgnpost ($1, $2) }
+        | expression binary_assignment expression                                 { E_basgn ($1, $2, $3) }
+        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_TODO } // Typecasting
+        | expression T_question expression T_colon expression   %prec T_question  { E_ternary ($1, $3, $5) } 
+        | dynamic_allocation                                                      { E_TODO } // Dynamic Allocation
+        | T_delete expression                                                     { E_TODO } //   <<   Deallocation
 ; 
 
 dynamic_allocation:
@@ -186,7 +186,7 @@ dynamic_allocation:
 ;
 
 const_expression:
-        | expression   { E_TODO }
+        | expression   { E_const $1 }
 ;
 
 %inline unary_operator:

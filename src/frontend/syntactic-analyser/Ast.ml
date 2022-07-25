@@ -60,6 +60,7 @@ and ast_expr
   | E_ternary of ast_expr * ast_expr * ast_expr
   | E_new of vartype * (ast_expr) option 
   | E_delete of ast_expr
+  | E_const of ast_expr
   | E_TODO
 (* 
   Have to add "function calls", "array accesses",
