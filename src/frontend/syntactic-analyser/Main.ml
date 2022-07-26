@@ -9,9 +9,7 @@ let main =
           Utilities.print_diagnostic ~p:None msg Utilities.Error;
           exit 1
         );
-    let c = Stdlib.open_in fn in
-    let lb = Lexing.from_channel c in 
-      Lexing.set_filename lb fn;
+    let lb = Lexer.add_file fn in 
     try
         Parser.program Lexer.lexer lb; exit 0
     with _ -> 

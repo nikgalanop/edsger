@@ -12,6 +12,13 @@
     type globalSet = StringSet.t ref
     let set : globalSet = ref StringSet.empty
 
+    let add_file filename = 
+        set := StringSet.add filename !set;
+        let c = Stdlib.open_in filename in
+        let lb = Lexing.from_channel c in
+        Lexing.set_filename lb filename;
+        lb
+
     let safe_find filename (set:globalSet) = 
       try Some (StringSet.find filename !set) with
           | Not_found -> None 
@@ -78,14 +85,9 @@ rule lexer = parse
                               match res with
                                   | None    ->  
                                   ( 
-                                    set := StringSet.add filename !set;
-                                    let c = Stdlib.open_in filename in
-                                    ( 
-                                      let lb = Lexing.from_channel c in
-                                      Lexing.set_filename lb filename;
-                                      let _ = Parser.program lexer lb in (* Use this when AST is implemented *)
-                                      ()
-                                    )
+                                    let lb = add_file filename in 
+                                    let _ = Parser.program lexer lb in (* Use this when AST is implemented *)
+                                    ()
                                   )
                               | _       -> ( 
                                               let msg = Printf.sprintf "Tried to include '%s' twice" filename
