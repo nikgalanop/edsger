@@ -3,7 +3,7 @@ type fname = string
 type label = string
 type uop = O_ref | O_dref | O_psgn | O_nsgn | O_neg
 type binop = O_times | O_div | O_mod | O_plus | O_minus
-             | O_lt | O_gt | O_ge | O_eq | O_neq 
+             | O_lt | O_gt | O_le | O_ge | O_eq | O_neq 
              | O_and | O_or | O_comma
 type uassign = O_plpl | O_mimi
 type bassign = O_asgn | O_mulasgn | O_divasgn 
@@ -13,12 +13,13 @@ and vartype =  PTR of primitive * int
 and rettype = VOID | RET of vartype
 and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
-type ast_decls =
+type ast_decl =
   | D_var of vartype * (var * ast_expr option) list
   | D_fun of  rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
+  | D_TODO
 and ast_body = 
-  | F_body of ast_decls list * ast_stmt list 
+  | F_body of ast_decl list * ast_stmt list 
 and ast_stmt =
   | S_NOP
   | S_expr of ast_expr
@@ -41,7 +42,7 @@ and ast_expr = (* Consider what to do with ( expr ). *)
   | E_binop of ast_expr * binop * ast_expr
   | E_uasgnpre of uassign * ast_expr
   | E_uasgnpost of ast_expr * uassign
-  | E_basgn of ast_expr * binop * ast_expr
+  | E_basgn of ast_expr * bassign * ast_expr
   | E_tcast of vartype * ast_expr
   | E_ternary of ast_expr * ast_expr * ast_expr
   | E_new of vartype * ast_expr option 

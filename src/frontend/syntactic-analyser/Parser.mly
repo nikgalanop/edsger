@@ -4,22 +4,21 @@
 
 (* Token Declarations *)
 %token T_eof T_include
-%token T_id 
-%token T_int T_constint 
-%token T_double T_constreal
-%token T_char T_constchar 
-%token T_string  
-%token T_bool  
+%token<string> T_id 
+%token T_int T_double 
+       T_char T_bool T_void
+%token<int> T_constint 
+%token<float> T_constreal
+%token<char> T_constchar 
+%token<string> T_string 
+%token T_false T_true
 %token T_break T_continue  
 %token T_byref  
 %token T_new T_delete  
 %token T_for  
-%token T_false  
 %token T_if T_else 
 %token T_NULL 
 %token T_return  
-%token T_true  
-%token T_void
 %token T_assign 
 %token T_eq T_neq T_gt
        T_lt T_ge T_le 
@@ -66,11 +65,17 @@
 
 (* Type declarations *)
 %start program
-%type <ast_stmt list> program
+%type <ast_decl list> program
 %type <ast_stmt> statement
 %type <ast_expr> expression
+%type <ast_decl> declaration
 %type <vartype> data_type
 %type <rettype> result_data_type
+%type <uop> unary_operator
+%type <binop> binary_operator
+%type <uassign> unary_assignment
+%type <bassign> binary_assignment
+
 // Add the types of T_constint etc.
 %% /* Grammar rules and actions follow */
 
@@ -79,7 +84,7 @@ program:
 
 line:
         | declaration { $1 }
-        | T_include   { S_TODO }
+        | T_include   { D_TODO }
 ;
 
 declaration:  
@@ -146,7 +151,6 @@ function_definition:
                                             D_fdef (r, f, p, $2) 
                                           }
 ;
-  | S_block of ast_stmt list
 
 statement:
         | T_semicolon                                                                         { S_NOP } 
@@ -181,7 +185,7 @@ expression:
         | T_constchar                                                             { E_char $1 } 
         | T_constreal                                                             { E_double $1 }
         | T_string                                                                { E_str $1 }
-        | T_id T_leftpar option(expression) T_rightpar                            { E_fcall ($1, $3) } // Recheck. Have to flatten commas of $3.
+        | T_id T_leftpar option(expression) T_rightpar                            { E_TODO } //E_fcall ($1, $3) }  Recheck. Have to flatten commas of $3.
         | expression T_leftsqbr expression T_rightsqbr                            { E_arracc ($1, $3) } 
         | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
         | expression binary_operator expression                                   { E_binop ($1, $2, $3) }

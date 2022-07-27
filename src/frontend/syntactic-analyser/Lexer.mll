@@ -60,7 +60,7 @@ rule lexer = parse
                         let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
                         if (line_pos <> 0) then  
                         ( 
-                          Utilities.print_msg pos "Directives should be in the beginning of a line" Utilities.Error;
+                          Utilities.print_diagnostic ~p:(Some pos) "Directives should be in the beginning of a line" Utilities.Error;
                           exit 1
                         ) 
                         else
@@ -68,7 +68,7 @@ rule lexer = parse
                           if (not @@ Sys.file_exists filename) then 
                           (
                             let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
-                            Utilities.print_msg pos msg Utilities.Error;
+                            Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                             exit 1
                           )
                           else 
@@ -89,7 +89,7 @@ rule lexer = parse
                                   )
                               | _       -> ( 
                                               let msg = Printf.sprintf "Tried to include '%s' twice" filename
-                                              in Utilities.print_msg pos msg Utilities.Warning;
+                                              in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
                                             )
                             );
                             Printf.printf "INCL\n";
@@ -160,12 +160,12 @@ rule lexer = parse
 
     (* Rest *)
 
-    | letter (id_trail)*                        { Printf.printf "ID: %s\n" @@ Lexing.lexeme lexbuf; T_id }        (* Identifiers *)
-    | digit+                                    { Printf.printf "INT: %s\n" @@ Lexing.lexeme lexbuf; T_constint }  (* Unsigned integer constants *)
-    | digit+ '.' exp_part?                      { Printf.printf "REAL: %s\n" @@ Lexing.lexeme lexbuf; T_constreal } (* Unsigned real constants *)
+    | letter (id_trail)*                        { Printf.printf "ID: %s\n" @@ Lexing.lexeme lexbuf; T_id (Lexing.lexeme lexbuf)}        (* Identifiers *)
+    | digit+                                    { Printf.printf "INT: %s\n" @@ Lexing.lexeme lexbuf; T_constint (int_of_string @@ Lexing.lexeme lexbuf)}  (* Unsigned integer constants *)
+    | digit+ '.' exp_part?                      { Printf.printf "REAL: %s\n" @@ Lexing.lexeme lexbuf; T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} (* Unsigned real constants *)
 
-    | '\'' (common_char | esc_char ) '\''       { Printf.printf "CHAR: %s\n" @@ Lexing.lexeme lexbuf; T_constchar }
-    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { Printf.printf "STR: %s\n" @@ Lexing.lexeme lexbuf; T_string } (* Simple incomplete implementation *)
+    | '\'' (common_char | esc_char ) '\''       { Printf.printf "CHAR: %s\n" @@ Lexing.lexeme lexbuf; T_constchar 'c'} (* Change this *)
+    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { Printf.printf "STR: %s\n" @@ Lexing.lexeme lexbuf; T_string (Lexing.lexeme lexbuf)} (* Simple incomplete implementation *)
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
     | one_liner                                 { Lexing.new_line lexbuf; lexer lexbuf } (* Ignore one-liner comments *)
@@ -183,7 +183,7 @@ rule lexer = parse
                                                   let msg = Printf.sprintf "Invalid Character '%c' (ASCII Code: %d)" 
                                                              chr (Char.code chr)
                                                   in
-                                                  Utilities.print_msg pos msg Utilities.Error;
+                                                  Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                                                   lexer lexbuf 
                                                 }
 

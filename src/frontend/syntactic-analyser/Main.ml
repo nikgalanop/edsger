@@ -13,7 +13,7 @@ let main =
     let lb = Lexing.from_channel c in 
       Lexing.set_filename lb fn;
     try
-        Parser.program Lexer.lexer lb; exit 0
+        let _ = Parser.program Lexer.lexer lb in (); exit 0
     with _ -> 
         let pos = lb.Lexing.lex_curr_p in
         Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
