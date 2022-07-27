@@ -89,7 +89,7 @@ declaration:
 ;
 
 variable_declaration: 
-        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   {  }
+        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { D_var ($1, $2) }
 ;
 
 pointer:
@@ -108,11 +108,11 @@ data_type:
 ;
 
 declarator: 
-        | T_id option(bracketed_const_expression)    { () } // Should somehow "remember" if var is an array or not.
+        | T_id option(bracketed_const_expression)    { ($1, $2) } // Should somehow "remember" if var is an array or not.
 ;
 
 bracketed_const_expression:
-        | T_leftsqbr const_expression T_rightsqbr { () }
+        | T_leftsqbr const_expression T_rightsqbr { $2 }
 ;
 
 function_declaration: 
@@ -120,11 +120,11 @@ function_declaration:
 ;
 
 %inline function_header:                                                 
-        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { () }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { ($2, $1, $4) }
 ;
 
 %inline function_body:
-        | T_leftbr list(declaration) list(statement) T_rightbr { () } 
+        | T_leftbr list(declaration) list(statement) T_rightbr { F_body ($2, $3) } 
 ;
 
 %inline result_data_type:
@@ -133,16 +133,23 @@ function_declaration:
 ;
 
 parameter:
-        | option(T_byref) data_type T_id     { { n = $3; t = $2; byref = ($1 = None) } }
+        | option(T_byref) data_type T_id     { 
+                                               match $1 with
+                                               | None -> BYVAL $2 $3
+                                               | _ -> BYREF $2 $3  
+                                              }
 ;
 
 function_definition: 
-        | function_header function_body   { () }
+        | function_header function_body   { 
+                                            let (f, r, p) = $1 in 
+                                            D_fdef (f, r, p, $2) 
+                                          }
 ;
 
 statement:
-        | T_semicolon                                                                         { () } // Should not do anything
-        | expression T_semicolon                                                              { S_TODO } 
+        | T_semicolon                                                                         { S_NOP } 
+        | expression T_semicolon                                                              { S_expr $1 } 
         | T_leftbr list(statement) T_rightbr                                                  { S_TODO } 
         | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { S_if ($3, $5, None) } 
         | T_if T_leftpar expression T_rightpar statement T_else statement                     { S_if ($3, $5, Some $7) }
@@ -162,7 +169,7 @@ expression:
         | T_leftpar expression T_rightpar                                         { E_TODO } // Bracketed expression
         | T_true                                                                  { E_bool true }
         | T_false                                                                 { E_bool false }
-        | T_NULL                                                                  { E_TODO } // Null
+        | T_NULL                                                                  { E_NULL } // Null
         | T_constint                                                              { E_int $1 }
         | T_constchar                                                             { E_char $1 } 
         | T_constreal                                                             { E_double $1 }
