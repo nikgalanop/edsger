@@ -25,14 +25,14 @@ edsger$(EXE): Utilities.cmo Parser.cmo Lexer.cmo Main.cmo
 Lexer.ml: Lexer.mll
 	ocamllex -o $@ $<
 
-Parser.ml Parser.mli: Parser.mly
+Parser.ml Parser.mli: Parser.mly 
 	menhir -v --infer Parser.mly
 
 .PHONY: clean distclean default
 
 -include .depend
 
-depend: Lexer.ml Lexer.mli Parser.ml Parser.mli Main.ml Utilities.ml Utilities.mli
+depend: Ast.ml Lexer.ml Lexer.mli Parser.ml Parser.mli Main.ml Utilities.mli Utilities.ml
 	$(OCAMLDEP) $^ > .depend
 
 clean:

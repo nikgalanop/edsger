@@ -146,6 +146,7 @@ function_definition:
                                             D_fdef (r, f, p, $2) 
                                           }
 ;
+  | S_block of ast_stmt list
 
 statement:
         | T_semicolon                                                                         { S_NOP } 
