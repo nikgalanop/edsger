@@ -1,5 +1,5 @@
 %{
-        open Ast
+    open Ast
 %}
 
 (* Token Declarations *)
@@ -97,7 +97,7 @@ pointer:
         | %prec LOW { 0 }
 
 data_type: 
-        | basic_data_type pointer { PTR $1 $2 }
+        | basic_data_type pointer { PTR ($1, $2) }
 ;
 
 %inline basic_data_type:
@@ -108,7 +108,7 @@ data_type:
 ;
 
 declarator: 
-        | T_id option(bracketed_const_expression)    { ($1, $2) } // Should somehow "remember" if var is an array or not.
+        | T_id option(bracketed_const_expression)    { ($1, $2) }
 ;
 
 bracketed_const_expression:
@@ -116,11 +116,11 @@ bracketed_const_expression:
 ;
 
 function_declaration: 
-        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { () }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { D_fun ($1, $2, $4) }
 ;
 
 %inline function_header:                                                 
-        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { ($2, $1, $4) }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { ($1, $2, $4) }
 ;
 
 %inline function_body:
@@ -135,33 +135,39 @@ function_declaration:
 parameter:
         | option(T_byref) data_type T_id     { 
                                                match $1 with
-                                               | None -> BYVAL $2 $3
-                                               | _ -> BYREF $2 $3  
-                                              }
+                                               | None -> BYVAL ($2, $3)
+                                               | _ -> BYREF ($2, $3)  
+                                             }
 ;
 
 function_definition: 
         | function_header function_body   { 
-                                            let (f, r, p) = $1 in 
-                                            D_fdef (f, r, p, $2) 
+                                            let (r, f, p) = $1 in 
+                                            D_fdef (r, f, p, $2) 
                                           }
 ;
 
 statement:
         | T_semicolon                                                                         { S_NOP } 
         | expression T_semicolon                                                              { S_expr $1 } 
-        | T_leftbr list(statement) T_rightbr                                                  { S_TODO } 
+        | T_leftbr list(statement) T_rightbr                                                  { S_block $2 } 
         | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { S_if ($3, $5, None) } 
         | T_if T_leftpar expression T_rightpar statement T_else statement                     { S_if ($3, $5, Some $7) }
-        | T_for for_control statement                                                         { S_TODO } // Will need some pattern matching
-        | T_id T_colon T_for for_control statement                                            { S_TODO } //      <<      <<       << 
+        | T_for for_control statement                                                         { 
+                                                                                                let (a, b, c) = $2 in
+                                                                                                S_for (a, b, c, $3, None) 
+                                                                                              } 
+        | T_id T_colon T_for for_control statement                                            { 
+                                                                                                let (a, b, c) = $4 in
+                                                                                                S_for (a, b, c, $5, Some $1) 
+                                                                                              }
         | T_continue option(T_id) T_semicolon                                                 { S_cont $2 } 
         | T_break option(T_id) T_semicolon                                                    { S_break $2 } 
         | T_return option(expression) T_semicolon                                             { S_ret $2 }
 ;
 
 %inline for_control:
-        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { () }         
+        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { ($2, $4, $6) }         
 ;
 
 expression:
@@ -169,31 +175,31 @@ expression:
         | T_leftpar expression T_rightpar                                         { E_TODO } // Bracketed expression
         | T_true                                                                  { E_bool true }
         | T_false                                                                 { E_bool false }
-        | T_NULL                                                                  { E_NULL } // Null
+        | T_NULL                                                                  { E_NULL } 
         | T_constint                                                              { E_int $1 }
         | T_constchar                                                             { E_char $1 } 
         | T_constreal                                                             { E_double $1 }
         | T_string                                                                { E_str $1 }
-        | T_id T_leftpar option(expression) T_rightpar                            { E_TODO } // Function call
-        | expression T_leftsqbr expression T_rightsqbr                            { E_TODO } // Array access
+        | T_id T_leftpar option(expression) T_rightpar                            { E_fcall ($1, $3) } // Recheck. Have to flatten commas of $3.
+        | expression T_leftsqbr expression T_rightsqbr                            { E_arracc ($1, $3) } 
         | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
         | expression binary_operator expression                                   { E_binop ($1, $2, $3) }
         | unary_assignment expression                                             { E_uasgnpre ($1, $2) }
         | expression unary_assignment                                             { E_uasgnpost ($1, $2) }
         | expression binary_assignment expression                                 { E_basgn ($1, $2, $3) }
-        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_TODO } // Typecasting
+        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_tcast ($2, $4) } 
         | expression T_question expression T_colon expression   %prec T_question  { E_ternary ($1, $3, $5) } 
-        | dynamic_allocation                                                      { E_TODO } // Dynamic Allocation
-        | T_delete expression                                                     { E_TODO } //   <<   Deallocation
+        | dynamic_allocation                                                      { $1 } 
+        | T_delete expression                                                     { E_delete $2 } 
 ; 
 
 dynamic_allocation:
-        | T_new data_type T_leftsqbr expression T_rightsqbr   { E_TODO }
-        | T_new data_type { E_TODO }
+        | T_new data_type T_leftsqbr expression T_rightsqbr   { E_new ($2, Some $4) }
+        | T_new data_type { E_new ($2, None) }
 ;
 
 const_expression:
-        | expression   { E_const $1 }
+        | expression   { $1 } // Do we need something more implicit for constant expressions?
 ;
 
 %inline unary_operator:

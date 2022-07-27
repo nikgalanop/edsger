@@ -1,9 +1,3 @@
-(* 
-   We most probably need something more powerful 
-   rather than a simple D_var list for function 
-   parameter lists since we have to deal with 
-   byref instances.
-*)
 type var = string
 type fname = string
 type label = string
@@ -19,23 +13,13 @@ and vartype =  PTR of primitive * int
 and rettype = VOID | RET of vartype
 and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
-(* Choose which one of the parameter type definitions you prefer *)
-(* type parameter = 
-{
-  n : var; 
-  t : vartype; 
-  byref : bool
-} *)
-
-
-(* We have to take care of declarations of the form int a[10];  Also take care of chained declarations. *)
-type ast_decls 
+type ast_decls =
   | D_var of vartype * (var * ast_expr option) list
-  | D_fun of fname * rettype * parameter list  
-  | D_fdef of fname * rettype * parameter list * ast_body
-and ast_body
+  | D_fun of  rettype * fname * parameter list  
+  | D_fdef of rettype * fname * parameter list * ast_body
+and ast_body = 
   | F_body of ast_decls list * ast_stmt list 
-and ast_stmt
+and ast_stmt =
   | S_NOP
   | S_expr of ast_expr
   | S_block of ast_stmt list
@@ -45,7 +29,7 @@ and ast_stmt
   | S_break of label option
   | S_ret of ast_expr option
   | S_TODO
-and ast_expr (* Consider what to do with ( expr ). *)
+and ast_expr = (* Consider what to do with ( expr ). *)
   | E_var of var
   | E_int of int 
   | E_char of char 

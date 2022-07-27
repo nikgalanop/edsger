@@ -1,4 +1,4 @@
-type mode = Warning | Error;;
+type mode = Warning | Error
 
 let starting_text = function 
     | Error -> "31mError"
