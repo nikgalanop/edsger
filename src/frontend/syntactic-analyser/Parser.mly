@@ -4,7 +4,7 @@
 
 (* Token Declarations *)
 %token T_eof 
-%token <ast_decl list> T_include
+%token <Ast.ast> T_include
 %token <string> T_id 
 %token T_int T_double 
        T_char T_bool T_void
@@ -66,7 +66,7 @@
 
 (* Type declarations *)
 %start program
-%type <ast> program
+%type <Ast.ast> program
 %type <ast_stmt> statement
 %type <ast_expr> expression
 %type <ast_decl> declaration
@@ -177,7 +177,7 @@ statement:
 
 expression:
         | T_id                                                                    { E_var $1 }
-        | T_leftpar expression T_rightpar                                         { E_brack $1 } // Bracketed expression
+        | T_leftpar expression T_rightpar                                         { E_brack $2 } // Bracketed expression
         | T_true                                                                  { E_bool true }
         | T_false                                                                 { E_bool false }
         | T_NULL                                                                  { E_NULL } 
@@ -190,15 +190,15 @@ expression:
                                                                                     | Some e -> 
                                                                                         let rec flatten expr acc =
                                                                                             match expr with
-                                                                                            | E_comma (x, y) -> flatten (y :: acc) x
+                                                                                            | E_binop (x, O_comma, y) -> flatten x (y :: acc)
                                                                                             | _ -> expr :: acc
-                                                                                        in E_fcall ($1, flatten [] e) 
+                                                                                        in E_fcall ($1, flatten e []) 
                                                                                   } // Comma is left associative.
         | expression T_leftsqbr expression T_rightsqbr                            { E_arracc ($1, $3) } 
         | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
         | expression binary_operator expression                                   { E_binop ($1, $2, $3) }
         | unary_assignment expression                                             { E_uasgnpre ($1, $2) }
-        | expression unary_assignment                                             { E_uasgnpost ($1, $2) }
+        | expression unary_assignment                                             { E_uasgnpost ($2, $1) }
         | expression binary_assignment expression                                 { E_basgn ($1, $2, $3) }
         | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_tcast ($2, $4) } 
         | expression T_question expression T_colon expression   %prec T_question  { E_ternary ($1, $3, $5) } 
@@ -249,7 +249,7 @@ const_expression:
         | T_assign        { O_asgn }      
         | T_timesequals   { O_mulasgn } 
         | T_divequals     { O_divasgn  }
-        | T_modequals     { O_modasng }
+        | T_modequals     { O_modasgn }
         | T_plusequals    { O_plasgn }
         | T_minusequals   { O_minasgn }
 ;

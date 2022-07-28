@@ -9,11 +9,9 @@ let main =
           Utilities.print_diagnostic ~p:None msg Utilities.Error;
           exit 1
         );
-    let c = Stdlib.open_in fn in
-    let lb = Lexing.from_channel c in 
-      Lexing.set_filename lb fn;
+    let lb = Lexer.add_file fn in 
     try
-        let _ = Parser.program Lexer.lexer lb in (); exit 0
+        let t = Parser.program Lexer.lexer lb in Ast.print_ast t; exit 0
     with _ -> 
         let pos = lb.Lexing.lex_curr_p in
         Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
