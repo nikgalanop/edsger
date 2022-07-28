@@ -66,7 +66,7 @@
 
 (* Type declarations *)
 %start program
-%type <ast_decl list> program
+%type <ast> program
 %type <ast_stmt> statement
 %type <ast_expr> expression
 %type <ast_decl> declaration
@@ -80,10 +80,10 @@
 %% /* Grammar rules and actions follow */
 
 program: 
-        | nonempty_list(line) T_eof { $1 }
+        | nonempty_list(line) T_eof { List.flatten $1 } // Maybe find a more efficient way of writing?
 
 line:
-        | declaration { $1 }
+        | declaration { [$1] } // Don't quite like that
         | T_include   { $1 }
 ;
 
@@ -177,7 +177,7 @@ statement:
 
 expression:
         | T_id                                                                    { E_var $1 }
-        | T_leftpar expression T_rightpar                                         { E_TODO } // Bracketed expression
+        | T_leftpar expression T_rightpar                                         { E_brack $1 } // Bracketed expression
         | T_true                                                                  { E_bool true }
         | T_false                                                                 { E_bool false }
         | T_NULL                                                                  { E_NULL } 
@@ -185,7 +185,15 @@ expression:
         | T_constchar                                                             { E_char $1 } 
         | T_constreal                                                             { E_double $1 }
         | T_string                                                                { E_str $1 }
-        | T_id T_leftpar option(expression) T_rightpar                            { E_TODO } //E_fcall ($1, $3) }  Recheck. Have to flatten commas of $3.
+        | T_id T_leftpar option(expression) T_rightpar                            { match $3 with
+                                                                                    | None -> E_fcall ($1, [])
+                                                                                    | Some e -> 
+                                                                                        let rec flatten expr acc =
+                                                                                            match expr with
+                                                                                            | E_comma (x, y) -> flatten (y :: acc) x
+                                                                                            | _ -> expr :: acc
+                                                                                        in E_fcall ($1, flatten [] e) 
+                                                                                  } // Comma is left associative.
         | expression T_leftsqbr expression T_rightsqbr                            { E_arracc ($1, $3) } 
         | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
         | expression binary_operator expression                                   { E_binop ($1, $2, $3) }

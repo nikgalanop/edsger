@@ -49,4 +49,27 @@ and ast_expr = (* Consider what to do with ( expr ). *)
   | E_delete of ast_expr
   | E_fcall of fname * ast_expr list  
   | E_arracc of ast_expr * ast_expr
+  | E_brack of ast_expr 
   | E_TODO
+and ast = ast_decl list
+
+(* let primitive_str t =
+  match t with 
+  | INT -> "INT"  
+  | CHAR -> "CHAR"
+  | BOOL -> "BOOL"
+  | DOUBLE -> "DOUBLE"
+
+let print_decl d = 
+  match d with
+  | D_var (PTR(t, p), l) -> Printf.printf "D_var (%s%d, %d)\n" (primitive_str t) p (List.length l)
+  | D_fun (VOID, n, p) -> Printf.printf "D_fun (VOID, %s, %n)\n" n (List.length p)  
+  | D_fun (RET t, n, p) -> Printf.printf "D_fun (%s, %s, %n)\n" (primitive_str t) n (List.length p)  
+  | D_fdef (VOID, n, p, b) -> Printf.printf "D_fdef (VOID, %s, %n, *TO DO*)\n" n (List.length p)
+  | D_fdef (RET t, n, p, b) -> Printf.printf "D_fdef (%s, %s, %n, *TO DO*)\n" (primitive_str t) n (List.length p)
+  | D_TODO -> Printf.printf "D_TODO ()\n" *)
+
+let print_ast ast = 
+  List.iter print_decl ast
+
+  
