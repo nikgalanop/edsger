@@ -30,7 +30,7 @@ and ast_stmt =
   | S_break of label option
   | S_ret of ast_expr option
   | S_TODO
-and ast_expr = (* Consider what to do with ( expr ). *)
+and ast_expr = 
   | E_var of var
   | E_int of int 
   | E_char of char 
