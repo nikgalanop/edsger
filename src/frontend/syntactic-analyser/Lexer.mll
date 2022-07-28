@@ -1,9 +1,3 @@
-(* 
-  Edsger Lexical Analyser 
-  Heavily inspired by: 
-  https://courses.softlab.ntua.gr/compilers/2011a/examples/minibasic/OCaml/lexer/Lexer.mll 
-*)
-
 (* Header Section *)
 
 {
@@ -35,10 +29,8 @@ let esc_char = '\\' (['n''t''r''0''\\''\'''\"'] | ('x' hex_code))
 
 (* Comments Regex *)
 let one_liner = "//" [^'\n']* '\n'
-(*  https://stackoverflow.com/a/32320759 *)
 
 (* Directives Regex *)
-
 let name = '\"' (([^'"'' ''\t''\n'])+ as filename) '\"' 
 let incl = "#include" whitespace* name
 
@@ -50,14 +42,8 @@ rule lexer = parse
 
       incl    {      
                       let pos = lexbuf.Lexing.lex_start_p in
-                        (*  
-                            " The difference between pos_cnum and pos_bol 
-                            is the character offset within the line (i.e.
-                            the column number, assuming each character is
-                            one column wide)." 
-                            (Source: https://ocaml.org/api/Lexing.html)
-                        *)
-                        let line_pos = pos.pos_cnum - pos.pos_bol in (* Position of incl munch's first character in line *)
+
+                        let line_pos = pos.pos_cnum - pos.pos_bol in
                         if (line_pos <> 0) then  
                         ( 
                           Utilities.print_diagnostic ~p:(Some pos) "Directives should be in the beginning of a line" Utilities.Error;
@@ -73,6 +59,7 @@ rule lexer = parse
                           )
                           else 
                           (
+                            Printf.printf "INCL\n";
                             let res = safe_find filename set in
                             (
                               match res with
@@ -83,28 +70,26 @@ rule lexer = parse
                                     ( 
                                       let lb = Lexing.from_channel c in
                                       Lexing.set_filename lb filename;
-                                      let _ = Parser.program lexer lb in (* Use this when AST is implemented *)
-                                      ()
+                                      let t = Parser.program lexer lb in (* Use this when AST is implemented *)
+                                      T_include t
                                     )
                                   )
                               | _       -> ( 
                                               let msg = Printf.sprintf "Tried to include '%s' twice" filename
                                               in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
+                                              T_include [];
                                             )
                             );
-                            Printf.printf "INCL\n";
-                            T_include
                           )
                        )
-              } (* In case we face a cyclical inclusion or many files including one file,
-                   we ignore the latest problematic inclusion *)
+              } 
 
     (* Keywords *)
 
     | "bool"        { Printf.printf "BOOL: %s\n" @@ Lexing.lexeme lexbuf; T_bool }
     | "break"       { Printf.printf "BREAK: %s\n" @@ Lexing.lexeme lexbuf; T_break }
     | "byref"       { Printf.printf "BYREF: %s\n" @@ Lexing.lexeme lexbuf; T_byref }
-    | "char"        { Printf.printf "CHAR: %s\n" @@ Lexing.lexeme lexbuf; T_char }
+    | "char"        { Printf.printf "CHAR_T: %s\n" @@ Lexing.lexeme lexbuf; T_char }
     | "continue"    { Printf.printf "CONTINUE: %s\n" @@ Lexing.lexeme lexbuf; T_continue }
     | "delete"      { Printf.printf "DEL: %s\n" @@ Lexing.lexeme lexbuf; T_delete }
     | "double"      { Printf.printf "DOUBLE_T: %s\n" @@ Lexing.lexeme lexbuf; T_double }
@@ -164,8 +149,13 @@ rule lexer = parse
     | digit+                                    { Printf.printf "INT: %s\n" @@ Lexing.lexeme lexbuf; T_constint (int_of_string @@ Lexing.lexeme lexbuf)}  (* Unsigned integer constants *)
     | digit+ '.' exp_part?                      { Printf.printf "REAL: %s\n" @@ Lexing.lexeme lexbuf; T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} (* Unsigned real constants *)
 
-    | '\'' (common_char | esc_char ) '\''       { Printf.printf "CHAR: %s\n" @@ Lexing.lexeme lexbuf; T_constchar 'c'} (* Change this *)
-    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { Printf.printf "STR: %s\n" @@ Lexing.lexeme lexbuf; T_string (Lexing.lexeme lexbuf)} (* Simple incomplete implementation *)
+    | '\'' (common_char | esc_char as c) '\''       {  
+                                                       Printf.printf "CHAR: %s\n" @@ Lexing.lexeme lexbuf; 
+                                                       match c with 
+                                                       | "\\0" -> T_constchar (Char.chr 0)
+                                                       | _ -> T_constchar (Scanf.unescaped c).[0] 
+                                                    } 
+    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { Printf.printf "STR: %s\n" @@ Lexing.lexeme lexbuf; T_string (Lexing.lexeme lexbuf)} 
     (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
 
     | one_liner                                 { Lexing.new_line lexbuf; lexer lexbuf } (* Ignore one-liner comments *)
@@ -195,4 +185,5 @@ and multi_comment = parse
   | [^'*''\n']    { multi_comment lexbuf } (* Ignored. Handled above. *)
 
 (* Trailer Section *)
+
 {}

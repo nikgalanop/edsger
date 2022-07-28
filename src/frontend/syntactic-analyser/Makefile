@@ -26,7 +26,7 @@ Lexer.ml: Lexer.mll
 	ocamllex -o $@ $<
 
 Parser.ml Parser.mli: Ast.cmi Parser.mly 
-	menhir -v --infer Parser.mly
+	menhir -v Parser.mly
 
 .PHONY: clean distclean default
 

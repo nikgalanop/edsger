@@ -3,14 +3,15 @@
 %}
 
 (* Token Declarations *)
-%token T_eof T_include
-%token<string> T_id 
+%token T_eof 
+%token <ast_decl list> T_include
+%token <string> T_id 
 %token T_int T_double 
        T_char T_bool T_void
-%token<int> T_constint 
-%token<float> T_constreal
-%token<char> T_constchar 
-%token<string> T_string 
+%token <int> T_constint 
+%token <float> T_constreal
+%token <char> T_constchar 
+%token <string> T_string 
 %token T_false T_true
 %token T_break T_continue  
 %token T_byref  
@@ -76,7 +77,6 @@
 %type <uassign> unary_assignment
 %type <bassign> binary_assignment
 
-// Add the types of T_constint etc.
 %% /* Grammar rules and actions follow */
 
 program: 
@@ -84,7 +84,7 @@ program:
 
 line:
         | declaration { $1 }
-        | T_include   { D_TODO }
+        | T_include   { $1 }
 ;
 
 declaration:  
