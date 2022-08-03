@@ -17,7 +17,6 @@ type ast_decl =
   | D_var of vartype * (var * ast_expr option) list
   | D_fun of  rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
-  | D_TODO
 and ast_body = 
   | F_body of ast_decl list * ast_stmt list 
 and ast_stmt =
@@ -29,7 +28,6 @@ and ast_stmt =
   | S_cont of label option 
   | S_break of label option
   | S_ret of ast_expr option
-  | S_TODO
 and ast_expr = 
   | E_var of var
   | E_int of int 
@@ -45,12 +43,11 @@ and ast_expr =
   | E_basgn of ast_expr * bassign * ast_expr
   | E_tcast of vartype * ast_expr
   | E_ternary of ast_expr * ast_expr * ast_expr
-  | E_new of vartype * ast_expr option 
+  | E_new of vartype * ast_expr 
   | E_delete of ast_expr
   | E_fcall of fname * ast_expr list  
   | E_arracc of ast_expr * ast_expr
   | E_brack of ast_expr 
-  | E_TODO
 
 type ast = ast_decl list
 

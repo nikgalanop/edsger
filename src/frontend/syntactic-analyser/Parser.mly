@@ -207,8 +207,8 @@ expression:
 ; 
 
 dynamic_allocation:
-        | T_new data_type T_leftsqbr expression T_rightsqbr   { E_new ($2, Some $4) }
-        | T_new data_type { E_new ($2, None) }
+        | T_new data_type T_leftsqbr expression T_rightsqbr   { E_new ($2, $4) }
+        | T_new data_type { E_new ($2, E_int 1) }
 ;
 
 const_expression:
