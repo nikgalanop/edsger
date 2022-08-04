@@ -4,7 +4,8 @@ type typ = TYPE_none
          | TYPE_char
          | TYPE_double
          | TYPE_pointer of typ * int
-         | TYPE_array of typ * int
+         | TYPE_array of typ * int (* Maybe convert the TYPE_pointer type to typ * int * int * bool? 
+                                      Meaning: type, "dimension", n of entries, mutable *)
          | TYPE_null
          | TYPE_proc
 

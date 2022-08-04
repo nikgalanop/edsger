@@ -93,7 +93,13 @@ let sem_basgn t1 t2 = function
 (* IMPORTANT CONSIDERATION: MAKE SURE THAT NULL CAN BE ASSIGNED TO A POINTER OF ANY TYPE. *)
 
 let rec sem_expr = function
-  | E_var s -> TYPE_none (* TODO: Check the interface of the symbol table. *)
+  | E_var s -> let entry = lookupEntry (id_make s) LOOKUP_ALL_SCOPES false in
+               match entry.entry_info with 
+               | ENTRY_variable i -> i.variable_type
+               | ENTRY_parameter i -> i.parameter_type
+               | ENTRY_temporary i -> i.temporary_type
+               | _ -> failwith (s ^ " is not a variable.")
+                (* TODO: Do not quite understand the analysis I must do here. *)
   | E_int _ -> TYPE_int
   | E_char _ -> TYPE_char
   | E_double _ -> TYPE_double
@@ -108,13 +114,16 @@ let rec sem_expr = function
                            else failwith "Tried to increment/decrement something non-assignable."
   | E_basgn (e1, op, e2) -> if (is_lval e) then let t1 = sem_expr e1 in let t2 = sem_expr e2 in sem_basgn t1 t2 op
                             else "Tried to assign a value to something non-assignable."  
-  | E_tcast (v, e) -> eprintf "E_tcast(%s, " (vartype_str v); print_expr e;
+  | E_tcast (v, e) -> let t = sem_expr e in TYPE_none  (* TODO. What is going on with typecasting? :D 
+                                                          https://en.cppreference.com/w/c/language/cast *)
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
                               if (equalType t1 TYPE_bool) then 
                                   if (equalType t2 t3) then t2  
                                   else failwith "Return values of ternary statement do not have the same type." 
                               else failwith "Non-boolean condition in ternary statement."
-  | E_new (v, e) ->  TYPE_none
+  | E_new (v, e) ->  let t = sem_expr e in 
+                     if (equalType t TYPE_int) then TYPE_none (* TODO *)
+                     else failwith "Cannot allocate an array of non-integer dimension." 
                      (* How to make sure that e is a *POSITIVE* integer? 
                         I believe that it is not possible at this "stage" of the compilation. *)
                      (* Size of array not known in compile time afaik. *)
