@@ -3,9 +3,9 @@
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
 type param_status =
-  | PARDEF_COMPLETE                             (* ������ �������     *)
-  | PARDEF_DEFINE                               (* �� ���� �������    *)
-  | PARDEF_CHECK                                (* �� ���� �������    *)
+  | PARDEF_COMPLETE                             (* Πλήρης Ορισμός     *)
+  | PARDEF_DEFINE                               (* Εν μέσω ορισμού    *)
+  | PARDEF_CHECK                                (* Εν μέσω ελέγχου   *)
 
 type scope = {
   sco_parent : scope option;
@@ -14,29 +14,29 @@ type scope = {
   mutable sco_negofs : int
 }
 
-and variable_info = {                         (******* ��������� *******)
-  variable_type   : Types.typ;                (* �����                 *)
-  variable_offset : int                       (* Offset ��� �.�.       *)
+and variable_info = {                         (******* Μεταβλητή *******)
+  variable_type   : Types.typ;                (* Τύπος                 *)
+  variable_offset : int                       (* Offset στο Ε.Δ.       *)
 }
 
-and function_info = {                         (******* ��������� *******)
-  mutable function_isForward : bool;          (* ������ forward        *)
-  mutable function_paramlist : entry list;    (* ����� ����������      *)
-  mutable function_redeflist : entry list;    (* ����� ���������� (2�) *)
-  mutable function_result    : Types.typ;     (* ����� �������������   *)
-  mutable function_pstatus   : param_status;  (* ��������� ����������  *)
-  mutable function_initquad  : int            (* ������ �������        *)
+and function_info = {                         (******* Συνάρτηση  *******)
+  mutable function_isForward : bool;          (* Forward Function       *)
+  mutable function_paramlist : entry list;    (* List Parameters        *)
+  mutable function_redeflist : entry list;    (* Λίστα Παραμέτρων (2η)  *)
+  mutable function_result    : Types.typ;     (* Function Result        *)
+  mutable function_pstatus   : param_status;  (* Κατάσταση Παραμέτρων   *)
+  mutable function_initquad  : int            (* Αρχική Τετράδα         *)
 }
 
-and parameter_info = {                        (****** ���������� *******)
-  parameter_type           : Types.typ;       (* �����                 *)
-  mutable parameter_offset : int;             (* Offset ��� �.�.       *)
-  parameter_mode           : pass_mode        (* ������ ����������     *)
+and parameter_info = {                        (****** Παράμετρος *******)
+  parameter_type           : Types.typ;       (* Τύπος                 *)
+  mutable parameter_offset : int;             (* Offset στο Ε.Δ.       *)
+  parameter_mode           : pass_mode        (* Τρόπος Περάσματος     *)
 }
 
-and temporary_info = {                        (** ��������� ��������� **)
-  temporary_type   : Types.typ;               (* �����                 *)
-  temporary_offset : int                      (* Offset ��� �.�.       *)
+and temporary_info = {                        (** Προσωρινή Μεταβλητή **)
+  temporary_type   : Types.typ;               (* Τύπος                 *)
+  temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
 and entry_info = ENTRY_none
@@ -53,9 +53,9 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
-val currentScope : scope ref              (* �������� ��������         *)
-val quadNext : int ref                    (* ������� �������� �������� *)
-val tempNumber : int ref                  (* �������� ��� temporaries  *)
+val currentScope : scope ref              (* Τρέχουσα Εμβέλεια         *)
+val quadNext : int ref                    (* Αριθμός Επόμενης Τετράδας *)
+val tempNumber : int ref                  (* Αρίθμηση των Temporaries  *)
 
 val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
@@ -70,5 +70,5 @@ val forwardFunction   : entry -> unit
 val endFunctionHeader : entry -> Types.typ -> unit
 val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
 
-val start_positive_offset : int   (* ������ ������ offset ��� �.�.   *)
-val start_negative_offset : int   (* ������ �������� offset ��� �.�. *)
+val start_positive_offset : int   (* Αρχικό Θετικό Offset στο Ε.Δ.   *)
+val start_negative_offset : int   (* Αρχικό Αρνητικό Offset στο Ε.Δ.   *)

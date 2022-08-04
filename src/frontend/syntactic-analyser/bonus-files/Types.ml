@@ -5,6 +5,7 @@ type typ = TYPE_none
          | TYPE_double
          | TYPE_pointer of typ * int
          | TYPE_array of typ * int
+         | TYPE_null
          | TYPE_proc
 
 (* Maybe add TYPE_NULL? *)
@@ -18,8 +19,10 @@ let rec sizeOfType t =
    | TYPE_double         -> 10
    | TYPE_pointer (_, _) -> 2
    | TYPE_array (et, sz) -> sz * sizeOfType et
+   | TYPE_null           -> 2 (* A pointer *) 
    | _                   -> 0
 
+(* Add TYPE_null in this function. *)
 let rec equalType t1 t2 =
    match t1, t2 with
    | TYPE_array (et1, sz1), TYPE_array (et2, sz2) -> equalType et1 et2

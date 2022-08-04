@@ -172,7 +172,11 @@ statement:
 ;
 
 %inline for_control:
-        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { ($2, $4, $6) }         
+        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { 
+                                                                                                                    match $4 with 
+                                                                                                                    | None -> ($2, Some (E_bool true), $6)
+                                                                                                                    | _ -> ($2, $4, $6) 
+                                                                                                                  }         
 ;
 
 expression:
