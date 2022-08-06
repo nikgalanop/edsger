@@ -47,7 +47,7 @@
  * Ternary operator has this precedence [?:]
  * Paragraph 4.2.1: http://cambium.inria.fr/~fpottier/menhir/manual.html 
  */
-%left T_question
+%right T_question
 %left T_or
 %left T_and 
 %nonassoc T_eq T_neq T_gt T_lt T_le T_ge 
@@ -209,6 +209,7 @@ expression:
         | dynamic_allocation                                                      { $1 } 
         | T_delete expression                                                     { E_delete $2 } 
 ; 
+
 
 dynamic_allocation:
         | T_new data_type T_leftsqbr expression T_rightsqbr   { E_new ($2, $4) }
