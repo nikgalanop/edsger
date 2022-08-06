@@ -71,4 +71,4 @@ val endFunctionHeader : entry -> Types.typ -> unit
 val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
 
 val start_positive_offset : int   (* Αρχικό Θετικό Offset στο Ε.Δ.   *)
-val start_negative_offset : int   (* Αρχικό Αρνητικό Offset στο Ε.Δ.   *)
+val start_negative_offset : int   (* Αρχικό Αρνητικό Offset στο Ε.Δ. *)

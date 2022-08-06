@@ -3,14 +3,11 @@ type typ = TYPE_none
          | TYPE_bool
          | TYPE_char
          | TYPE_double
-         | TYPE_pointer of typ * int
-         | TYPE_array of typ * int (* Maybe convert the TYPE_pointer type to typ * int * int * bool? 
-                                      Meaning: type, "dimension", n of entries, mutable *)
+         | TYPE_pointer of { typ : typ; dim : int; mut : bool }       
          | TYPE_null
          | TYPE_proc
 
 (* Maybe add TYPE_NULL? *)
-(* TYPE_pointer VS TYPE_array?? *)
 
 let rec sizeOfType t =
    match t with
@@ -18,14 +15,16 @@ let rec sizeOfType t =
    | TYPE_bool           -> 1
    | TYPE_char           -> 1
    | TYPE_double         -> 10
-   | TYPE_pointer (_, _) -> 2
-   | TYPE_array (et, sz) -> sz * sizeOfType et
+   | TYPE_pointer _      -> 2
    | TYPE_null           -> 2 (* A pointer *) 
    | _                   -> 0
 
 (* Add TYPE_null in this function. *)
 let rec equalType t1 t2 =
    match t1, t2 with
-   | TYPE_array (et1, sz1), TYPE_array (et2, sz2) -> equalType et1 et2
-   | TYPE_pointer (et1, d1), TYPE_pointer (et2, d2) -> equalType et1 et2 && d1 = d2 
+   | TYPE_pointer {typ = t1; dim = d1; mut = m1},
+     TYPE_pointer {typ = t2; dim = d2; mut = m2}, -> equalType et1 et2 && m1 = m2
+   (* | TYPE_pointer (_, _), TYPE_null -> true (* I don't like the fact that the order matters but in 
+                                               an assignment TYPE_null should not be on the LHS. 
+                                               Maybe do not take care of it here? *) *)
    | _                                            -> t1 = t2
