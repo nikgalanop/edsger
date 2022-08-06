@@ -110,17 +110,17 @@ let rec print_expr =
   | E_char c -> eprintf "E_char(%c)" c
   | E_double d -> eprintf "E_double(%f)" d
   | E_str s -> eprintf "E_str(%s)" s
-  | E_bool b when b -> eprintf "E_bool(True)"
-  | E_bool b -> eprintf "E_bool(False)"
+  | E_bool b when b -> eprintf "E_bool(true)"
+  | E_bool b -> eprintf "E_bool(false)"
   | E_NULL -> eprintf "E_NULL()"
-  | E_uop (op, e) -> eprintf "E_uop(%s," (uop_str op); print_expr e; eprintf ")"
-  | E_binop (e1, op, e2) -> eprintf "E_binop("; print_expr e1; eprintf ", %s, " (binop_str op); print_expr e2; eprintf ")"
-  | E_uasgnpre (ua, e) -> eprintf "E_uasgnpre(%s, " (uassign_str ua); print_expr e; eprintf ")"
-  | E_uasgnpost (ua, e) -> eprintf "E_uasgnpost(%s, " (uassign_str ua); print_expr e; eprintf ")"
-  | E_basgn (e1, op, e2) -> eprintf "E_basgn("; print_expr e1; eprintf ", %s, " (bassign_str op); print_expr e2; eprintf ")"
-  | E_tcast (v, e) -> eprintf "E_tcast(%s, " (vartype_str v); print_expr e;
+  | E_uop (op, e) -> eprintf "E_uop(\"%s\"," (uop_str op); print_expr e; eprintf ")"
+  | E_binop (e1, op, e2) -> eprintf "E_binop("; print_expr e1; eprintf ", \"%s\" , " (binop_str op); print_expr e2; eprintf ")"
+  | E_uasgnpre (ua, e) -> eprintf "E_uasgnpre(\"%s\", " (uassign_str ua); print_expr e; eprintf ")"
+  | E_uasgnpost (ua, e) -> eprintf "E_uasgnpost(\"%s\", " (uassign_str ua); print_expr e; eprintf ")"
+  | E_basgn (e1, op, e2) -> eprintf "E_basgn("; print_expr e1; eprintf ", \"%s\", " (bassign_str op); print_expr e2; eprintf ")"
+  | E_tcast (v, e) -> eprintf "E_tcast(\"%s\", " (vartype_str v); print_expr e;
   | E_ternary (e1, e2, e3) -> eprintf "E_ternary("; print_expr e1; eprintf ", ";  print_expr e2; eprintf ", "; print_expr e3; eprintf ")";
-  | E_new (v, Some e) -> eprintf "E_new(%s" (vartype_str v); eprintf ", "; print_expr e; eprintf ")"
+  | E_new (v, e) -> eprintf "E_new(%s" (vartype_str v); eprintf ", "; print_expr e; eprintf ")"
   | E_delete (e) -> eprintf "E_delete("; print_expr e; eprintf ")"
   | E_fcall (f, l) -> eprintf "E_fcall(%s, " f; List.iter (fun s -> print_expr s; eprintf " ," ) l; eprintf ")\n"
   | E_arracc (e1, e2) -> eprintf "E_arracc("; print_expr e1; eprintf ", "; print_expr e2; eprintf ")"
@@ -162,12 +162,9 @@ and print_decl =
   | D_var (v, l) -> eprintf "D_var (%s, %d)" (vartype_str v) (List.length l)
   | D_fun (r, n, p) -> eprintf "D_fun (%s, %s, %n)" (rettype_str r) n (List.length p)  
   | D_fdef (r, n, p, b) -> eprintf "D_fdef (%s, %s, %d, " (rettype_str r) n (List.length p); 
-                           print_body b; eprintf ")";
+                           print_body b; eprintf ")"
 
 let print_ast t = 
   Printf.eprintf "\nAST: \n";
   List.iter print_decl t;
   Printf.eprintf "\n"
-
-
-  

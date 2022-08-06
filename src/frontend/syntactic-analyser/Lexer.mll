@@ -49,41 +49,26 @@ rule lexer = parse
 
       incl    {      
                       let pos = lexbuf.Lexing.lex_start_p in
-
-                        let line_pos = pos.pos_cnum - pos.pos_bol in
-                        if (line_pos <> 0) then  
-                        ( 
-                          Utilities.print_diagnostic ~p:(Some pos) "Directives should be in the beginning of a line" Utilities.Error;
+                      let line_pos = pos.pos_cnum - pos.pos_bol in
+                      if (line_pos <> 0) then begin
+                        Utilities.print_diagnostic ~p:(Some pos) 
+                            "Directives should be in the beginning of a line" Utilities.Error;
+                        exit 1 end
+                      else
+                        if (not @@ Sys.file_exists filename) then 
+                          let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
+                          Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                           exit 1
-                        ) 
                         else
-                        (
-                          if (not @@ Sys.file_exists filename) then 
-                          (
-                            let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
-                            Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-                            exit 1
-                          )
-                          else 
-                          (
-                            Printf.printf "INCL\n";
-                            let res = safe_find filename set in
-                            (
-                              match res with
-                                  | None    ->  
-                                  ( 
-                                    let lb = add_file filename in 
-                                    let t = Parser.program lexer lb in
-                                    T_include t
-                                  )
-                              | _       -> ( 
-                                              let msg = Printf.sprintf "Tried to include '%s' twice" filename
-                                              in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
-                                              T_include [];
-                                            )
-                            );
-                          )
-                       )
+                          Printf.printf "INCL\n";
+                          let res = safe_find filename set in
+                          match res with
+                          | None -> let lb = add_file filename in 
+                              let t = Parser.program lexer lb in
+                              T_include t
+                          | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename
+                              in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
+                              T_include []
               } 
 
     (* Keywords *)
