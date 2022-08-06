@@ -129,7 +129,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    error "duplicate identifier %a" pretty_id id;
+    error "Duplicate identifier %a" pretty_id id;
     e
 
 let lookupEntry id how err =
@@ -148,7 +148,7 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      error "unknown identifier %a (first occurrence)"
+      error "Unknown identifier %a (first occurrence)"
         pretty_id id;
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
@@ -164,18 +164,23 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
-let newFunction id err =
+let newFunction (~decl: bool) id err =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
-        inf.function_isForward <- false;
-        inf.function_pstatus <- PARDEF_CHECK;
-        inf.function_redeflist <- inf.function_paramlist;
+        if decl then begin  
+          inf.function_isForward <- false;
+          inf.function_pstatus <- PARDEF_CHECK;
+          inf.function_redeflist <- inf.function_paramlist;
+        end
         e
+    | ENTRY_function inf 
+      when inf.function_pstatus = PARDEF_COMPLETE ->
+        e (* Adding a function header after a definition should not "break" the program. *)
     | _ ->
         if err then
-          error "duplicate identifier: %a" pretty_id id;
+          error "Duplicate identifier: %a" pretty_id id;
           raise Exit
   with Not_found ->
     let inf = {

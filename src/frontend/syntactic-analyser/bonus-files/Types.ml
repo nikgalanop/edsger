@@ -22,9 +22,8 @@ let rec sizeOfType t =
 (* Add TYPE_null in this function. *)
 let rec equalType t1 t2 =
    match t1, t2 with
-   | TYPE_pointer {typ = t1; dim = d1; mut = m1},
-     TYPE_pointer {typ = t2; dim = d2; mut = m2}, -> equalType et1 et2 && m1 = m2
-   (* | TYPE_pointer (_, _), TYPE_null -> true (* I don't like the fact that the order matters but in 
-                                               an assignment TYPE_null should not be on the LHS. 
-                                               Maybe do not take care of it here? *) *)
+   | TYPE_pointer {typ = et1; dim = _; mut = _},
+     TYPE_pointer {typ = et2; dim = _; mut = _} -> equalType et1 et2 (* Do we need to check about "mutability" equality? *)
+   | TYPE_pointer r, TYPE_null when r.mut -> true 
+   | TYPE_null, TYPE_pointer r when r.mut -> true 
    | _                                            -> t1 = t2
