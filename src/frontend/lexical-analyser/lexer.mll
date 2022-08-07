@@ -118,7 +118,7 @@ rule lexer = parse
     | "*="          { T_timesequals }
     | "/="          { T_divequals }
     | "%="          { T_modequals }
-    
+
     (* Seperators *)
 
     | ";"           { T_semicolon }
@@ -149,7 +149,7 @@ rule lexer = parse
     | whitespace+                               { lexer lexbuf } (* Ignore all whitespaces *)
 
     |  eof                                      { T_eof }
-    
+
     |  _ as chr                                 { 
                                                   let pos = lexbuf.Lexing.lex_curr_p in  
                                                   let msg = Printf.sprintf "Invalid Character '%c' (ASCII Code: %d)" 

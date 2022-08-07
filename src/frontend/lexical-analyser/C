@@ -1,5 +1,0 @@
-#include "C"
-
-If the lexer did not handle me, you should never see this line.
-
-#include "stdio.h"
