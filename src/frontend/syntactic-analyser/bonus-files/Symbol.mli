@@ -44,7 +44,7 @@ and entry_info = ENTRY_none
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
-               | ENTRY_label of ref bool
+               | ENTRY_label of bool ref
 
 and entry = {
   entry_id    : Identifier.id;
@@ -64,11 +64,11 @@ val closeScope       : unit -> unit
 val openForScope     : unit -> unit
 val closeForScope    : Identifier.id option -> unit
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
-val newFunction      : Identifier.id -> ~decl : bool -> bool -> entry * bool
+val newFunction      : decl : bool -> Identifier.id -> bool -> entry * bool
 val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
                                         entry -> bool -> entry
 val newTemporary     : Types.typ -> entry
-val newLabel         : Identifier.id -> entry
+val newLabel         : Identifier.id -> bool -> entry
 
 val registerFunctionType : Types.typ -> unit
 val forwardFunction   : entry -> unit

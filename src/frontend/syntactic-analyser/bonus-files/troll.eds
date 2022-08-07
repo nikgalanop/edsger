@@ -1,0 +1,8 @@
+#include "bad.eds"
+
+int main (int argc, char** argv){
+	int a;
+	writeString("Hello there the angel from my nightmare.\n The shadow in the background of the morgue.");
+	h((a,b));
+	return 1;
+}

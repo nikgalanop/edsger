@@ -1,0 +1,4 @@
+E_binop(E_binop(E_var(a), , , E_var(b)), , , E_var(c)))
+
+a, b, c -> (a, b), c
+(E_binop(E_binop(E_var(a), "," , E_var(b)), "," , E_var(c)))

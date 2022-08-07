@@ -54,7 +54,7 @@ and entry_info = ENTRY_none
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
-               | ENTRY_label of ref bool
+               | ENTRY_label of bool ref
 
 and entry = {
   entry_id    : Identifier.id;
@@ -109,7 +109,7 @@ let closeScope () =
   | Some scp ->
       currentScope := scp
   | None ->
-      internal "Cannot close the outer scope!"
+      Printf.eprintf "Cannot close the outer scope!"
 
 exception Failure_NewEntry of entry
 
@@ -167,7 +167,7 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
-let newFunction (~decl: bool) id err =
+let newFunction ~decl id err =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
@@ -176,10 +176,10 @@ let newFunction (~decl: bool) id err =
           inf.function_isForward <- false;
           inf.function_pstatus <- PARDEF_CHECK;
           inf.function_redeflist <- inf.function_paramlist;
-        end
+        end;
         (e, true)
     | ENTRY_function inf 
-      when inf.function_pstatus = PARDEF_COMPLETE & decl ->
+      when inf.function_pstatus = PARDEF_COMPLETE && decl ->
         (e, true) (* Adding a function header after a definition should not "break" the program. *)
     | _ ->
         if err then
@@ -228,7 +228,7 @@ let newParameter id typ mode f err =
                     H.add !tab id p;
                   p
               | _ ->
-                  internal "I found a parameter that is not a parameter!";
+                  Printf.eprintf "I found a parameter that is not a parameter!";
                   raise Exit
             end
           | [] ->
@@ -237,11 +237,11 @@ let newParameter id typ mode f err =
               raise Exit
         end
       | PARDEF_COMPLETE ->
-          internal "Cannot add a parameter to an already defined function";
+          Printf.eprintf "Cannot add a parameter to an already defined function";
           raise Exit
     end
   | _ ->
-      internal "Cannot add a parameter to a non-function";
+      Printf.eprintf "Cannot add a parameter to a non-function";
       raise Exit
 
 let newTemporary typ =
@@ -255,27 +255,22 @@ let newTemporary typ =
   newEntry id (ENTRY_temporary inf) false
 
 let newLabel id err = (* Err can be omitted, but the function would not be easily readable. *)
-  try  
-      ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
-      internal "Cannot have labels with the same name within the same function." 
-  with Exit -> 
-      newEntry id (ENTRY_label true) err
+    newEntry id (ENTRY_label (ref true)) err
 
 let openForScope () = 
   forScope := true
 
-let closeForScope id_opt = 
-  if (id_opt <> None) then 
-    begin
-      try 
-        let Some id = id_opt in
+let closeForScope = function
+  | None -> forScope := false
+  | Some id -> try 
         let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
-        let ENTRY_label b = e in 
-        b := false;
+        begin
+        match e.entry_info with 
+          | ENTRY_label b -> b := false; forScope := false
+          | _ -> Printf.eprintf "Should not find an entry of type label with an id of a label." 
+        end
       with Exit -> 
-          internal "Cannot close scope of non-existing label"
-    end
-  forScope := false
+          Printf.eprintf "Cannot close scope of non-existing label"
 
 let insideFor () = 
   !forScope
@@ -291,7 +286,7 @@ let forwardFunction e =
   | ENTRY_function inf ->
       inf.function_isForward <- true
   | _ ->
-      internal "Cannot make a non-function forward"
+      Printf.eprintf "Cannot make a non-function forward"
 
 let endFunctionHeader e typ =
   match e.entry_info with
@@ -299,7 +294,7 @@ let endFunctionHeader e typ =
       begin
         match inf.function_pstatus with
         | PARDEF_COMPLETE ->
-            internal "Cannot end parameters in an already defined function"
+            Printf.eprintf "Cannot end parameters in an already defined function"
         | PARDEF_DEFINE ->
             inf.function_result <- typ;
             let offset = ref start_positive_offset in
@@ -313,7 +308,7 @@ let endFunctionHeader e typ =
                     | PASS_BY_REFERENCE -> 2 in
                   offset := !offset + size
               | _ ->
-                  internal "Cannot fix offset to a non parameter" in
+                  Printf.eprintf "Cannot fix offset to a non parameter" in
             List.iter fix_offset inf.function_paramlist;
             inf.function_paramlist <- List.rev inf.function_paramlist
         | PARDEF_CHECK ->
@@ -326,4 +321,4 @@ let endFunctionHeader e typ =
       end;
       inf.function_pstatus <- PARDEF_COMPLETE
   | _ ->
-      internal "Cannot end parameters in a non-function"
+      Printf.eprintf "Cannot end parameters in a non-function"

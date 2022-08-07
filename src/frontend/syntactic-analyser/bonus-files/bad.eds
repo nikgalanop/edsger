@@ -1,0 +1,16 @@
+/* Ignore those 
+ * damn multiline
+ * comments 
+ */
+#include "bad.eds"
+#include "stdlib.h" // <- Uncomment this line when you want to test if parsing + including works. 
+int main (int argc, char** argv){
+	int* x[20];
+	int i;
+	for (i = 0; i < 20; i++){
+		// x[i] = new int[20];
+	}
+	
+	x[0][0]=5;
+	return a, b, c;
+}

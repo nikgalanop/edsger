@@ -1,4 +1,4 @@
-.PHONY: clean distclean pack count
+.PHONY: clean distclean pack
 
 # OS type: Linux/Win DJGPP
 ifdef OS
@@ -7,21 +7,16 @@ else
    EXE=
 endif
 
-EXEFILE=gracec$(EXE)
 MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
-  Lexer.ml Parser.ml Symbtest.ml
+  Parser.ml Utilities.ml Ast.ml Semantic.ml Lexer.ml Main.ml
 MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
-  Parser.mli Lexer.mli
+  Parser.mli Ast.mli Utilities.mli Lexer.mli
 CMOFILES=$(patsubst %.ml,%.cmo,$(MLFILES))
 CMIFILES=$(patsubst %.ml,%.cmi,$(MLFILES))
 CMXFILES=$(patsubst %.ml,%.cmx,$(MLFILES))
 OBJFILES=$(patsubst %.ml,%.o,$(MLFILES))
 PARSERFILES=Parser.ml Parser.mli Parser.output Lexer.ml
-SRCFILES=Makefile extend.ml Lexer.mll Parser.mly \
-  $(filter-out Parser.% Lexer.%,$(MLFILES)) \
-  $(filter-out Parser.%,$(MLIFILES))
 
-CAMLP5_FLAGS=-pp "camlp5o ./extend.cmo"
 OCAMLC_FLAGS=-g
 OCAMLOPT_FLAGS=
 OCAMLC=ocamlc $(OCAMLC_FLAGS)
@@ -29,71 +24,37 @@ OCAMLOPT=ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP=ocamldep
 INCLUDES=
 
-default: symbtest$(EXE)
-
-symbtest$(EXE): $(filter-out Lexer.cmo Parser.cmo,$(CMOFILES))
+edsger$(EXE): $(CMOFILES)
 	$(OCAMLC) -o $@ $^
 
-all: $(EXEFILE)
+%.cmi: %.mli
+	$(OCAMLC) -c $<
 
-extend.cmo: extend.ml
-	$(OCAMLC) -pp "camlp5o pa_extend.cmo q_MLast.cmo" -I +camlp5 -c $<
+%.cmo: %.ml %.mli 
+	$(OCAMLC) -c $<
 
-%.cmo: %.ml %.mli extend.cmo
-	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
+%.cmx: %.ml
+	$(OCAMLOPT) -c $<
 
-%.cmx: %.ml extend.cmo
-	$(OCAMLOPT) $(CAMLP5_FLAGS) -c $<
+%.cmo %.cmi: %.ml
+	$(OCAMLC) -c $<
 
-%.cmi: %.mli extend.cmo
-	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
-
-%.cmo %.cmi: %.ml extend.cmo
-	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
-
-.PHONY: all clean count depend
-
-$(EXEFILE): Parser.mli Lexer.ml $(CMOFILES)
-	$(OCAMLC) -o $@ $(CMOFILES)
-
-Parser.ml Parser.mli: Parser.mly
-	ocamlyacc -v Parser.mly
+Parser.ml Parser.mli: Ast.cmi Parser.mly
+	menhir -v --infer Parser.mly
 
 Lexer.ml: Lexer.mll
 	ocamllex Lexer.mll
 
+.PHONY: clean distclean depend
+
 -include .depend
 
-depend: $(MLFILES) $(MLIFILES) extend.cmo
-	$(OCAMLDEP) $(CAMLP5_FLAGS) $(INCLUDES) \
-          $(filter-out extend.cmo,$^) > .depend
-
-depend-symbtest: Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
-                 Symbtest.ml Hashcons.mli Identifier.mli Error.mli Types.mli \
-                 Symbol.mli extend.cmo
-	$(OCAMLDEP) $(CAMLP5_FLAGS) $(INCLUDES) \
-          $(filter-out extend.cmo,$^) > .depend
+depend: $(MLFILES) $(MLIFILES)
+	$(OCAMLDEP) $^ > .depend
 
 clean:
 	$(RM) $(CMXFILES) $(CMOFILES) $(CMIFILES) $(OBJFILES) $(EXEFILES) \
-           extend.cmi extend.cmo \
-           $(patsubst %,%.cm?,$(EXEFILES)) $(PARSERFILES) pplib.cma *~
+           $(patsubst %,%.cm?,$(EXEFILES)) $(PARSERFILES) *~
 
 distclean: clean
-	$(RM) $(EXEFILE) symbtest$(EXE) .depend
-
-pack: clean
-	tar cvfz gracec.tar.gz $(SRCFILES)
-
-bonus.zip: distclean
-	zip bonus.zip README Makefile extend.ml \
-	    Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
-	    Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml
-
-bonus.tgz: distclean
-	tar cvfz bonus.tgz README Makefile extend.ml \
-	    Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
-	    Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml
-
-count:
-	wc -l $(SRCFILES)
+	$(RM) $(EXEFILE) edsger$(EXE) .depend

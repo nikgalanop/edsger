@@ -23,7 +23,7 @@ module Make (X : Comp) : (S with type t = X.t) =
   struct
     type t = X.t
     type h_table = t hash_consed list array
-    let create n = Array.create n [] 
+    let create n = Array.make n [] 
     let f () =
       let gen_tag = ref 0 in
       let table = create 397 in
