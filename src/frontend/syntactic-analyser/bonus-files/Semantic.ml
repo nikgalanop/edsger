@@ -124,7 +124,7 @@ and add_parameters f ps = (* Exception Handling? *)
       let typ = vartype_sem (fst par) None in 
       let id = id_of_var (snd par) in 
       Printf.printf "Parameter name: %s\n" (snd par);
-      ignore @@ newtyp mode f false
+      ignore @@ newParameter id typ mode f false
     in match p with 
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
@@ -148,19 +148,20 @@ and add_definition r n p b =
   let f, found = newFunction ~decl:false f_id true in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
-        let ft = (ftype_sem r) in
-        if (found) then (* If found, then it is either declared or defined. *)
-          if (not @@ equalType inf.function_result ft) then (* If declared or defined. *)
-            failwith "Cannot overload functions with different return types but same parameters."
-          else if (inf.function_pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
-            failwith "Cannot redefine the same function in the same scope."
-        else
-          add_parameters f p;  
-          endFunctionHeader f ft;
-          registerFunctionType ft;
-          openScope ();
-          sem_body b;
-          closeScope () 
+          let ft = (ftype_sem r) in
+          if (found) then begin (* If found, then it is either declared or defined. *)
+           if (not @@ equalType inf.function_result ft) then (* If declared or defined. *)
+             failwith "Cannot overload functions with different return types but same parameters."
+           else if (inf.function_pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
+              failwith "Cannot redefine the same function in the same scope."
+          end
+          else
+             add_parameters f p;  
+             endFunctionHeader f ft;
+             registerFunctionType ft;
+             openScope ();
+             sem_body b;
+             closeScope () 
         end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."
 and vartype_sem t e = 
@@ -286,9 +287,18 @@ and sem_body b =
   List.iter sem_stmt s;
 and sem_decl = function
   | D_var (v, l) -> add_variables v l 
-  | D_fun (r, n, p) -> add_declaration r n p 
-  | D_fdef (r, n, p, b) -> add_definition r n p b 
+  | D_fun (r, n, p) -> begin 
+        try add_declaration r n p with 
+        | Failure msg -> Utilities.fail_sem msg (Utilities.FDecl n) 
+      end
+  | D_fdef (r, n, p, b) -> begin 
+        try add_definition r n p b with 
+        | Failure msg -> Utilities.fail_sem msg (Utilities.FDef n) 
+        | e -> Utilities.fail_sem ((Printexc.to_string e)) (Utilities.FDef n) 
+      end
 
 let sem_analysis t = 
+  Printf.printf "\027[1;36mSemantic Analysis:\027[0m \n";
   initSymbolTable 256;
-  List.iter sem_decl t
+  List.iter sem_decl t;
+  Printf.printf "\n\n"
