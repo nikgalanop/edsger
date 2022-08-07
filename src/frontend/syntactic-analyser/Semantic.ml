@@ -23,34 +23,35 @@ let ftype_sem = function
   | VOID -> TYPE_proc
   | RET vt -> vartype_sem vt None
 
-(* TODO: Should check that the label exists and that the flow 
-  stmt is inside the "scope" of the said label. *)
 let check_jmp l = 
-  true
-(* TODO: Check if we can converse t2 to t1. *)
-let valid_conversion t1 t2 = 
-  true   
+  let id = id_of_label l in 
+  try
+    ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
+    true
+  with Exit -> false
 
 let string_of_params lst = 
   if (lst = []) then "" 
   else "TODO" (* TODO *)
 
-let create_fun_id n p = 
-  "fun_" ^ n ^ "_" ^ string_of_params p 
-let create_var_id n = 
-  "var_" ^ n
+let id_of_func n p = 
+  id_make @@ "fun_" ^ n ^ "_" ^ string_of_params p 
+let id_of_var n = 
+  id_make @@ "var_" ^ n
+let id_of_label l = 
+  id_make @@ "label_" ^ l
 
 let add_variables vt l = 
   let add_variable var = 
     let (n, e) = var in
     let vtype = vartype_sem vt e in 
-     newVariable (id_make @@ create_var_id n) vtype true
+     newVariable (id_of_var n) vtype true
   in List.iter add_variable l
 
 let add_parameters f ps = (* Exception Handling? *)
   let add_parameter p = 
     let typ = vartype_sem @@ fst p in 
-    let id = create_var_id @@ snd p in 
+    let id = id_of_var @@ snd p in 
     match p with 
     | BYREF _ -> ignore @@ 
         newParameter id typ PASS_BY_REFERENCE f true
@@ -59,25 +60,34 @@ let add_parameters f ps = (* Exception Handling? *)
   in List.iter add_parameter ps
   
 let add_declaration r n p = (* Exception Handling? *)
-   let f_id = create_fun_id n p in
-   let f = newFunction (~decl: true) (id_make f_id) true in
+   let f_id = id_of_func n p in
+   let f, found = newFunction (~decl: true) f_id true in
    let ENTRY_function inf = f.entry_info in
    let ft = (ftype_sem r) in
-   if (true (* TODO *)) then (* TODO: Do the following check, only if the entry is considered "already found". *)
+   if (found) then
       if (not equalType inf.function_result ft) then 
         failwith -> "Cannot overload functions with different return types but same parameters."
    else 
       forwardFunction f;
-      add_parameters f p;
-      endFunctionHeader f ft
+      add_parameters f p
 
 let add_definition r n p b = 
-  let f_id = create_fun_id n p in
-  let f = newFunction (~decl: false) (id_make f_id) true in
+  let f_id = id_of_func n p in
+  let f, found = newFunction (~decl: false) f_id true in
   let ENTRY_function inf = f.entry_info in
   let ft = (ftype_sem r) in
-    ()
-  (* TODO *)
+  if (found) then (* If found, then it is either declared or defined. *)
+    if (not equalType inf.function_result ft) then (* If declared or defined. *)
+      failwith -> "Cannot overload functions with different return types but same parameters."
+    else if (inf.pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
+      failwith -> "Cannot redefine the same function in the same scope."
+  else
+    add_parameters f p;  
+    endFunctionHeader f ft;
+    registerFunctionType ft;
+    openScope ();
+    sem_body f_id b;
+    closeScope ()
    
 let is_mut = function 
   | TYPE_pointer r -> r.mut 
@@ -111,7 +121,6 @@ let sem_comp t =
   | _ -> failwith "Cannot compare values with the provided type." 
 
 let sem_uop t = function 
-  (* TODO: Take care of NULL & procs. *)
   | O_ref -> begin 
         match t with 
         | TYPE_pointer r ->
@@ -160,28 +169,27 @@ let sem_basgn t1 t2 = function
   | O_modasgn -> if (equalType t1 t2 && equalType t1 TYPE_int) then t1 
       else failwith "Cannot compute 'mod' if operands are not both integers."
   | O_plasgn | O_minasgn -> sem_plus t1 t2   
-
-(* IMPORTANT CONSIDERATION: IN ASSIGNMENTS WE MUST CHECK WHETHER OR NOT THE LHS IS AN L-VALUE. *)
-(* IMPORTANT CONSIDERATION: MAKE SURE THAT NULL CAN BE ASSIGNED TO A POINTER OF ANY TYPE. *)
-
+  
 let rec sem_expr = function
   | E_var s -> 
-      let entry = lookupEntry (id_make s) LOOKUP_ALL_SCOPES false in
-      begin
-        match entry.entry_info with 
-        | ENTRY_variable i -> i.variable_type
-        | ENTRY_parameter i -> i.parameter_type
-        (* Do we even have temporaries? *)
-        | _ -> failwith @@ s ^ " is not a variable."
+      begin 
+        try 
+          let entry = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
+          begin
+            match entry.entry_info with 
+            | ENTRY_variable i -> i.variable_type
+            | ENTRY_parameter i -> i.parameter_type
+            | _ -> failwith @@ s ^ " is not a variable."
+          end
+        with Exit -> failwith "Variable does not exist."
       end
-    (* TODO: Do not quite understand the analysis I must do here. *)
   | E_int _ -> TYPE_int
   | E_char _ -> TYPE_char
   | E_double _ -> TYPE_double
   | E_str _ -> TYPE_pointer { typ = TYPE_char; 
       dim = 1; mut = false}
   | E_bool _ -> TYPE_bool
-  | E_NULL -> TYPE_null (* Must take care of null........ *)
+  | E_NULL -> TYPE_null
   | E_uop (op, e) -> let t = sem_expr e in 
       sem_uop t op 
   | E_binop (e1, op, e2) -> let t1 = sem_expr e1 in 
@@ -192,10 +200,8 @@ let rec sem_expr = function
   | E_basgn (e1, op, e2) -> let t1 = sem_expr e1 in 
       if (is_assignable t1 e1) then let t2 = sem_expr e2 in sem_basgn t1 t2 op
       else "Tried to assign a value to something non-assignable."  
-  | E_tcast (v, e) -> let t1 = sem_expr v in
-      let t2 = sem_expr e in 
-      if (valid_conversion t1 t2) then t1 (* TODO: Write the valid_conversion function *)
-      else failwith "Not a valid type casting."
+  | E_tcast (v, e) -> ignore @@ sem_expr e; 
+      let t1 = vartype_sem v None in t1
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
       let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
       if (equalType t1 TYPE_bool) then 
@@ -214,13 +220,9 @@ let rec sem_expr = function
   | E_delete (e) -> let t = sem_expr e in 
       if (is_ptr t) then match t with 
         | TYPE_pointer r when r.mut -> 
-          (* A pointer can be mutable but it can "point" to somewhere immutable. According to C++ you 
-            can "delete" a static array via a pointer, but in the runtime you are informed about memory 
-            corruption. *)
-            TYPE_pointer { r }
+            TYPE_pointer r
         | _ -> failwith "Tried to deallocate a statically allocated array."
       else failwith "Tried to deallocate memory using a non-pointer."
-  (* TODO: Should make sure that the pointer of e, actually points somewhere and not in a NULL value. *)
   | E_fcall (f, l) -> TYPE_none 
   (* TODO: Check existance of function and that the provided values match the parameters. *)
   (* ! ALSO CHECK THAT FOR BYREF PARAMETERS, WE PROVIDE MUTABLE VALUES. ! *)
@@ -241,6 +243,11 @@ and check_condition c =
 and check_option = function 
   | Some e -> ignore @@ sem_expr e 
   | _ -> ()
+and sem_for s = function 
+  | Some l -> let l_id = (id_of_label l) in
+      ignore @@ newLabel (id_of_label l) true;
+      openForScope (); sem_expr s; closeForScope (Some l_id)
+  | None -> openForScope (); sem_expr s; closeForScope None
 and sem_stmt = function 
   | S_NOP -> ()
   | S_expr e -> ignore @@ sem_expr e
@@ -250,31 +257,31 @@ and sem_stmt = function
   | S_if (e, s1, Some s2) -> check_condition e; 
       sem_stmt s1; sem_stmt s2
   | S_for (o1, Some c, o3, s, l) -> check_option o1; 
-      check_condition c; check_option o3; 
-      openScope (); sem_stmt s; closeScope ();
-      (* Incomplete for sure. Have to add the label into the symbol table. *)
-  | S_cont l -> if (check_jmp l) then ()
-      else failwith -> "Cannot continue to an unreachable label."  
-  | S_break l -> if (check_jmp l) then ()
-      else failwith -> "Cannot break and jump to an unreachable label." 
-    (* TODO: Should check that the label exists and that cont is inside the "scope" of the said label. *)
-  | S_ret None -> () (* TODO: The rettype of the function that contains this ret stmt must be void. *)
+      check_condition c; check_option o3; sem_for s l
+  | S_cont l -> if (insideFor ()) then  
+        if (check_jmp l) then () 
+        else failwith -> "Cannot continue to an unreachable label." 
+      else failwith -> "Cannot continue when not inside a for statement."  
+  | S_break l -> if (insideFor ()) then  
+        if (check_jmp l) then () 
+        else failwith -> "Cannot break and jump to an unreachable label."
+      else failwith -> "Cannot break when not inside a for statement." 
+  | S_ret None -> let ft = lookupFunctionType () in 
+      if (equalType ft TYPE_proc) then () 
+      else failwith -> "Must return a value that matches the function's return type."
   | S_ret Some e -> let t = sem_expr e in 
-    () (* TODO: The rettype of the function that contains this ret stmt must be the same as the type of e. *)
+      let ft = lookupFunctionType () in 
+      if (equalType ft t) then () 
+      else failwith -> "Must return a value that matches the function's return type."
 and sem_body b = 
   let F_body (d, s) = b in
   List.iter sem_decl d;
   List.iter sem_stmt s;
 and sem_decl = function
-  | D_var (v, l) -> 
-      try add_variables v l 
-      with Failure_NewEntry _ -> 
-          failwith "Tried to redefine the same variable in the same scope."
-  | D_fun (r, n, p) -> add_declaration r n p (* TODO *)
-  | D_fdef (r, n, p, b) -> add_definition r n p b (* TODO *)
+  | D_var (v, l) -> add_variables v l 
+  | D_fun (r, n, p) -> add_declaration r n p 
+  | D_fdef (r, n, p, b) -> add_definition r n p b 
 
-let sem_analysis t = (* TODO *)
+let sem_analysis t = 
   initSymbolTable 256;
-  openScope ();
-  List.iter sem_decl t;
-  closeScope ();
+  List.iter sem_decl t

@@ -54,6 +54,7 @@ and entry_info = ENTRY_none
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
+               | ENTRY_label of ref bool
 
 and entry = {
   entry_id    : Identifier.id;
@@ -82,6 +83,8 @@ let no_entry id = {
 let currentScope = ref the_outer_scope
 let quadNext = ref 1
 let tempNumber = ref 1
+let forScope = ref false
+let currentFunctionType = ref (Types.TYPE_proc)
 
 let tab = ref (H.create 0)
 
@@ -106,7 +109,7 @@ let closeScope () =
   | Some scp ->
       currentScope := scp
   | None ->
-      internal "cannot close the outer scope!"
+      internal "Cannot close the outer scope!"
 
 exception Failure_NewEntry of entry
 
@@ -169,15 +172,15 @@ let newFunction (~decl: bool) id err =
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
-        if decl then begin  
+        if not decl then begin  
           inf.function_isForward <- false;
           inf.function_pstatus <- PARDEF_CHECK;
           inf.function_redeflist <- inf.function_paramlist;
         end
-        e
+        (e, true)
     | ENTRY_function inf 
-      when inf.function_pstatus = PARDEF_COMPLETE ->
-        e (* Adding a function header after a definition should not "break" the program. *)
+      when inf.function_pstatus = PARDEF_COMPLETE & decl ->
+        (e, true) (* Adding a function header after a definition should not "break" the program. *)
     | _ ->
         if err then
           error "Duplicate identifier: %a" pretty_id id;
@@ -191,7 +194,7 @@ let newFunction (~decl: bool) id err =
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0
     } in
-    newEntry id (ENTRY_function inf) false
+    (newEntry id (ENTRY_function inf) false, false)
 
 let newParameter id typ mode f err =
   match f.entry_info with
@@ -250,6 +253,38 @@ let newTemporary typ =
   } in
   incr tempNumber;
   newEntry id (ENTRY_temporary inf) false
+
+let newLabel id err = (* Err can be omitted, but the function would not be easily readable. *)
+  try  
+      ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
+      internal "Cannot have labels with the same name within the same function." 
+  with Exit -> 
+      newEntry id (ENTRY_label true) err
+
+let openForScope () = 
+  forScope := true
+
+let closeForScope id_opt = 
+  if (id_opt <> None) then 
+    begin
+      try 
+        let Some id = id_opt in
+        let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
+        let ENTRY_label b = e in 
+        b := false;
+      with Exit -> 
+          internal "Cannot close scope of non-existing label"
+    end
+  forScope := false
+
+let insideFor () = 
+  !forScope
+
+let registerFunctionType ft = 
+  currentFunctionType := ft
+
+let lookupFunctionType () = 
+  !currentFunctionType
 
 let forwardFunction e =
   match e.entry_info with

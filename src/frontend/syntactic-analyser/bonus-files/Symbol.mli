@@ -44,6 +44,7 @@ and entry_info = ENTRY_none
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
+               | ENTRY_label of ref bool
 
 and entry = {
   entry_id    : Identifier.id;
@@ -60,15 +61,21 @@ val tempNumber : int ref                  (* Αρίθμηση των Temporaries
 val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
 val closeScope       : unit -> unit
+val openForScope     : unit -> unit
+val closeForScope    : Identifier.id option -> unit
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
-val newFunction      : Identifier.id -> ~decl : bool -> bool -> entry
+val newFunction      : Identifier.id -> ~decl : bool -> bool -> entry * bool
 val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
                                         entry -> bool -> entry
 val newTemporary     : Types.typ -> entry
+val newLabel         : Identifier.id -> entry
 
+val registerFunctionType : Types.typ -> unit
 val forwardFunction   : entry -> unit
 val endFunctionHeader : entry -> Types.typ -> unit
 val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
+val insideFor         : unit -> bool
+val lookupFunctionType : unit -> Types.typ
 
 val start_positive_offset : int   (* Αρχικό Θετικό Offset στο Ε.Δ.   *)
 val start_negative_offset : int   (* Αρχικό Αρνητικό Offset στο Ε.Δ. *)
