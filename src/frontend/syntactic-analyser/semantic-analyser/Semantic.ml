@@ -8,27 +8,6 @@ let primitive_sem = function
   | CHAR -> TYPE_char
   | BOOL -> TYPE_bool 
   | DOUBLE -> TYPE_double 
-let vartype_sem t e = 
-  let PTR (p, i) = t in 
-  let pt = primitive_sem p in
-  match (e, i) with 
-  | None, 0 -> pt 
-  | None, i when i > 0 -> TYPE_pointer { typ = pt;
-      dim = i; mut = true }
-  | Some x, i -> let t = sem_expr x in 
-      if (equalType t TYPE_int) then TYPE_pointer {typ = pt; 
-        dim = i + 1; mut = i = 0}
-      else failwith -> "Cannot declare an array with a non-integer length."  
-let ftype_sem = function 
-  | VOID -> TYPE_proc
-  | RET vt -> vartype_sem vt None
-
-let check_jmp l = 
-  let id = id_of_label l in 
-  try
-    ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
-    true
-  with Exit -> false
 
 let string_of_params lst = 
   if (lst = []) then "" 
@@ -41,53 +20,15 @@ let id_of_var n =
 let id_of_label l = 
   id_make @@ "label_" ^ l
 
-let add_variables vt l = 
-  let add_variable var = 
-    let (n, e) = var in
-    let vtype = vartype_sem vt e in 
-     newVariable (id_of_var n) vtype true
-  in List.iter add_variable l
-
-let add_parameters f ps = (* Exception Handling? *)
-  let add_parameter p = 
-    let typ = vartype_sem @@ fst p in 
-    let id = id_of_var @@ snd p in 
-    match p with 
-    | BYREF _ -> ignore @@ 
-        newParameter id typ PASS_BY_REFERENCE f true
-    | BYVAL _ -> ignore @@ 
-        newParameter id typ PASS_BY_VALUE f true
-  in List.iter add_parameter ps
-  
-let add_declaration r n p = (* Exception Handling? *)
-   let f_id = id_of_func n p in
-   let f, found = newFunction (~decl: true) f_id true in
-   let ENTRY_function inf = f.entry_info in
-   let ft = (ftype_sem r) in
-   if (found) then
-      if (not equalType inf.function_result ft) then 
-        failwith -> "Cannot overload functions with different return types but same parameters."
-   else 
-      forwardFunction f;
-      add_parameters f p
-
-let add_definition r n p b = 
-  let f_id = id_of_func n p in
-  let f, found = newFunction (~decl: false) f_id true in
-  let ENTRY_function inf = f.entry_info in
-  let ft = (ftype_sem r) in
-  if (found) then (* If found, then it is either declared or defined. *)
-    if (not equalType inf.function_result ft) then (* If declared or defined. *)
-      failwith -> "Cannot overload functions with different return types but same parameters."
-    else if (inf.pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
-      failwith -> "Cannot redefine the same function in the same scope."
-  else
-    add_parameters f p;  
-    endFunctionHeader f ft;
-    registerFunctionType ft;
-    openScope ();
-    sem_body f_id b;
-    closeScope ()
+let check_jmp = function 
+  | Some l -> begin 
+        let id = id_of_label l in 
+        try
+          ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
+          true
+        with Exit -> false
+      end
+    | None -> true
    
 let is_mut = function 
   | TYPE_pointer r -> r.mut 
@@ -100,7 +41,7 @@ let is_ptr = function
   | TYPE_null -> true
   | _ -> false
 let is_assignable t e = 
-  not equalType t TYPE_null && is_mut t && is_lval e 
+  not @@ equalType t TYPE_null && is_mut t && is_lval e 
 
 let sem_mul t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -117,7 +58,7 @@ let sem_plus t1 t2 =
   | _ -> failwith "Cannot add/subtract to something with a non-numerical value."
 let sem_comp t = 
   match t with 
-  | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> t
+  | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
   | _ -> failwith "Cannot compare values with the provided type." 
 
 let sem_uop t = function 
@@ -125,13 +66,13 @@ let sem_uop t = function
         match t with 
         | TYPE_pointer r ->
              TYPE_pointer { r with dim = r.dim + 1; mut = true } 
-        | _ -> TYPE_pointer { typ = t; dim = d; mut = true }
+        | _ -> TYPE_pointer { typ = t; dim = 1; mut = true }
       end
   | O_dref -> begin 
         match t with
         | TYPE_pointer r
           when (r.dim > 0) -> if (r.dim = 1) then t 
-              else { r with dim = r.dim - 1; mut = true } 
+              else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
         | _ -> failwith "Tried to dereference a non-pointer."
       end
   | O_psgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -162,15 +103,82 @@ let sem_uasgn t =
   | TYPE_int | TYPE_double | TYPE_pointer _ -> t
   | _ -> failwith "Cannot increment/decrement a non-numerical value or a non-pointer."
 let sem_basgn t1 t2 = function 
-  | O_asgn -> if (equalTypes t1 t2) then t1
+  | O_asgn -> if (equalType t1 t2) then t1
       else failwith "Tried an assignment with values of different types."
-  | O_mulasgn | O_divasgn -> if (equalType t1 t2) then sem_mul t1 t2
+  | O_mulasgn | O_divasgn -> if (equalType t1 t2) then sem_mul t1
       else failwith "Cannot multiply/divide values with different types."
   | O_modasgn -> if (equalType t1 t2 && equalType t1 TYPE_int) then t1 
       else failwith "Cannot compute 'mod' if operands are not both integers."
   | O_plasgn | O_minasgn -> sem_plus t1 t2   
-  
-let rec sem_expr = function
+
+let rec add_variables vt l = 
+  let add_variable var = 
+    let (n, e) = var in
+    let vtype = vartype_sem vt e in 
+     Printf.printf "Variable name: %s\n" n;
+     ignore @@ newVariable (id_of_var n) vtype true
+  in List.iter add_variable l
+and add_parameters f ps = (* Exception Handling? *)
+  let add_parameter p = 
+    let insert_param par mode = 
+      let typ = vartype_sem (fst par) None in 
+      let id = id_of_var (snd par) in 
+      Printf.printf "Parameter name: %s\n" (snd par);
+      ignore @@ newParameter id typ mode f false
+    in match p with 
+    | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
+    | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
+  in List.iter add_parameter ps
+and add_declaration r n p = (* Exception Handling? *)
+   let f_id = id_of_func n p in
+   let f, found = newFunction ~decl:true f_id true in
+   match f.entry_info with 
+   | ENTRY_function inf -> begin
+        let ft = (ftype_sem r) in
+        if (found) then
+            if (not @@ equalType inf.function_result ft) then 
+              failwith "Cannot overload functions with different return types but same parameters."
+        else 
+            forwardFunction f;
+            add_parameters f p
+      end
+    | _ -> failwith "Should not find an entry that is not a function, with a label of a function."  
+and add_definition r n p b = 
+  let f_id = id_of_func n p in
+  let f, found = newFunction ~decl:false f_id true in
+  match f.entry_info with 
+  | ENTRY_function inf -> begin 
+          let ft = (ftype_sem r) in
+          if (found) then begin (* If found, then it is either declared or defined. *)
+           if (not @@ equalType inf.function_result ft) then (* If declared or defined. *)
+             failwith "Cannot overload functions with different return types but same parameters."
+           else if (inf.function_pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
+              failwith "Cannot redefine the same function in the same scope."
+          end
+          else
+             add_parameters f p;  
+             endFunctionHeader f ft;
+             registerFunctionType ft;
+             openScope ();
+             sem_body b;
+             closeScope () 
+        end
+    | _ -> failwith "Should not find an entry that is not a function, with a label of a function."
+and vartype_sem t e = 
+  let PTR (p, i) = t in 
+  let pt = primitive_sem p in
+  match (e, i) with 
+  | None, 0 -> pt 
+  | None, i -> TYPE_pointer { typ = pt;
+      dim = i; mut = true }
+  | Some x, i -> let t = sem_expr x in 
+      if (equalType t TYPE_int) then TYPE_pointer {typ = pt; 
+        dim = i + 1; mut = i = 0}
+      else failwith "Cannot declare an array with a non-integer length."   
+and ftype_sem = function 
+  | VOID -> TYPE_proc
+  | RET vt -> vartype_sem vt None
+and sem_expr = function
   | E_var s -> 
       begin 
         try 
@@ -199,7 +207,7 @@ let rec sem_expr = function
       else failwith "Tried to increment/decrement something non-assignable."
   | E_basgn (e1, op, e2) -> let t1 = sem_expr e1 in 
       if (is_assignable t1 e1) then let t2 = sem_expr e2 in sem_basgn t1 t2 op
-      else "Tried to assign a value to something non-assignable."  
+      else failwith "Tried to assign a value to something non-assignable."  
   | E_tcast (v, e) -> ignore @@ sem_expr e; 
       let t1 = vartype_sem v None in t1
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
@@ -210,7 +218,7 @@ let rec sem_expr = function
       else failwith "Non-boolean condition in ternary statement."
   | E_new (v, e) ->  let t1 = sem_expr e in 
       if (equalType t1 TYPE_int) then 
-        let t2 = sem_expr v in 
+        let t2 = vartype_sem v None in 
         if (is_ptr t2) then match t2 with 
           | TYPE_pointer r when r.mut -> 
               TYPE_pointer { r with dim = r.dim + 1 }
@@ -224,15 +232,14 @@ let rec sem_expr = function
         | _ -> failwith "Tried to deallocate a statically allocated array."
       else failwith "Tried to deallocate memory using a non-pointer."
   | E_fcall (f, l) -> TYPE_none 
-  (* TODO: Check existance of function and that the provided values match the parameters. *)
-  (* ! ALSO CHECK THAT FOR BYREF PARAMETERS, WE PROVIDE MUTABLE VALUES. ! *)
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in
       if (is_ptr t1) then 
         let t2 = sem_expr e2 in 
         if (equalType t2 TYPE_int) then 
             match t1 with 
-            | TYPE_pointer r when r.dim = 1 -> r.typ
-            | TYPE_pointer r -> { r with dim = r.dim - 1 }  
+            | TYPE_pointer { typ = t; dim = 1; mut = _ } -> t 
+            | TYPE_pointer r -> TYPE_pointer { r with dim = r.dim - 1 }
+            | _ -> failwith "A value that is not a pointer should not have the type of a pointer."  
         else failwith "The index of an array element must be an integer."
       else failwith "Tried to access an indexed position of a non-array."
   | E_brack (e) -> sem_expr e
@@ -246,42 +253,52 @@ and check_option = function
 and sem_for s = function 
   | Some l -> let l_id = (id_of_label l) in
       ignore @@ newLabel (id_of_label l) true;
-      openForScope (); sem_expr s; closeForScope (Some l_id)
-  | None -> openForScope (); sem_expr s; closeForScope None
+      openForScope (); sem_stmt s; closeForScope (Some l_id)
+  | None -> openForScope (); sem_stmt s; closeForScope None
 and sem_stmt = function 
   | S_NOP -> ()
   | S_expr e -> ignore @@ sem_expr e
-  | S_block l -> List.iter sem_stmt s;
+  | S_block l -> List.iter sem_stmt l
   | S_if (e, s, None) -> check_condition e; 
       sem_stmt s
   | S_if (e, s1, Some s2) -> check_condition e; 
       sem_stmt s1; sem_stmt s2
   | S_for (o1, Some c, o3, s, l) -> check_option o1; 
       check_condition c; check_option o3; sem_for s l
+  | S_for (_, None, _, _, _) -> failwith "For-loops should always have a terminating condition."
   | S_cont l -> if (insideFor ()) then  
         if (check_jmp l) then () 
-        else failwith -> "Cannot continue to an unreachable label." 
-      else failwith -> "Cannot continue when not inside a for statement."  
+        else failwith "Cannot continue to an unreachable label." 
+      else failwith "Cannot continue when not inside a for statement."  
   | S_break l -> if (insideFor ()) then  
         if (check_jmp l) then () 
-        else failwith -> "Cannot break and jump to an unreachable label."
-      else failwith -> "Cannot break when not inside a for statement." 
+        else failwith "Cannot break and jump to an unreachable label."
+      else failwith "Cannot break when not inside a for statement." 
   | S_ret None -> let ft = lookupFunctionType () in 
       if (equalType ft TYPE_proc) then () 
-      else failwith -> "Must return a value that matches the function's return type."
+      else failwith "Must return a value that matches the function's return type."
   | S_ret Some e -> let t = sem_expr e in 
       let ft = lookupFunctionType () in 
       if (equalType ft t) then () 
-      else failwith -> "Must return a value that matches the function's return type."
+      else failwith "Must return a value that matches the function's return type."
 and sem_body b = 
   let F_body (d, s) = b in
   List.iter sem_decl d;
   List.iter sem_stmt s;
 and sem_decl = function
   | D_var (v, l) -> add_variables v l 
-  | D_fun (r, n, p) -> add_declaration r n p 
-  | D_fdef (r, n, p, b) -> add_definition r n p b 
+  | D_fun (r, n, p) -> begin 
+        try add_declaration r n p with 
+        | Failure msg -> Utilities.fail_sem msg (Utilities.FDecl n) 
+      end
+  | D_fdef (r, n, p, b) -> begin 
+        try add_definition r n p b with 
+        | Failure msg -> Utilities.fail_sem msg (Utilities.FDef n) 
+        | e -> Utilities.fail_sem ((Printexc.to_string e)) (Utilities.FDef n) 
+      end
 
 let sem_analysis t = 
+  Printf.printf "\027[1;36mSemantic Analysis:\027[0m \n";
   initSymbolTable 256;
-  List.iter sem_decl t
+  List.iter sem_decl t;
+  Printf.printf "\n\n"

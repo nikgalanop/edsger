@@ -105,66 +105,66 @@ let bassign_str = function
 let rec print_expr = 
   let open Printf in
   function
-  | E_var s -> eprintf "E_var(%s)" s
-  | E_int i -> eprintf "E_int(%d)" i
-  | E_char c -> eprintf "E_char(%c)" c
-  | E_double d -> eprintf "E_double(%f)" d
-  | E_str s -> eprintf "E_str(%s)" s
-  | E_bool b when b -> eprintf "E_bool(true)"
-  | E_bool b -> eprintf "E_bool(false)"
-  | E_NULL -> eprintf "E_NULL()"
-  | E_uop (op, e) -> eprintf "E_uop(\"%s\"," (uop_str op); print_expr e; eprintf ")"
-  | E_binop (e1, op, e2) -> eprintf "E_binop("; print_expr e1; eprintf ", \"%s\" , " (binop_str op); print_expr e2; eprintf ")"
-  | E_uasgnpre (ua, e) -> eprintf "E_uasgnpre(\"%s\", " (uassign_str ua); print_expr e; eprintf ")"
-  | E_uasgnpost (ua, e) -> eprintf "E_uasgnpost(\"%s\", " (uassign_str ua); print_expr e; eprintf ")"
-  | E_basgn (e1, op, e2) -> eprintf "E_basgn("; print_expr e1; eprintf ", \"%s\", " (bassign_str op); print_expr e2; eprintf ")"
-  | E_tcast (v, e) -> eprintf "E_tcast(\"%s\", " (vartype_str v); print_expr e;
-  | E_ternary (e1, e2, e3) -> eprintf "E_ternary("; print_expr e1; eprintf ", ";  print_expr e2; eprintf ", "; print_expr e3; eprintf ")";
-  | E_new (v, e) -> eprintf "E_new(%s" (vartype_str v); eprintf ", "; print_expr e; eprintf ")"
-  | E_delete (e) -> eprintf "E_delete("; print_expr e; eprintf ")"
-  | E_fcall (f, l) -> eprintf "E_fcall(%s, " f; List.iter (fun s -> print_expr s; eprintf " ," ) l; eprintf ")\n"
-  | E_arracc (e1, e2) -> eprintf "E_arracc("; print_expr e1; eprintf ", "; print_expr e2; eprintf ")"
-  | E_brack (e) -> eprintf "E_brack("; print_expr e; eprintf ")"
+  | E_var s -> printf "E_var(%s)" s
+  | E_int i -> printf "E_int(%d)" i
+  | E_char c -> printf "E_char(%c)" c
+  | E_double d -> printf "E_double(%f)" d
+  | E_str s -> printf "E_str(%s)" s
+  | E_bool b when b -> printf "E_bool(true)"
+  | E_bool b -> printf "E_bool(false)"
+  | E_NULL -> printf "E_NULL()"
+  | E_uop (op, e) -> printf "E_uop(\"%s\"," (uop_str op); print_expr e; printf ")"
+  | E_binop (e1, op, e2) -> printf "E_binop("; print_expr e1; printf ", \"%s\" , " (binop_str op); print_expr e2; printf ")"
+  | E_uasgnpre (ua, e) -> printf "E_uasgnpre(\"%s\", " (uassign_str ua); print_expr e; printf ")"
+  | E_uasgnpost (ua, e) -> printf "E_uasgnpost(\"%s\", " (uassign_str ua); print_expr e; printf ")"
+  | E_basgn (e1, op, e2) -> printf "E_basgn("; print_expr e1; printf ", \"%s\", " (bassign_str op); print_expr e2; printf ")"
+  | E_tcast (v, e) -> printf "E_tcast(\"%s\", " (vartype_str v); print_expr e;
+  | E_ternary (e1, e2, e3) -> printf "E_ternary("; print_expr e1; printf ", ";  print_expr e2; printf ", "; print_expr e3; printf ")";
+  | E_new (v, e) -> printf "E_new(%s" (vartype_str v); printf ", "; print_expr e; printf ")"
+  | E_delete (e) -> printf "E_delete("; print_expr e; printf ")"
+  | E_fcall (f, l) -> printf "E_fcall(%s, " f; List.iter (fun s -> print_expr s; printf " ," ) l; printf ")\n"
+  | E_arracc (e1, e2) -> printf "E_arracc("; print_expr e1; printf ", "; print_expr e2; printf ")"
+  | E_brack (e) -> printf "E_brack("; print_expr e; printf ")"
 and for_expr =  
     let open Printf in
     function
-    | Some e -> print_expr e; eprintf ", "
+    | Some e -> print_expr e; printf ", "
     | _ -> ()
 and for_label = 
     let open Printf in
     function
-    | Some l -> eprintf "%s, " l
+    | Some l -> printf "%s, " l
     | _ -> ()
 and print_stmt = 
   let open Printf in
   function
-  | S_NOP -> eprintf "S_NOP ()"
-  | S_expr e -> eprintf "S_expr (";  print_expr e; eprintf ")"
-  | S_block l -> eprintf "S_block ("; List.iter print_stmt l; eprintf ")"
-  | S_if (e, s, None) -> eprintf "S_if ("; print_expr e; eprintf ","; print_stmt s; eprintf ")"
-  | S_if (e, s1, Some s2) -> eprintf "S_if ("; print_expr e; eprintf ","; print_stmt s1; eprintf ","; print_stmt s2; eprintf ")"
-  | S_for (o1, o2, o3, s, l) -> eprintf "S_for("; for_expr o1; for_expr o2; for_expr o3; print_stmt s; eprintf ", "; for_label l; eprintf ")"
-  | S_cont l -> eprintf "S_cont(%s)" (label_str l)
-  | S_break l -> eprintf "S_break(%s)" (label_str l)
-  | S_ret None -> eprintf "S_ret()"
-  | S_ret Some e -> eprintf "S_ret("; print_expr e; eprintf ")"
+  | S_NOP -> printf "S_NOP ()"
+  | S_expr e -> printf "S_expr (";  print_expr e; printf ")"
+  | S_block l -> printf "S_block ("; List.iter print_stmt l; printf ")"
+  | S_if (e, s, None) -> printf "S_if ("; print_expr e; printf ","; print_stmt s; printf ")"
+  | S_if (e, s1, Some s2) -> printf "S_if ("; print_expr e; printf ","; print_stmt s1; printf ","; print_stmt s2; printf ")"
+  | S_for (o1, o2, o3, s, l) -> printf "S_for("; for_expr o1; for_expr o2; for_expr o3; print_stmt s; printf ", "; for_label l; printf ")"
+  | S_cont l -> printf "S_cont(%s)" (label_str l)
+  | S_break l -> printf "S_break(%s)" (label_str l)
+  | S_ret None -> printf "S_ret()"
+  | S_ret Some e -> printf "S_ret("; print_expr e; printf ")"
 and print_body b =
   let F_body (d, s) = b in 
-  Printf.eprintf "{ ";
+  Printf.printf "{ ";
   List.iter print_decl d;
-  Printf.eprintf " ,";
+  Printf.printf " ,";
   List.iter print_stmt s;
-  Printf.eprintf "}"
+  Printf.printf "}"
 
 and print_decl = 
   let open Printf in
   function
-  | D_var (v, l) -> eprintf "D_var (%s, %d)" (vartype_str v) (List.length l)
-  | D_fun (r, n, p) -> eprintf "D_fun (%s, %s, %n)" (rettype_str r) n (List.length p)  
-  | D_fdef (r, n, p, b) -> eprintf "D_fdef (%s, %s, %d, " (rettype_str r) n (List.length p); 
-                           print_body b; eprintf ")"
+  | D_var (v, l) -> printf "D_var (%s, %d)" (vartype_str v) (List.length l)
+  | D_fun (r, n, p) -> printf "D_fun (%s, %s, %n)" (rettype_str r) n (List.length p)  
+  | D_fdef (r, n, p, b) -> printf "D_fdef (%s, %s, %d, " (rettype_str r) n (List.length p); 
+                           print_body b; printf ")"
 
 let print_ast t = 
-  Printf.eprintf "\nAST: \n";
+  Printf.printf "\027[1;36mAST:\027[0m \n";
   List.iter print_decl t;
-  Printf.eprintf "\n"
+  Printf.printf "\n \n"
