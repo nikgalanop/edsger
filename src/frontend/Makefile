@@ -7,8 +7,15 @@ else
    EXE=
 endif
 
+# Frontend Directories
+LEXD=lexical-analyser
+SYND=syntactic-analyser
+ASTD=ast-creator
+SEMD=semantic-analyser,semantic-analyser/symbol-table
+UTLD=utilities
+
 OCAMLBUILD_FLAGS=-use-ocamlfind -use-menhir -r -Is
-INCLUDES=syntactic-analyser,semantic-analyser,semantic-analyser/symbol-table,utilities,lexical-analyser,ast-creator
+INCLUDES=$(LEXD),$(SYND),$(ASTD),$(SEMD),$(UTLD)
 OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS) $(INCLUDES)
 
 edsger$(EXE):
