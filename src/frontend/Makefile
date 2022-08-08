@@ -14,6 +14,8 @@ ASTD=ast-creator
 SEMD=semantic-analyser,semantic-analyser/symbol-table
 UTLD=utilities
 
+# Backend Directories
+
 OCAMLBUILD_FLAGS=-use-ocamlfind -use-menhir -r -Is
 INCLUDES=$(LEXD),$(SYND),$(ASTD),$(SEMD),$(UTLD)
 OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS) $(INCLUDES)

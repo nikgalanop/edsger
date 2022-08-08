@@ -30,6 +30,9 @@ let check_jmp = function
       end
     | None -> true
    
+let is_null = function 
+  | E_NULL -> true 
+  | _ -> false
 let is_mut = function 
   | TYPE_pointer r -> r.mut 
   | _ -> true
@@ -38,10 +41,9 @@ let is_lval = function
   | _ -> false  
 let is_ptr = function 
   | TYPE_pointer _ -> true 
-  | TYPE_null -> true
   | _ -> false
 let is_assignable t e = 
-  not @@ equalType t TYPE_null && is_mut t && is_lval e 
+  (not @@ is_null e) && is_mut t && is_lval e 
 
 let sem_mul t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -189,7 +191,8 @@ and sem_expr = function
             | ENTRY_parameter i -> i.parameter_type
             | _ -> failwith @@ s ^ " is not a variable."
           end
-        with Exit -> failwith "Variable does not exist."
+        with Not_found -> let msg = Printf.sprintf "Variable '%s' does not exist." s in
+              failwith msg
       end
   | E_int _ -> TYPE_int
   | E_char _ -> TYPE_char
@@ -217,14 +220,14 @@ and sem_expr = function
         else failwith "Return values of ternary statement do not have the same type." 
       else failwith "Non-boolean condition in ternary statement."
   | E_new (v, e) ->  let t1 = sem_expr e in 
-      if (equalType t1 TYPE_int) then 
-        let t2 = vartype_sem v None in 
-        if (is_ptr t2) then match t2 with 
+        if (equalType t1 TYPE_int) then
+          let t2 = vartype_sem v None in 
+          match t2 with 
           | TYPE_pointer r when r.mut -> 
               TYPE_pointer { r with dim = r.dim + 1 }
-          | _ -> failwith "Tried to allocate memory by using an immutable pointer."
-        else failwith "Tried to deallocate memory using a non-pointer."
-      else failwith "Cannot allocate an array of non-integer length." 
+          | TYPE_pointer r -> failwith "Cannot allocate memory of type 'static array'."
+          | t -> TYPE_pointer { typ = t; dim = 1; mut = true }
+        else failwith "Cannot allocate an array of non-integer length." 
   | E_delete (e) -> let t = sem_expr e in 
       if (is_ptr t) then match t with 
         | TYPE_pointer r when r.mut -> 
@@ -238,7 +241,7 @@ and sem_expr = function
         if (equalType t2 TYPE_int) then 
             match t1 with 
             | TYPE_pointer { typ = t; dim = 1; mut = _ } -> t 
-            | TYPE_pointer r -> TYPE_pointer { r with dim = r.dim - 1 }
+            | TYPE_pointer r ->TYPE_pointer { r with dim = r.dim - 1; mut = true }
             | _ -> failwith "A value that is not a pointer should not have the type of a pointer."  
         else failwith "The index of an array element must be an integer."
       else failwith "Tried to access an indexed position of a non-array."
@@ -290,6 +293,7 @@ and sem_decl = function
   | D_fun (r, n, p) -> begin 
         try add_declaration r n p with 
         | Failure msg -> Utilities.fail_sem msg (Utilities.FDecl n) 
+        | e -> Utilities.fail_sem ((Printexc.to_string e)) (Utilities.FDef n) 
       end
   | D_fdef (r, n, p, b) -> begin 
         try add_definition r n p b with 
