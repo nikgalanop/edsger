@@ -187,7 +187,7 @@ let newFunction ~decl id err =
           raise Exit
   with Not_found ->
     let inf = {
-      function_isForward = false;
+      function_isForward = decl;
       function_paramlist = [];
       function_redeflist = [];
       function_result = TYPE_none;
@@ -280,13 +280,6 @@ let registerFunctionType ft =
 
 let lookupFunctionType () = 
   !currentFunctionType
-
-let forwardFunction e =
-  match e.entry_info with
-  | ENTRY_function inf ->
-      inf.function_isForward <- true
-  | _ ->
-      Printf.eprintf "Cannot make a non-function forward"
 
 let endFunctionHeader e typ =
   match e.entry_info with
