@@ -9,12 +9,23 @@ let primitive_sem = function
   | BOOL -> TYPE_bool 
   | DOUBLE -> TYPE_double 
 
+let rec str_of_type = function 
+  | TYPE_none -> "NONE"
+  | TYPE_int -> "INT"
+  | TYPE_bool -> "BOOL"
+  | TYPE_char -> "CHAR"
+  | TYPE_double -> "DOUBLE"
+  | TYPE_pointer { typ = t; dim = d; mut = m } -> (str_of_type t) ^ String.make d '*'      
+  | TYPE_null -> "NULL"
+  | TYPE_proc -> "VOID"
+
+
 let string_of_params lst = 
   if (lst = []) then "" 
   else "TODO" (* TODO *)
 
 let id_of_func n p = 
-  id_make @@ "fun_" ^ n ^ "_" ^ string_of_params p 
+  id_make @@ "fun_" ^ n (* ^ "_" ^ string_of_params p *) (* TODO: Currently ignores overloading. *)
 let id_of_var n = 
   id_make @@ "var_" ^ n
 let id_of_label l = 
@@ -28,7 +39,7 @@ let check_jmp = function
           true
         with Exit -> false
       end
-    | None -> true
+  | None -> true
    
 let is_null = function 
   | E_NULL -> true 
@@ -91,13 +102,13 @@ let sem_binop t1 t2 = function
   | O_plus | O_minus -> sem_plus t1 t2
   | O_lt | O_gt | O_le | O_ge -> if (equalType t1 t2) then sem_comp t1  
       else failwith "Can only compare values of the same type."
-  | O_eq -> if (equalType t1 t2) then t1 
+  | O_eq -> if (equalType t1 t2) then TYPE_bool
       else failwith "Cannot apply '==' on operands of different type." 
-  | O_neq -> if (equalType t1 t2) then t1 
+  | O_neq -> if (equalType t1 t2) then TYPE_bool 
       else failwith "Cannot apply '!=' on operands of different type."
-  | O_and -> if (equalType t1 t2 && equalType t1 TYPE_bool) then t1 
+  | O_and -> if (equalType t1 t2 && equalType t1 TYPE_bool) then TYPE_bool
       else failwith "Cannot apply 'and' on non-booleans."
-  | O_or -> if (equalType t1 t2 && equalType t1 TYPE_bool) then t1 
+  | O_or -> if (equalType t1 t2 && equalType t1 TYPE_bool) then TYPE_bool
       else failwith "Cannot apply 'or' on non-booleans."
   | O_comma -> t2
 let sem_uasgn t = 
@@ -117,8 +128,8 @@ let rec add_variables vt l =
   let add_variable var = 
     let (n, e) = var in
     let vtype = vartype_sem vt e in 
-     Printf.printf "Variable name: %s\n" n;
-     ignore @@ newVariable (id_of_var n) vtype true
+    Printf.printf "Variable name: %s\n" n;
+    ignore @@ newVariable (id_of_var n) vtype true
   in List.iter add_variable l
 and add_parameters f ps = (* Exception Handling? *)
   let add_parameter p = 
@@ -132,38 +143,49 @@ and add_parameters f ps = (* Exception Handling? *)
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
 and add_declaration r n p = (* Exception Handling? *)
+   Printf.printf "Trying to add a declaration of the function: %s.\n" n;
    let f_id = id_of_func n p in
    let f, found = newFunction ~decl:true f_id true in
    match f.entry_info with 
    | ENTRY_function inf -> begin
         let ft = (ftype_sem r) in
-        if (found) then
+        Printf.printf "Type of declaration: %s.\n" (str_of_type ft);
+        if (found) then begin
             if (not @@ equalType inf.function_result ft) then 
               failwith "Cannot overload functions with different return types but same parameters."
-        else 
-            forwardFunction f;
-            add_parameters f p
+        end 
+        else begin
+            Printf.printf "Trying to add the parameters of said declaration.\n";
+            add_parameters f p;
+            endFunctionHeader f ft
+        end
       end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition r n p b = 
+  Printf.printf "Trying to add a definition of the function: %s\n" n;
   let f_id = id_of_func n p in
   let f, found = newFunction ~decl:false f_id true in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
           let ft = (ftype_sem r) in
           if (found) then begin (* If found, then it is either declared or defined. *)
-           if (not @@ equalType inf.function_result ft) then (* If declared or defined. *)
-             failwith "Cannot overload functions with different return types but same parameters."
-           else if (inf.function_pstatus = PARDEF_COMPLETE) then (* If defined and equal type *)
-              failwith "Cannot redefine the same function in the same scope."
+            let def = inf.function_pstatus = PARDEF_COMPLETE in 
+            let frt = inf.function_result in
+            if (not @@ equalType frt ft) then
+                failwith "Cannot overload functions with the same parameters but different return type."
+            else if (def) then
+                failwith "Cannot redefine the same function in the same scope."
           end
-          else
+          else begin
+             openScope ();
+             Printf.printf "Trying to add the parameters of said definition.\n";
              add_parameters f p;  
              endFunctionHeader f ft;
              registerFunctionType ft;
-             openScope ();
+             Printf.printf "Analysing the body of the function %s.\n" n;
              sem_body b;
              closeScope () 
+          end
         end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."
 and vartype_sem t e = 
@@ -234,7 +256,17 @@ and sem_expr = function
             TYPE_pointer r
         | _ -> failwith "Tried to deallocate a statically allocated array."
       else failwith "Tried to deallocate memory using a non-pointer."
-  | E_fcall (f, l) -> TYPE_none 
+  | E_fcall (f, l) -> let fid = id_of_func f () in begin
+        try 
+          let e = lookupEntry fid LOOKUP_ALL_SCOPES true
+          in begin match e.entry_info with 
+            | ENTRY_function inf -> inf.function_result (* TODO: Check parameters etc. *)
+            | _ -> failwith "Should not find a non-function that has an identifier of a function."
+          end 
+        with Exit -> let msg = Printf.sprintf "Called a non-existing function: %s.\n" f in 
+              failwith msg
+      end
+      (* TODO: For the time being, ignores parameters & overloading. *) 
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in
       if (is_ptr t1) then 
         let t2 = sem_expr e2 in 
@@ -252,16 +284,16 @@ and check_condition c =
   else failwith "The condition of a control statement must be a boolean value."
 and check_option = function 
   | Some e -> ignore @@ sem_expr e 
-  | _ -> ()
+  | _ -> ()      
 and sem_for s = function 
   | Some l -> let l_id = (id_of_label l) in
-      ignore @@ newLabel (id_of_label l) true;
+      ignore @@ newLabel l_id true;
       openForScope (); sem_stmt s; closeForScope (Some l_id)
   | None -> openForScope (); sem_stmt s; closeForScope None
 and sem_stmt = function 
   | S_NOP -> ()
   | S_expr e -> ignore @@ sem_expr e
-  | S_block l -> List.iter sem_stmt l
+  | S_block b -> List.iter sem_stmt b
   | S_if (e, s, None) -> check_condition e; 
       sem_stmt s
   | S_if (e, s1, Some s2) -> check_condition e; 
@@ -287,7 +319,7 @@ and sem_stmt = function
 and sem_body b = 
   let F_body (d, s) = b in
   List.iter sem_decl d;
-  List.iter sem_stmt s;
+  List.iter sem_stmt s
 and sem_decl = function
   | D_var (v, l) -> add_variables v l 
   | D_fun (r, n, p) -> begin 
