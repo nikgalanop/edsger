@@ -64,7 +64,7 @@ val closeScope       : unit -> unit
 val openForScope     : unit -> unit
 val closeForScope    : Identifier.id option -> unit
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
-val newFunction      : decl : bool -> Identifier.id -> bool -> entry * bool
+val newFunction      : decl : bool -> Identifier.id -> entry * bool
 val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
                                         entry -> bool -> entry
 val newTemporary     : Types.typ -> entry
@@ -72,7 +72,8 @@ val newLabel         : Identifier.id -> bool -> entry
 
 val registerFunctionType : Types.typ -> unit
 val endFunctionHeader : entry -> Types.typ -> unit
-val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
+val lookupEntry       : Identifier.id -> lookup_type -> 
+                                      all : bool -> bool -> entry list
 val insideFor         : unit -> bool
 val lookupFunctionType : unit -> Types.typ
 

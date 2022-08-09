@@ -10,19 +10,14 @@ let primitive_sem = function
   | DOUBLE -> TYPE_double 
 
 let rec str_of_type = function 
-  | TYPE_none -> "NONE"
-  | TYPE_int -> "INT"
-  | TYPE_bool -> "BOOL"
-  | TYPE_char -> "CHAR"
-  | TYPE_double -> "DOUBLE"
+  | TYPE_none -> "none"
+  | TYPE_int -> "int"
+  | TYPE_bool -> "bool"
+  | TYPE_char -> "char"
+  | TYPE_double -> "double"
   | TYPE_pointer { typ = t; dim = d; mut = m } -> (str_of_type t) ^ String.make d '*'      
-  | TYPE_null -> "NULL"
-  | TYPE_proc -> "VOID"
-
-
-let string_of_params lst = 
-  if (lst = []) then "" 
-  else "TODO" (* TODO *)
+  | TYPE_null -> "null"
+  | TYPE_proc -> "void"
 
 let id_of_func n p = 
   id_make @@ "fun_" ^ n (* ^ "_" ^ string_of_params p *) (* TODO: Currently ignores overloading. *)
@@ -35,7 +30,7 @@ let check_jmp = function
   | Some l -> begin 
         let id = id_of_label l in 
         try
-          ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
+          ignore @@ lookupEntry id LOOKUP_ALL_SCOPES ~all:false true;
           true
         with Exit -> false
       end
@@ -124,67 +119,89 @@ let sem_basgn t1 t2 = function
       else failwith "Cannot compute 'mod' if operands are not both integers."
   | O_plasgn | O_minasgn -> sem_plus t1 t2   
 
-let rec add_variables vt l = 
+let rec accept_parameters entrs ps = 
+  match (entrs, ps) with 
+  | (ent :: tl1, p :: tl2) -> if (accept_parameter ent p) then 
+        accept_parameters tl1 tl2 else false                
+  | [], [] -> true
+  | _ -> false 
+and accept_parameter ent p = 
+  match ent.entry_info with 
+  | ENTRY_parameter inf -> begin 
+          let m = inf.parameter_mode in
+          let t1 = inf.parameter_type in 
+          let t2 = sem_expr p in 
+          let et = equalType t1 t2 in 
+          if (m = PASS_BY_REFERENCE && (not @@ is_assignable t2 p)) then false 
+          else (not et)
+        end
+  | _ -> failwith "Should not find a non-parameter inside a paramlist."
+and add_variables vt l = 
+  Printf.printf "--- Variables:\n ";
   let add_variable var = 
     let (n, e) = var in
     let vtype = vartype_sem vt e in 
-    Printf.printf "Variable name: %s\n" n;
+    Printf.printf "%s " n;
     ignore @@ newVariable (id_of_var n) vtype true
-  in List.iter add_variable l
+  in List.iter add_variable l; Printf.printf "\n"
 and add_parameters f ps = (* Exception Handling? *)
   let add_parameter p = 
     let insert_param par mode = 
       let typ = vartype_sem (fst par) None in 
       let id = id_of_var (snd par) in 
-      Printf.printf "Parameter name: %s\n" (snd par);
+      Printf.printf "%s " (snd par);
       ignore @@ newParameter id typ mode f false
     in match p with 
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
 and add_declaration r n p = (* Exception Handling? *)
-   Printf.printf "Trying to add a declaration of the function: %s.\n" n;
    let f_id = id_of_func n p in
-   let f, found = newFunction ~decl:true f_id true in
+   let f, found = newFunction ~decl:true f_id in
    match f.entry_info with 
    | ENTRY_function inf -> begin
         let ft = (ftype_sem r) in
-        Printf.printf "Type of declaration: %s.\n" (str_of_type ft);
+        Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ft) n;
         if (found) then begin
             if (not @@ equalType inf.function_result ft) then 
               failwith "Cannot overload functions with different return types but same parameters."
         end 
         else begin
-            Printf.printf "Trying to add the parameters of said declaration.\n";
+            Printf.printf "--- Parameters: ";
             add_parameters f p;
-            endFunctionHeader f ft
+            endFunctionHeader f ft;
+            Printf.printf "\n-- Outside the declaration of the function: %s %s.\n" (str_of_type ft) n
         end
       end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition r n p b = 
-  Printf.printf "Trying to add a definition of the function: %s\n" n;
   let f_id = id_of_func n p in
-  let f, found = newFunction ~decl:false f_id true in
+  let f, found = newFunction ~decl:false f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
           let ft = (ftype_sem r) in
+          Printf.printf "-- Inside the definition of the function: %s %s.\n" (str_of_type ft) n;
           if (found) then begin (* If found, then it is either declared or defined. *)
-            let def = inf.function_pstatus = PARDEF_COMPLETE in 
+            (* TODO: Check if functions have the same parameters *)
+            let sp = false in (* Same Parameters: TODO *)
+            let def = inf.function_pstatus = PARDEF_COMPLETE in (* If "defined". *)
             let frt = inf.function_result in
-            if (not @@ equalType frt ft) then
+            if (sp && not @@ equalType frt ft) then
                 failwith "Cannot overload functions with the same parameters but different return type."
-            else if (def) then
+            else if (sp && def) then 
                 failwith "Cannot redefine the same function in the same scope."
           end
           else begin
              openScope ();
-             Printf.printf "Trying to add the parameters of said definition.\n";
+             Printf.printf "--- Parameters: ";
              add_parameters f p;  
              endFunctionHeader f ft;
              registerFunctionType ft;
-             Printf.printf "Analysing the body of the function %s.\n" n;
+             Printf.printf "\n--- Body of the function.\n";
              sem_body b;
-             closeScope () 
+             closeScope ();
+             Printf.printf "--- End of body.\n";
+             Printf.printf "-- Outside the definition of the function: %s %s.\n"   (str_of_type ft) n
           end
         end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."
@@ -196,8 +213,8 @@ and vartype_sem t e =
   | None, i -> TYPE_pointer { typ = pt;
       dim = i; mut = true }
   | Some x, i -> let t = sem_expr x in 
-      if (equalType t TYPE_int) then TYPE_pointer {typ = pt; 
-        dim = i + 1; mut = i = 0}
+      if (equalType t TYPE_int) then TYPE_pointer { typ = pt; 
+        dim = i + 1; mut = i = 0 }
       else failwith "Cannot declare an array with a non-integer length."   
 and ftype_sem = function 
   | VOID -> TYPE_proc
@@ -206,7 +223,8 @@ and sem_expr = function
   | E_var s -> 
       begin 
         try 
-          let entry = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
+          let entry = List.hd @@ 
+                        lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES ~all:false false in
           begin
             match entry.entry_info with 
             | ENTRY_variable i -> i.variable_type
@@ -220,7 +238,7 @@ and sem_expr = function
   | E_char _ -> TYPE_char
   | E_double _ -> TYPE_double
   | E_str _ -> TYPE_pointer { typ = TYPE_char; 
-      dim = 1; mut = false}
+      dim = 1; mut = false }
   | E_bool _ -> TYPE_bool
   | E_NULL -> TYPE_null
   | E_uop (op, e) -> let t = sem_expr e in 
@@ -258,11 +276,28 @@ and sem_expr = function
       else failwith "Tried to deallocate memory using a non-pointer."
   | E_fcall (f, l) -> let fid = id_of_func f () in begin
         try 
-          let e = lookupEntry fid LOOKUP_ALL_SCOPES true
-          in begin match e.entry_info with 
-            | ENTRY_function inf -> inf.function_result (* TODO: Check parameters etc. *)
-            | _ -> failwith "Should not find a non-function that has an identifier of a function."
-          end 
+          let le = lookupEntry fid LOOKUP_ALL_SCOPES ~all:true true in 
+          if (le = []) then 
+            let msg = Printf.sprintf "No function named %s exists.\n" f in 
+            failwith msg
+          else 
+            let match_func ent =
+              match ent.entry_info with 
+              | ENTRY_function inf -> let plst = inf.function_paramlist in 
+                    accept_parameters plst l (* TODO: Check parameters etc. *)
+              | _ -> failwith "Should not find a non-function that has an identifier of a function."
+            in 
+            let filt = List.filter match_func le in
+            let len = List.length filt in 
+            if (len = 0) then 
+              let msg = Printf.sprintf "No definitions/declarations of %s match the provided parameters" f in
+              failwith msg
+            else if (len > 0) then 
+              let msg = Printf.sprintf "Ambiguous call to %s. More than one definitions/declarations can be applied." f in 
+              failwith msg
+            else match (List.hd le).entry_info with 
+            | ENTRY_function inf -> inf.function_result
+            | _ -> failwith "Should not reach this state." 
         with Exit -> let msg = Printf.sprintf "Called a non-existing function: %s.\n" f in 
               failwith msg
       end

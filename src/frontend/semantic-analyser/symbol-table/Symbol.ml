@@ -1,5 +1,4 @@
 open Identifier
-open Error
 open Types
 
 module H = Hashtbl.Make (
@@ -132,27 +131,32 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    error "Duplicate Identifier %a" pretty_id id;
+    Printf.printf "Duplicate Identifier %s" (id_name id);
     e
 
-let lookupEntry id how err =
+let lookupEntry id how ~all err =
   let scc = !currentScope in
   let lookup () =
     match how with
     | LOOKUP_CURRENT_SCOPE ->
-        let e = H.find !tab id in
-        if e.entry_scope.sco_nesting = scc.sco_nesting then
-          e
-        else
-          raise Not_found
-    | LOOKUP_ALL_SCOPES ->
-        H.find !tab id in
+        let in_current e = (e.entry_scope.sco_nesting = scc.sco_nesting) in
+        if (all) then 
+          let e = H.find !tab id in
+          if (in_current e) then [e]
+          else raise Not_found
+        else 
+            let le = List.filter in_current @@ H.find_all !tab id in 
+            if (le = []) then raise Not_found 
+            else le
+    | LOOKUP_ALL_SCOPES when all -> H.find_all !tab id
+    | LOOKUP_ALL_SCOPES -> [H.find !tab id]
+  in
   if err then
     try
       lookup ()
     with Not_found ->
-      error "Unknown Identifier %a (First Occurrence)"
-        pretty_id id;
+      Printf.printf "Unknown Identifier %s (First Occurrence)"
+        (id_name id);
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
       raise Exit
@@ -167,9 +171,10 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
-let newFunction ~decl id err =
+let newFunction ~decl id =
   try
-    let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
+    let e = List.hd @@ lookupEntry id LOOKUP_CURRENT_SCOPE ~all:false false in 
+    (* Incorrect. Should also have the same parameters AND return type. *)
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
         if not decl then begin  
@@ -179,12 +184,10 @@ let newFunction ~decl id err =
         end;
         (e, true)
     | ENTRY_function inf 
-      when inf.function_pstatus = PARDEF_COMPLETE && decl ->
-        (e, true) (* Adding a function header after a definition should not "break" the program. *)
-    | _ ->
-        if err then
-          error "Duplicate Identifier: %a" pretty_id id;
-          raise Exit
+      when inf.function_pstatus = PARDEF_COMPLETE ->
+        (e, true)
+    | _ -> let msg = Printf.sprintf "A non-function has the same identifier as a function: %s" (id_name id)
+      in failwith msg
   with Not_found ->
     let inf = {
       function_isForward = decl;
@@ -216,24 +219,24 @@ let newParameter id typ mode f err =
               match p.entry_info with
               | ENTRY_parameter inf ->
                   if not (equalType inf.parameter_type typ) then
-                    error "Parameter type mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    Printf.printf "Parameter type mismatch in redeclaration \
+                           of function %s" (id_name f.entry_id)
                   else if inf.parameter_mode != mode then
-                    error "Parameter passing mode mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    Printf.printf "Parameter passing mode mismatch in redeclaration \
+                           of function %s" (id_name f.entry_id)
                   else if p.entry_id != id then
-                    error "Parameter name mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                    Printf.printf "Parameter name mismatch in redeclaration \
+                           of function %s" (id_name f.entry_id)
                   else
                     H.add !tab id p;
                   p
               | _ ->
-                  Printf.eprintf "I found a parameter that is not a parameter!";
+                  Printf.printf "I found a parameter that is not a parameter!";
                   raise Exit
             end
           | [] ->
-              error "More parameters than expected in redeclaration \
-                     of function %a" pretty_id f.entry_id;
+              Printf.printf "More parameters than expected in redeclaration \
+                     of function %s" (id_name f.entry_id);
               raise Exit
         end
       | PARDEF_COMPLETE ->
@@ -263,7 +266,7 @@ let openForScope () =
 let closeForScope = function
   | None -> forScope := false
   | Some id -> try 
-        let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
+        let e = List.hd @@ lookupEntry id LOOKUP_ALL_SCOPES ~all:false true in 
         begin
         match e.entry_info with 
           | ENTRY_label b -> b := false; forScope := false
@@ -306,11 +309,11 @@ let endFunctionHeader e typ =
             inf.function_paramlist <- List.rev inf.function_paramlist
         | PARDEF_CHECK ->
             if inf.function_redeflist <> [] then
-              error "Fewer parameters than expected in redeclaration \
-                     of function %a" pretty_id e.entry_id;
+              Printf.printf "Fewer parameters than expected in redeclaration \
+                     of function %s" (id_name e.entry_id);
             if not (equalType inf.function_result typ) then
-              error "Result type mismatch in redeclaration of function %a"
-                    pretty_id e.entry_id;
+              Printf.printf "Result type mismatch in redeclaration of function %s"
+                    (id_name e.entry_id);
       end;
       inf.function_pstatus <- PARDEF_COMPLETE
   | _ ->
