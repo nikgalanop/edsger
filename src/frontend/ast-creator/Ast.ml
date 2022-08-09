@@ -15,7 +15,7 @@ and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
 type ast_decl =
   | D_var of vartype * (var * ast_expr option) list
-  | D_fun of  rettype * fname * parameter list  
+  | D_fun of rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
 and ast_body = 
   | F_body of ast_decl list * ast_stmt list 
@@ -47,7 +47,7 @@ and ast_expr =
   | E_delete of ast_expr
   | E_fcall of fname * ast_expr list  
   | E_arracc of ast_expr * ast_expr
-  | E_brack of ast_expr (* <- Consider what to do with ( expr ). *)
+  | E_brack of ast_expr
 
 type ast = ast_decl list
 
@@ -110,8 +110,7 @@ let rec print_expr =
   | E_char c -> printf "E_char(%c)" c
   | E_double d -> printf "E_double(%f)" d
   | E_str s -> printf "E_str(%s)" s
-  | E_bool b when b -> printf "E_bool(true)"
-  | E_bool b -> printf "E_bool(false)"
+  | E_bool b -> printf "E_bool(%B)" b
   | E_NULL -> printf "E_NULL()"
   | E_uop (op, e) -> printf "E_uop(\"%s\"," (uop_str op); print_expr e; printf ")"
   | E_binop (e1, op, e2) -> printf "E_binop("; print_expr e1; printf ", \"%s\" , " (binop_str op); print_expr e2; printf ")"
@@ -121,10 +120,10 @@ let rec print_expr =
   | E_tcast (v, e) -> printf "E_tcast(\"%s\", " (vartype_str v); print_expr e;
   | E_ternary (e1, e2, e3) -> printf "E_ternary("; print_expr e1; printf ", ";  print_expr e2; printf ", "; print_expr e3; printf ")";
   | E_new (v, e) -> printf "E_new(%s" (vartype_str v); printf ", "; print_expr e; printf ")"
-  | E_delete (e) -> printf "E_delete("; print_expr e; printf ")"
+  | E_delete e -> printf "E_delete("; print_expr e; printf ")"
   | E_fcall (f, l) -> printf "E_fcall(%s, " f; List.iter (fun s -> print_expr s; printf " ," ) l; printf ")\n"
   | E_arracc (e1, e2) -> printf "E_arracc("; print_expr e1; printf ", "; print_expr e2; printf ")"
-  | E_brack (e) -> printf "E_brack("; print_expr e; printf ")"
+  | E_brack e -> printf "E_brack("; print_expr e; printf ")"
 and for_expr =  
     let open Printf in
     function
@@ -140,7 +139,7 @@ and print_stmt =
   function
   | S_NOP -> printf "S_NOP ()"
   | S_expr e -> printf "S_expr (";  print_expr e; printf ")"
-  | S_block l -> printf "S_block ("; List.iter print_stmt l; printf ")"
+  | S_block s -> printf "S_block ("; List.iter print_stmt s; printf ")"
   | S_if (e, s, None) -> printf "S_if ("; print_expr e; printf ","; print_stmt s; printf ")"
   | S_if (e, s1, Some s2) -> printf "S_if ("; print_expr e; printf ","; print_stmt s1; printf ","; print_stmt s2; printf ")"
   | S_for (o1, o2, o3, s, l) -> printf "S_for("; for_expr o1; for_expr o2; for_expr o3; print_stmt s; printf ", "; for_label l; printf ")"

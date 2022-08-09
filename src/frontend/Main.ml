@@ -12,12 +12,12 @@ let main =
         );
     let lb = Lexer.add_file fn in 
     try
-        let t = Parser.program Lexer.lexer lb in Ast.print_ast t;
-        Semantic.sem_analysis t;
-        exit 0
+      let t = Parser.program Lexer.lexer lb in Ast.print_ast t;
+      Semantic.sem_analysis t;
+      exit 0
     with 
     | Failure msg -> Utilities.print_diagnostic ~p:None (msg) Utilities.Error;
     | _ -> let pos = lb.Lexing.lex_curr_p in
-        Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
+        Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
   );   
   exit 1;

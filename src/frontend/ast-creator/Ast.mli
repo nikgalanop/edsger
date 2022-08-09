@@ -15,7 +15,7 @@ and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
 type ast_decl =
   | D_var of vartype * (var * ast_expr option) list
-  | D_fun of  rettype * fname * parameter list  
+  | D_fun of rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
 and ast_body = 
   | F_body of ast_decl list * ast_stmt list 
@@ -43,11 +43,11 @@ and ast_expr =
   | E_basgn of ast_expr * bassign * ast_expr
   | E_tcast of vartype * ast_expr
   | E_ternary of ast_expr * ast_expr * ast_expr
-  | E_new of vartype * ast_expr 
+  | E_new of vartype * ast_expr
   | E_delete of ast_expr
   | E_fcall of fname * ast_expr list  
   | E_arracc of ast_expr * ast_expr
-  | E_brack of ast_expr 
+  | E_brack of ast_expr
 
 type ast = ast_decl list
 
