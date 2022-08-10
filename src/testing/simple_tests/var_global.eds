@@ -1,12 +1,15 @@
-int i = 6;
+int i;
 
 int func(int k) {
     return k+i;
 }
 
 void main() {
-    int j = 8;
+    int j;
     int l, m;
+    
+    i = 6;
+    j = 8;
     
     l = j + func(-2);
     m = l + i;

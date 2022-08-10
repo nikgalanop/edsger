@@ -1,4 +1,4 @@
-#include include_simple_target.eds
+#include "include_simple_target.eds"
 
 void main() {
     int i;

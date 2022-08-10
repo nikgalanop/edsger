@@ -1,11 +1,7 @@
 void main() {
     int a, b, c, x, y;
-    a = 1; b = 2; c = 3;
-    x = 5; y = 10;
     int func(int i, int j) {
         int k, l;
-        k = a + i;
-        l = j - b;
         
         int func2(int a, int j) {
             int c;
@@ -13,6 +9,8 @@ void main() {
             return c-1;
         }
         
+        k = a + i;
+        l = j - b;
         return k+l-func2(c,a);
     }
     
@@ -22,6 +20,8 @@ void main() {
         return ++d;
     }
     
+    a = 1; b = 2; c = 3;
+    x = 5; y = 10;
     x = func(x, y);
     y = otherfunc(x, y);
 }

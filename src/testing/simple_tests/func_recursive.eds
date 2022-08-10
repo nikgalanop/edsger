@@ -10,5 +10,5 @@ int rec(int i) {
 
 void main() {
     int i;
-    i = rec(203)
+    i = rec(203);
 }
