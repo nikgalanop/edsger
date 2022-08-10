@@ -1,0 +1,13 @@
+int i = 6;
+
+int func(int k) {
+    return k+i;
+}
+
+void main() {
+    int j = 8;
+    int l, m;
+    
+    l = j + func(-2);
+    m = l + i;
+}

@@ -1,0 +1,32 @@
+bool is2pow(int a) {
+    if(a == 1) return true;
+    if(a % 2 == 0) return is2pow(a / 2);
+    return false;
+}
+
+void main() {
+    int i, in, j, jn, k, kn, l, ln;
+    int acc, times;
+    times = 0;
+    in = 10; jn = 20; kn = 100; ln = 200;
+    
+    for (i = 0; i<in; i++) {
+label1:
+        for (j = 0; j<jn; j++) {
+label2:
+            times++;
+            if(times % 3 == 2) break label1;
+            for (k = 0; k<kn; k++) {
+label3:
+                acc = k;
+                if (is2pow(acc)) break label2;
+                for (l = 0; l<ln; l++) {
+                    if(acc % 2 == 1) acc = acc * 3 + 1;
+                    else acc /= 2;
+                    
+                    if (acc == 1) break label3;
+                }
+            }
+        }
+    }
+}

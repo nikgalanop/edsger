@@ -1,0 +1,37 @@
+int func() {
+    return 5+9;
+}
+
+int func(int a) {
+    return a+9;
+}
+
+int func(bool b) {
+    if(b) return 4;
+    else return -4;
+}
+
+int func(int a, bool b) {
+    if(b) return 9+a;
+    else return 9-a;
+}
+
+int func(bool b, int a) {
+    if(b) return 8+a;
+    else return 6-a;
+}
+
+int func(int a, double d) {
+    if (d > 3) return a;
+    else return a+3;
+}
+
+void main() {
+    int i;
+    i = func();
+    i = func(2);
+    i = func(true);
+    i = func(3, false);
+    i = func(false, 4);
+    i = func(5, 4.2);
+}

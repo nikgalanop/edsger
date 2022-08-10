@@ -1,0 +1,27 @@
+void main() {
+    int a, b, c, x, y;
+    a = 1; b = 2; c = 3;
+    x = 5; y = 10;
+    int func(int i, int j) {
+        int k, l;
+        k = a + i;
+        l = j - b;
+        
+        int func2(int a, int j) {
+            int c;
+            c = a * i + j * b;
+            return c-1;
+        }
+        
+        return k+l-func2(c,a);
+    }
+    
+    int otherfunc(int h) {
+        int d;
+        d = h+k;
+        return ++d;
+    }
+    
+    x = func(x, y);
+    y = otherfunc(x, y);
+}

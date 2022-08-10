@@ -1,0 +1,21 @@
+void main() {
+    int i;
+    char c;
+    bool b;
+    double d;
+
+    int *ip;
+    char *cp;
+    bool *bp;
+    double *dp;
+        
+    i = 'c';
+    c = 3;
+    b = 0.0;
+    d = false;
+    
+    ip = &d;
+    cp = &b;
+    bp = &c;
+    dp = &i;
+}

@@ -1,0 +1,20 @@
+bool even(int a) {
+    if(a == 0) return true;
+    if(a == 1) return false;
+    return odd(a-1);
+}
+
+bool odd(int b) {
+    if(b == 1) return true;
+    if(b == 0) return false;
+    return even(b-1);
+}
+
+void main() {
+    bool b;
+    
+    b = even(100);
+    b = even(105);
+    b = odd(53);
+    b = odd(32);
+}

@@ -1,0 +1,3 @@
+int func4(int a) {
+    return a*a;
+}
