@@ -1,0 +1,8 @@
+int infr(int i) {
+    return i + infr(i-1);
+}
+
+void main() {
+    int i;
+    i = infr(100);
+}

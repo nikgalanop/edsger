@@ -1,0 +1,27 @@
+int f_int() {
+    return 5;
+}
+
+char f_char() {
+    return 'g';
+}
+
+bool f_bool() {
+    return true;
+}
+
+double f_double() {
+    return 3.1415;
+}
+
+void f() {
+    int i; char c; bool b; double d;
+    i = f_int();
+    c = f_char();
+    b = f_bool();
+    d = f_double();
+}
+
+void main() {
+    f();
+}

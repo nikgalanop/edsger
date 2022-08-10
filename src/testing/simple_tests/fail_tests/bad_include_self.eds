@@ -1,0 +1,10 @@
+#include "bad_include_self.eds"
+
+int func(int a) {
+    return a+2;
+}
+
+void main() {
+    int i;
+    i = func(3);
+}
