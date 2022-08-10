@@ -72,8 +72,7 @@ val newLabel         : Identifier.id -> bool -> entry
 
 val registerFunctionType : Types.typ -> unit
 val endFunctionHeader : entry -> Types.typ -> unit
-val lookupEntry       : Identifier.id -> lookup_type -> 
-                                      all : bool -> bool -> entry list
+val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
 val insideFor         : unit -> bool
 val lookupFunctionType : unit -> Types.typ
 

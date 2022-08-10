@@ -30,7 +30,7 @@ let check_jmp = function
   | Some l -> begin 
         let id = id_of_label l in 
         try
-          ignore @@ lookupEntry id LOOKUP_ALL_SCOPES ~all:false true;
+          ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
           true
         with Exit -> false
       end
@@ -122,19 +122,16 @@ let sem_basgn t1 t2 = function
 let rec accept_parameters entrs ps = 
   match (entrs, ps) with 
   | (ent :: tl1, p :: tl2) -> if (accept_parameter ent p) then 
-        accept_parameters tl1 tl2 else false                
-  | [], [] -> true
+        accept_parameters tl1 tl2 else false    
+  | [], [] -> true            
   | _ -> false 
 and accept_parameter ent p = 
   match ent.entry_info with 
-  | ENTRY_parameter inf -> begin 
-          let m = inf.parameter_mode in
-          let t1 = inf.parameter_type in 
-          let t2 = sem_expr p in 
-          let et = equalType t1 t2 in 
-          if (m = PASS_BY_REFERENCE && (not @@ is_assignable t2 p)) then false 
-          else (not et)
-        end
+  | ENTRY_parameter inf -> let m = inf.parameter_mode in
+        let t1 = inf.parameter_type in 
+        let t2 = sem_expr p in 
+        let et = equalType t1 t2 in 
+        et && (not @@ (m = PASS_BY_REFERENCE) || is_assignable t2 p)
   | _ -> failwith "Should not find a non-parameter inside a paramlist."
 and add_variables vt l = 
   Printf.printf "--- Variables:\n ";
@@ -182,13 +179,11 @@ and add_definition r n p b =
           let ft = (ftype_sem r) in
           Printf.printf "-- Inside the definition of the function: %s %s.\n" (str_of_type ft) n;
           if (found) then begin (* If found, then it is either declared or defined. *)
-            (* TODO: Check if functions have the same parameters *)
-            let sp = false in (* Same Parameters: TODO *)
             let def = inf.function_pstatus = PARDEF_COMPLETE in (* If "defined". *)
             let frt = inf.function_result in
-            if (sp && not @@ equalType frt ft) then
+            if (not @@ equalType frt ft) then
                 failwith "Cannot overload functions with the same parameters but different return type."
-            else if (sp && def) then 
+            else if (def) then 
                 failwith "Cannot redefine the same function in the same scope."
           end
           else begin
@@ -198,7 +193,7 @@ and add_definition r n p b =
              endFunctionHeader f ft;
              registerFunctionType ft;
              Printf.printf "\n--- Body of the function.\n";
-             sem_body b;
+             sem_body b;  
              closeScope ();
              Printf.printf "--- End of body.\n";
              Printf.printf "-- Outside the definition of the function: %s %s.\n"   (str_of_type ft) n
@@ -223,14 +218,12 @@ and sem_expr = function
   | E_var s -> 
       begin 
         try 
-          let entry = List.hd @@ 
-                        lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES ~all:false false in
-          begin
-            match entry.entry_info with 
-            | ENTRY_variable i -> i.variable_type
-            | ENTRY_parameter i -> i.parameter_type
-            | _ -> failwith @@ s ^ " is not a variable."
-          end
+          let entry = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
+          match entry.entry_info with 
+          | ENTRY_variable i -> i.variable_type
+          | ENTRY_parameter i -> i.parameter_type
+          | _ -> let msg = Printf.sprintf "'%s' is not a variable." s in 
+              failwith msg
         with Not_found -> let msg = Printf.sprintf "Variable '%s' does not exist." s in
               failwith msg
       end
@@ -276,32 +269,23 @@ and sem_expr = function
       else failwith "Tried to deallocate memory using a non-pointer."
   | E_fcall (f, l) -> let fid = id_of_func f () in begin
         try 
-          let le = lookupEntry fid LOOKUP_ALL_SCOPES ~all:true true in 
-          if (le = []) then 
-            let msg = Printf.sprintf "No function named %s exists.\n" f in 
-            failwith msg
-          else 
-            let match_func ent =
+          let e = lookupEntry fid LOOKUP_ALL_SCOPES true in 
+          let match_func ent =
               match ent.entry_info with 
               | ENTRY_function inf -> let plst = inf.function_paramlist in 
-                    accept_parameters plst l (* TODO: Check parameters etc. *)
+                    accept_parameters plst l
               | _ -> failwith "Should not find a non-function that has an identifier of a function."
-            in 
-            let filt = List.filter match_func le in
-            let len = List.length filt in 
-            if (len = 0) then 
-              let msg = Printf.sprintf "No definitions/declarations of %s match the provided parameters" f in
-              failwith msg
-            else if (len > 0) then 
-              let msg = Printf.sprintf "Ambiguous call to %s. More than one definitions/declarations can be applied." f in 
-              failwith msg
-            else match (List.hd le).entry_info with 
-            | ENTRY_function inf -> inf.function_result
-            | _ -> failwith "Should not reach this state." 
+          in 
+          if (not @@ match_func e) then
+            let msg = Printf.sprintf "No definitions/declarations of %s match the provided parameters" f in
+            failwith msg
+          else match e.entry_info with 
+          | ENTRY_function inf -> inf.function_result
+          | _ -> failwith "Should not reach this state." 
         with Exit -> let msg = Printf.sprintf "Called a non-existing function: %s.\n" f in 
               failwith msg
       end
-      (* TODO: For the time being, ignores parameters & overloading. *) 
+      (* TODO: For the time being, ignores overloading. *) 
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in
       if (is_ptr t1) then 
         let t2 = sem_expr e2 in 

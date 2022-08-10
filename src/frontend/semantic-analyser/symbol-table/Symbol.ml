@@ -134,22 +134,18 @@ let newEntry id inf err =
     Printf.printf "Duplicate Identifier %s" (id_name id);
     e
 
-let lookupEntry id how ~all err =
+let lookupEntry id how err =
   let scc = !currentScope in
   let lookup () =
     match how with
     | LOOKUP_CURRENT_SCOPE ->
-        let in_current e = (e.entry_scope.sco_nesting = scc.sco_nesting) in
-        if (all) then 
-          let e = H.find !tab id in
-          if (in_current e) then [e]
-          else raise Not_found
-        else 
-            let le = List.filter in_current @@ H.find_all !tab id in 
-            if (le = []) then raise Not_found 
-            else le
-    | LOOKUP_ALL_SCOPES when all -> H.find_all !tab id
-    | LOOKUP_ALL_SCOPES -> [H.find !tab id]
+      let e = H.find !tab id in
+      if e.entry_scope.sco_nesting = scc.sco_nesting then
+        e
+      else
+        raise Not_found
+  | LOOKUP_ALL_SCOPES ->
+      H.find !tab id 
   in
   if err then
     try
@@ -173,8 +169,7 @@ let newVariable id typ err =
 
 let newFunction ~decl id =
   try
-    let e = List.hd @@ lookupEntry id LOOKUP_CURRENT_SCOPE ~all:false false in 
-    (* Incorrect. Should also have the same parameters AND return type. *)
+    let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
         if not decl then begin  
@@ -266,7 +261,7 @@ let openForScope () =
 let closeForScope = function
   | None -> forScope := false
   | Some id -> try 
-        let e = List.hd @@ lookupEntry id LOOKUP_ALL_SCOPES ~all:false true in 
+        let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
         begin
         match e.entry_info with 
           | ENTRY_label b -> b := false; forScope := false
