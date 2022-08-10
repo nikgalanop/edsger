@@ -79,8 +79,9 @@ let sem_uop t = function
   | O_dref -> begin 
         match t with
         | TYPE_pointer r
-          when (r.dim > 0) -> if (r.dim = 1) then t 
-              else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
+          when (r.dim > 0) -> 
+            if (r.dim = 1) then r.typ 
+            else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
         | _ -> failwith "Tried to dereference a non-pointer."
       end
   | O_psgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t

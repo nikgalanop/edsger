@@ -151,8 +151,8 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      Printf.printf "Unknown Identifier %s (First Occurrence)"
-        (id_name id);
+      (* Printf.printf "Unknown Identifier %s (First Occurrence)"
+        (id_name id); *)
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
       raise Exit
