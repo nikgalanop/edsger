@@ -20,7 +20,7 @@ let rec str_of_type = function
   | TYPE_proc -> "void"
 
 let id_of_func n p = 
-  id_make @@ "fun_" ^ n (* ^ "_" ^ string_of_params p *) (* TODO: Currently ignores overloading. *)
+  id_make @@ "fun_" ^ n (* TODO: Currently ignores overloading. *)
 let id_of_var n = 
   id_make @@ "var_" ^ n
 let id_of_label l = 
@@ -142,7 +142,7 @@ and add_variables vt l =
     Printf.printf "%s " n;
     ignore @@ newVariable (id_of_var n) vtype true
   in List.iter add_variable l; Printf.printf "\n"
-and add_parameters f ps = (* Exception Handling? *)
+and add_parameters f ps = 
   let add_parameter p = 
     let insert_param par mode = 
       let typ = vartype_sem (fst par) None in 
@@ -153,7 +153,7 @@ and add_parameters f ps = (* Exception Handling? *)
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
-and add_declaration r n p = (* Exception Handling? *)
+and add_declaration r n p =
    let f_id = id_of_func n p in
    let f, found = newFunction f_id in
    forwardFunction f;
@@ -182,8 +182,8 @@ and add_definition r n p b =
   | ENTRY_function inf -> begin 
           let ft = (ftype_sem r) in
           Printf.printf "-- Inside the definition of the function: %s %s.\n" (str_of_type ft) n;
-          if (found) then begin (* If found, then it is either declared or defined. *)
-            let def = inf.function_pstatus = PARDEF_COMPLETE in (* If "defined". *)
+          if (found) then begin
+            let def = inf.function_pstatus = PARDEF_COMPLETE in
             let frt = inf.function_result in
             if (not @@ equalType frt ft) then
                 failwith "Cannot overload functions with the same parameters but different return type."
