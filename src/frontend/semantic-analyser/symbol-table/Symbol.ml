@@ -83,7 +83,6 @@ let currentScope = ref the_outer_scope
 let quadNext = ref 1
 let tempNumber = ref 1
 let forScope = ref false
-let currentFunctionType = ref (Types.TYPE_proc)
 
 let tab = ref (H.create 0)
 
@@ -131,8 +130,8 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    Printf.printf "Duplicate Identifier %s" (id_name id);
-    e
+    let msg = Printf.sprintf "Duplicate Identifier %s" (id_name id) in
+    failwith msg
 
 let lookupEntry id how err =
   let scc = !currentScope in
@@ -167,12 +166,12 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
-let newFunction ~decl id =
+let newFunction id =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
     match e.entry_info with
     | ENTRY_function inf when inf.function_isForward ->
-        if not decl then begin  
+        begin  
           inf.function_isForward <- false;
           inf.function_pstatus <- PARDEF_CHECK;
           inf.function_redeflist <- inf.function_paramlist;
@@ -181,11 +180,11 @@ let newFunction ~decl id =
     | ENTRY_function inf 
       when inf.function_pstatus = PARDEF_COMPLETE ->
         (e, true)
-    | _ -> let msg = Printf.sprintf "A non-function has the same identifier as a function: %s" (id_name id)
-      in failwith msg
+    | _ -> 
+        failwith "A non-function has the same identifier."
   with Not_found ->
     let inf = {
-      function_isForward = decl;
+      function_isForward = false;
       function_paramlist = [];
       function_redeflist = [];
       function_result = TYPE_none;
@@ -204,9 +203,14 @@ let newParameter id typ mode f err =
             parameter_offset = 0;
             parameter_mode = mode
           } in
-          let e = newEntry id (ENTRY_parameter inf_p) err in
-          inf.function_paramlist <- e :: inf.function_paramlist;
-          e
+          begin
+            try
+              let e = newEntry id (ENTRY_parameter inf_p) err in
+              inf.function_paramlist <- e :: inf.function_paramlist;
+              e
+            with _ -> 
+                failwith "Named more than one parameters of the same function with the same name."
+          end
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
           | p :: ps -> begin
@@ -214,34 +218,26 @@ let newParameter id typ mode f err =
               match p.entry_info with
               | ENTRY_parameter inf ->
                   if not (equalType inf.parameter_type typ) then
-                    Printf.printf "Parameter type mismatch in redeclaration \
-                           of function %s" (id_name f.entry_id)
+                    failwith "Parameter type mismatch."
                   else if inf.parameter_mode != mode then
-                    Printf.printf "Parameter passing mode mismatch in redeclaration \
-                           of function %s" (id_name f.entry_id)
+                    failwith "Parameter passing mode"
                   else if p.entry_id != id then
-                    Printf.printf "Parameter name mismatch in redeclaration \
-                           of function %s" (id_name f.entry_id)
+                    failwith "Parameter name mismatch."
                   else
                     H.add !tab id p;
                   p
               | _ ->
-                  Printf.printf "I found a parameter that is not a parameter!";
-                  raise Exit
+                  failwith "Found a parameter that is not a parameter!"
             end
           | [] ->
-              Printf.printf "More parameters than expected in redeclaration \
-                     of function %s" (id_name f.entry_id);
-              raise Exit
+              failwith "More parameters than expected."
         end
       | PARDEF_COMPLETE ->
-          Printf.eprintf "Cannot add a parameter to an already defined function";
-          raise Exit
+          failwith "Cannot add a parameter to an already defined function"
     end
-  | _ ->
-      Printf.eprintf "Cannot add a parameter to a non-function";
-      raise Exit
-
+  | _ -> 
+      failwith "Cannot add a parameter to a non-function"
+      
 let newTemporary typ =
   let id = id_make ("$" ^ string_of_int !tempNumber) in
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
@@ -251,6 +247,13 @@ let newTemporary typ =
   } in
   incr tempNumber;
   newEntry id (ENTRY_temporary inf) false
+
+let forwardFunction e =
+  match e.entry_info with
+  | ENTRY_function inf ->
+      inf.function_isForward <- true
+  | _ ->
+      failwith "Cannot make a non-function forward"
 
 let newLabel id err = (* Err can be omitted, but the function would not be easily readable. *)
     newEntry id (ENTRY_label (ref true)) err
@@ -273,19 +276,13 @@ let closeForScope = function
 let insideFor () = 
   !forScope
 
-let registerFunctionType ft = 
-  currentFunctionType := ft
-
-let lookupFunctionType () = 
-  !currentFunctionType
-
 let endFunctionHeader e typ =
   match e.entry_info with
   | ENTRY_function inf ->
       begin
         match inf.function_pstatus with
         | PARDEF_COMPLETE ->
-            Printf.eprintf "Cannot end parameters in an already defined function"
+            failwith "Cannot end parameters in an already defined function."
         | PARDEF_DEFINE ->
             inf.function_result <- typ;
             let offset = ref start_positive_offset in
@@ -299,17 +296,15 @@ let endFunctionHeader e typ =
                     | PASS_BY_REFERENCE -> 2 in
                   offset := !offset + size
               | _ ->
-                  Printf.eprintf "Cannot fix offset to a non parameter" in
-            List.iter fix_offset inf.function_paramlist;
+                failwith "Cannot fix offset to a non parameter" 
+            in List.iter fix_offset inf.function_paramlist;
             inf.function_paramlist <- List.rev inf.function_paramlist
         | PARDEF_CHECK ->
             if inf.function_redeflist <> [] then
-              Printf.printf "Fewer parameters than expected in redeclaration \
-                     of function %s" (id_name e.entry_id);
-            if not (equalType inf.function_result typ) then
-              Printf.printf "Result type mismatch in redeclaration of function %s"
-                    (id_name e.entry_id);
+              failwith "Fewer parameters than expected."
+            else if not (equalType inf.function_result typ) then
+              failwith "Result type mismatch."
       end;
       inf.function_pstatus <- PARDEF_COMPLETE
   | _ ->
-      Printf.eprintf "Cannot end parameters in a non-function"
+      failwith "Cannot end parameters in a non-function."

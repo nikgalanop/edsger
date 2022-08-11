@@ -132,7 +132,7 @@ and accept_parameter ent p =
         let t1 = inf.parameter_type in 
         let t2 = sem_expr p in 
         let et = equalType t1 t2 in 
-        et && (not @@ (m = PASS_BY_REFERENCE) || is_assignable t2 p)
+        et && (m = PASS_BY_VALUE || is_assignable t2 p)
   | _ -> failwith "Should not find a non-parameter inside a paramlist."
 and add_variables vt l = 
   Printf.printf "--- Variables:\n ";
@@ -148,33 +148,36 @@ and add_parameters f ps = (* Exception Handling? *)
       let typ = vartype_sem (fst par) None in 
       let id = id_of_var (snd par) in 
       Printf.printf "%s " (snd par);
-      ignore @@ newParameter id typ mode f false
+      ignore @@ newParameter id typ mode f true
     in match p with 
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
 and add_declaration r n p = (* Exception Handling? *)
    let f_id = id_of_func n p in
-   let f, found = newFunction ~decl:true f_id in
+   let f, found = newFunction f_id in
+   forwardFunction f;
    match f.entry_info with 
    | ENTRY_function inf -> begin
-        let ft = (ftype_sem r) in
-        Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ft) n;
-        if (found) then begin
-            if (not @@ equalType inf.function_result ft) then 
-              failwith "Cannot overload functions with different return types but same parameters."
-        end 
-        else begin
-            Printf.printf "--- Parameters: ";
-            add_parameters f p;
-            endFunctionHeader f ft;
-            Printf.printf "\n-- Outside the declaration of the function: %s %s.\n" (str_of_type ft) n
-        end
+          let ft = (ftype_sem r) in
+          Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ft) n;
+          if (found) then begin
+              if (not @@ equalType inf.function_result ft) then 
+                failwith "Cannot overload functions with different return types but same parameters."
+          end;
+          begin
+              Printf.printf "--- Parameters: ";
+              openScope ();
+              add_parameters f p; 
+              endFunctionHeader f ft;
+              closeScope ();
+              Printf.printf "\n-- Outside the declaration of the function: %s %s.\n" (str_of_type ft) n
+          end
       end
     | _ -> failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition r n p b = 
   let f_id = id_of_func n p in
-  let f, found = newFunction ~decl:false f_id in
+  let f, found = newFunction f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
           let ft = (ftype_sem r) in
@@ -186,15 +189,14 @@ and add_definition r n p b =
                 failwith "Cannot overload functions with the same parameters but different return type."
             else if (def) then 
                 failwith "Cannot redefine the same function in the same scope."
-          end
-          else begin
+          end;
+          begin
              openScope ();
              Printf.printf "--- Parameters: ";
              add_parameters f p;  
              endFunctionHeader f ft;
-             registerFunctionType ft;
              Printf.printf "\n--- Body of the function.\n";
-             sem_body b;  
+             sem_body ft b;  
              closeScope ();
              Printf.printf "--- End of body.\n";
              Printf.printf "-- Outside the definition of the function: %s %s.\n"   (str_of_type ft) n
@@ -278,7 +280,7 @@ and sem_expr = function
               | _ -> failwith "Should not find a non-function that has an identifier of a function."
           in 
           if (not @@ match_func e) then
-            let msg = Printf.sprintf "No definitions/declarations of %s match the provided parameters" f in
+            let msg = Printf.sprintf "No definitions/declarations of '%s' match with the provided values." f in
             failwith msg
           else match e.entry_info with 
           | ENTRY_function inf -> inf.function_result
@@ -305,21 +307,21 @@ and check_condition c =
 and check_option = function 
   | Some e -> ignore @@ sem_expr e 
   | _ -> ()      
-and sem_for s = function 
+and sem_for ft s = function 
   | Some l -> let l_id = (id_of_label l) in
       ignore @@ newLabel l_id true;
-      openForScope (); sem_stmt s; closeForScope (Some l_id)
-  | None -> openForScope (); sem_stmt s; closeForScope None
-and sem_stmt = function 
+      openForScope (); sem_stmt ft s; closeForScope (Some l_id)
+  | None -> openForScope (); sem_stmt ft s; closeForScope None
+and sem_stmt ft = function 
   | S_NOP -> ()
   | S_expr e -> ignore @@ sem_expr e
-  | S_block b -> List.iter sem_stmt b
+  | S_block b -> List.iter (sem_stmt ft) b
   | S_if (e, s, None) -> check_condition e; 
-      sem_stmt s
+      sem_stmt ft s
   | S_if (e, s1, Some s2) -> check_condition e; 
-      sem_stmt s1; sem_stmt s2
+      sem_stmt ft s1; sem_stmt ft s2
   | S_for (o1, Some c, o3, s, l) -> check_option o1; 
-      check_condition c; check_option o3; sem_for s l
+      check_condition c; check_option o3; sem_for ft s l
   | S_for (_, None, _, _, _) -> failwith "For-loops should always have a terminating condition."
   | S_cont l -> if (insideFor ()) then  
         if (check_jmp l) then () 
@@ -329,17 +331,15 @@ and sem_stmt = function
         if (check_jmp l) then () 
         else failwith "Cannot break and jump to an unreachable label."
       else failwith "Cannot break when not inside a for statement." 
-  | S_ret None -> let ft = lookupFunctionType () in 
-      if (equalType ft TYPE_proc) then () 
+  | S_ret None -> if (equalType ft TYPE_proc) then () 
       else failwith "Must return a value that matches the function's return type."
   | S_ret Some e -> let t = sem_expr e in 
-      let ft = lookupFunctionType () in 
       if (equalType ft t) then () 
       else failwith "Must return a value that matches the function's return type."
-and sem_body b = 
+and sem_body ft b = 
   let F_body (d, s) = b in
   List.iter sem_decl d;
-  List.iter sem_stmt s
+  List.iter (sem_stmt ft) s
 and sem_decl = function
   | D_var (v, l) -> add_variables v l 
   | D_fun (r, n, p) -> begin 
@@ -357,4 +357,3 @@ let sem_analysis t =
   Printf.printf "\027[1;36mSemantic Analysis:\027[0m \n";
   initSymbolTable 256;
   List.iter sem_decl t;
-  Printf.printf "\n\n"
