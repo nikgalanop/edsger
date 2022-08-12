@@ -82,7 +82,7 @@ let no_entry id = {
 let currentScope = ref the_outer_scope
 let quadNext = ref 1
 let tempNumber = ref 1
-let forScope = ref false
+let forNest = ref 0
 
 let tab = ref (H.create 0)
 
@@ -259,22 +259,22 @@ let newLabel id err = (* Err can be omitted, but the function would not be easil
     newEntry id (ENTRY_label (ref true)) err
 
 let openForScope () = 
-  forScope := true
-
+  forNest := !forNest + 1 
+    
 let closeForScope = function
-  | None -> forScope := false
+  | None -> forNest := !forNest - 1
   | Some id -> try 
         let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
         begin
         match e.entry_info with 
-          | ENTRY_label b -> b := false; forScope := false
+          | ENTRY_label b -> b := false; forNest := !forNest - 1
           | _ -> Printf.eprintf "Should not find an entry of type label with an id of a label." 
         end
       with Exit -> 
           Printf.eprintf "Cannot close scope of non-existing label"
 
 let insideFor () = 
-  !forScope
+  !forNest > 0
 
 let endFunctionHeader e typ =
   match e.entry_info with
