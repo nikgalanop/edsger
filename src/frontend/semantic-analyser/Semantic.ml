@@ -78,7 +78,7 @@ let sem_plus pos t1 t2 =
 let sem_comp pos t = 
   match t with 
   | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
-  | _ -> sem_fail pos"Cannot compare values with the provided type." 
+  | _ -> sem_fail pos "Cannot compare values with the provided type." 
 
 let sem_uop pos t = function 
   | O_ref -> begin 
@@ -295,9 +295,9 @@ and sem_expr exp =
       let t1 = vartype_sem v None in t1
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
       let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
-      if (equalType t1 TYPE_bool) then 
+      if (equalType t1 TYPE_bool) then
         if (equalType t2 t3) then t2  
-        else sem_fail pos "Return values of ternary statement do not have the same type." 
+        else sem_fail e2.meta "Return values of ternary statement do not have the same type." 
       else sem_fail pos "Non-boolean condition in ternary statement."
   | E_new (v, e) ->  let t1 = sem_expr e in 
         if (equalType t1 TYPE_int) then
