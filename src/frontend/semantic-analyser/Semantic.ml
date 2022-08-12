@@ -44,20 +44,23 @@ let check_jmp = function
       end
   | None -> true
    
-let is_null = function 
+let is_null exp = 
+  match exp.expr with
   | E_NULL -> true 
   | _ -> false
 let is_mut = function 
   | TYPE_pointer r -> r.mut 
   | _ -> true
-let is_lval = function
+let rec is_lval exp = 
+  match exp.expr with
+  | E_brack e -> is_lval e
   | E_var _ | E_uop (O_dref, _) | E_arracc (_, _) -> true 
   | _ -> false  
 let is_ptr = function 
   | TYPE_pointer _ -> true 
   | _ -> false
 let is_assignable t exp = 
-  (not @@ is_null exp.expr) && is_mut t && is_lval exp.expr 
+  (not @@ is_null exp) && is_mut t
 
 let sem_mul pos t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -249,7 +252,7 @@ and vartype_sem t e =
       dim = i; mut = true }
   | Some x, i -> let t = sem_expr x in 
       if (equalType t TYPE_int) then TYPE_pointer { typ = pt; 
-        dim = i + 1; mut = i = 0 }
+        dim = i + 1; mut = false }
       else sem_fail x.meta "Cannot declare an array with a non-integer length."   
 and ftype_sem = function 
   | VOID -> TYPE_proc
@@ -283,8 +286,10 @@ and sem_expr exp =
   | E_uasgnpre (ua, e) | E_uasgnpost (ua, e) -> let t = sem_expr e in 
       if (is_assignable t e) then sem_uasgn pos t 
       else sem_fail pos "Tried to increment/decrement something non-assignable."
-  | E_basgn (e1, op, e2) -> let t1 = sem_expr e1 in 
-      if (is_assignable t1 e1) then let t2 = sem_expr e2 in sem_basgn pos t1 t2 op
+  | E_basgn (e1, op, e2) -> let t1 = sem_expr e1 in
+      if (is_assignable t1 e1) then 
+        if (is_lval e1) then let t2 = sem_expr e2 in sem_basgn pos t1 t2 op
+        else sem_fail pos "Tried a binary assignment to a non-lvalue."
       else sem_fail pos "Tried to assign a value to something non-assignable."  
   | E_tcast (v, e) -> ignore @@ sem_expr e; 
       let t1 = vartype_sem v None in t1
