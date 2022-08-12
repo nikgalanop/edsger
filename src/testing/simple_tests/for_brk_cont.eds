@@ -10,7 +10,7 @@ void main(){
     int acc;
     acc = 0;
 
-lb1:
+lbl1:
     for(i=0; i<10; i++) {
         acc += i;
 lbl2:   for(j=0; j<20; j++) {
