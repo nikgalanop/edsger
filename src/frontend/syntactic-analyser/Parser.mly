@@ -85,8 +85,8 @@ declaration:
 ;
 
 variable_declaration: 
-        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { { decl =  D_var ($1, $2); 
-                                                                                   meta =Lexing.dummy_pos } }
+        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { { decl = D_var ($1, $2); 
+                                                                                   meta = Lexing.dummy_pos } }
 ;
 
 pointer:
@@ -139,7 +139,7 @@ parameter:
 function_definition: 
         | function_header function_body   { let (r, f, p) = $1 in 
                                             { decl = D_fdef (r, f, p, $2);
-                                              meta =$symbolstartpos } }
+                                              meta = $symbolstartpos } }
 ;
 
 statement:
@@ -237,7 +237,7 @@ dynamic_allocation:
 ;
 
 const_expression:
-        | expression   { $1 } // Do we need something more implicit for constant expressions?
+        | expression   { $1 }
 ;
 
 %inline unary_operator:

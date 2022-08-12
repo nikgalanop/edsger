@@ -1,21 +1,26 @@
 (* Header Section *)
 
 {
- open Parser
-    module StringSet = Set.Make(String)
-    type globalSet = StringSet.t ref
-    let set : globalSet = ref StringSet.empty
+  open Parser
+  module StringSet = Set.Make(String)
+  type globalSet = StringSet.t ref
+  let set : globalSet = ref StringSet.empty
 
-    let add_file filename = 
-        set := StringSet.add filename !set;
-        let c = Stdlib.open_in filename in
-        let lb = Lexing.from_channel c in
-        Lexing.set_filename lb filename;
-        lb
+  let add_file filename = 
+    set := StringSet.add filename !set;
+    let c = Stdlib.open_in filename in
+    let lb = Lexing.from_channel c in
+    Lexing.set_filename lb filename;
+    lb
 
-    let safe_find filename (set:globalSet) = 
-      try Some (StringSet.find filename !set) with
-      | Not_found -> None 
+  let safe_find filename (set:globalSet) = 
+    try Some (StringSet.find filename !set) with
+    | Not_found -> None 
+
+  exception LexFailure of Lexing.position * string 
+
+  let lex_fail pos msg = 
+    raise (LexFailure (pos, msg))
 }
 
 (* Definitions Section *)
@@ -42,41 +47,32 @@ let name = '\"' (([^'"'' ''\t''\n'])+ as filename) '\"'
 let incl = "#include" whitespace* name
 
 (* Rules Section *)
-
 rule lexer = parse 
 
     (* Directives *)
-
-      incl    {      
-                      let pos = lexbuf.Lexing.lex_start_p in
-                      let line_pos = pos.pos_cnum - pos.pos_bol in
-                      if (line_pos <> 0) then begin
-                        Utilities.print_diagnostic ~p:(Some pos) 
-                            "Directives should be in the beginning of a line" Utilities.Error;
-                        exit 1 end
-                      else
-                        if (not @@ Sys.file_exists filename) then 
-                          let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
-                          Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-                          exit 1
-                        else
-                          let res = safe_find filename set in
-                          match res with
-                          | None -> let lb = add_file filename in 
-                              begin try  
-                                let t = Parser.program lexer lb in
-                                T_include t
-                              with _ -> let pos = lb.Lexing.lex_start_p in
-                                Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
-                                exit 1 
-                              end
-                          | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename
-                              in Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
-                              T_include []
-              } 
+    | incl    { let pos = lexbuf.Lexing.lex_start_p in
+                let line_pos = pos.pos_cnum - pos.pos_bol in
+                if (line_pos <> 0) then
+                  lex_fail pos "Directives should be in the beginning of a line"
+                else if (not @@ Sys.file_exists filename) then
+                  let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
+                  lex_fail pos msg
+                else 
+                  let res = safe_find filename set in
+                  match res with
+                  | None -> let lb = add_file filename in 
+                      begin try  
+                        let t = Parser.program lexer lb in
+                        T_include t
+                      with _ -> let pos = lb.Lexing.lex_start_p in
+                          Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
+                          exit 1 
+                      end
+                  | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename in
+                      Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
+                      T_include [] } 
 
     (* Keywords *)
-
     | "bool"        { T_bool }
     | "break"       { T_break }
     | "byref"       { T_byref }
@@ -96,7 +92,6 @@ rule lexer = parse
     | "void"        { T_void }
 
     (* Symbolic Operators *)
-
     | '='           { T_assign }
     | "=="          { T_eq }
     | "!="          { T_neq }
@@ -125,7 +120,6 @@ rule lexer = parse
     | "%="          { T_modequals }
 
     (* Seperators *)
-
     | ";"           { T_semicolon }
     | "("           { T_leftpar }
     | ")"           { T_rightpar }
@@ -135,41 +129,31 @@ rule lexer = parse
     | "}"           { T_rightbr }
 
     (* Rest *)
-
-    | letter (id_trail)*                        { T_id (Lexing.lexeme lexbuf)}        (* Identifiers *)
-    | digit+                                    { T_constint (int_of_string @@ Lexing.lexeme lexbuf)}  (* Unsigned integer constants *)
-    | digit+ '.' exp_part?                      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} (* Unsigned real constants *)
-
-    | '\'' (common_char | esc_char as c) '\''       {  
-                                                       match c with 
-                                                       | "\\0" -> T_constchar (Char.chr 0)
-                                                       | _ -> T_constchar (Scanf.unescaped c).[0] 
-                                                    } 
+    | letter (id_trail)*                        { T_id (Lexing.lexeme lexbuf)}        
+    | digit+                                    { T_constint (int_of_string @@ Lexing.lexeme lexbuf)} 
+    | digit+ '.' exp_part?                      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} 
+    | '\'' (common_char | esc_char as c) '\''   { match c with 
+                                                  | "\\0" -> T_constchar (Char.chr 0)
+                                                  | _ -> T_constchar (Scanf.unescaped c).[0] } 
     | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string (Lexing.lexeme lexbuf)} 
-    (* Use whatever you want besides new line or a double quote or you must use the escaping character for double quotes *)                                                         
-
-    | one_liner                                 { Lexing.new_line lexbuf; lexer lexbuf } (* Ignore one-liner comments *)
-    | "/*"                                      { multi_comment lexbuf }  (* Ignore multi-line comments *)
-    | '\n'                                      { Lexing.new_line lexbuf; lexer lexbuf } (* New Line *)
-    | whitespace+                               { lexer lexbuf } (* Ignore all whitespaces *)
-
+    | one_liner                                 { Lexing.new_line lexbuf; lexer lexbuf } 
+    | "/*"                                      { multi_comment lexbuf }
+    | '\n'                                      { Lexing.new_line lexbuf; lexer lexbuf }
+    | whitespace+                               { lexer lexbuf }
     |  eof                                      { T_eof }
-
-    |  _ as chr                                 { 
-                                                  let pos = lexbuf.Lexing.lex_curr_p in  
+    |  _ as chr                                 { let pos = lexbuf.Lexing.lex_curr_p in  
                                                   let msg = Printf.sprintf "Invalid Character '%c' (ASCII Code: %d)" 
                                                              chr (Char.code chr)
                                                   in
                                                   Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-                                                  lexer lexbuf 
-                                                }
+                                                  lexer lexbuf }
 
 (* Count the lines of the multilined comments *)
 and multi_comment = parse 
     "*/"          { lexer lexbuf }
   | '\n'          { Lexing.new_line lexbuf; multi_comment lexbuf }
-  | '*'           { multi_comment lexbuf } (* Ignored *)
-  | [^'*''\n']    { multi_comment lexbuf } (* Ignored. Handled above. *)
+  | '*'           { multi_comment lexbuf } 
+  | [^'*''\n']    { multi_comment lexbuf }
 
 (* Trailer Section *)
 
