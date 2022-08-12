@@ -181,7 +181,7 @@ let newFunction id =
       when inf.function_pstatus = PARDEF_COMPLETE ->
         (e, true)
     | _ -> 
-        failwith "A non-function has the same identifier."
+        failwith "Duplicate Identifier."
   with Not_found ->
     let inf = {
       function_isForward = false;

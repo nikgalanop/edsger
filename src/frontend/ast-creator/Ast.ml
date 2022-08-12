@@ -13,13 +13,15 @@ and vartype =  PTR of primitive * int
 and rettype = VOID | RET of vartype
 and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
-type ast_decl =
+type ast_decl = { decl : decl; meta : Lexing.position } 
+and decl =
   | D_var of vartype * (var * ast_expr option) list
   | D_fun of rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
 and ast_body = 
-  | F_body of ast_decl list * ast_stmt list 
-and ast_stmt =
+  | F_body of ast_decl list * ast_stmt list
+and ast_stmt = { stmt : stmt; meta : Lexing.position } 
+and stmt =
   | S_NOP
   | S_expr of ast_expr
   | S_block of ast_stmt list
@@ -28,7 +30,8 @@ and ast_stmt =
   | S_cont of label option 
   | S_break of label option
   | S_ret of ast_expr option
-and ast_expr = 
+and ast_expr = { expr : expr; meta : Lexing.position }
+and expr = 
   | E_var of var
   | E_int of int 
   | E_char of char 
@@ -102,9 +105,9 @@ let bassign_str = function
   | O_minasgn -> "-="
 
 
-let rec print_expr = 
+let rec print_expr e = 
   let open Printf in
-  function
+  match e.expr with
   | E_var s -> printf "E_var(%s)" s
   | E_int i -> printf "E_int(%d)" i
   | E_char c -> printf "E_char(%c)" c
@@ -134,9 +137,9 @@ and for_label =
     function
     | Some l -> printf "%s, " l
     | _ -> ()
-and print_stmt = 
+and print_stmt s = 
   let open Printf in
-  function
+  match s.stmt with
   | S_NOP -> printf "S_NOP ()"
   | S_expr e -> printf "S_expr (";  print_expr e; printf ")"
   | S_block s -> printf "S_block ("; List.iter print_stmt s; printf ")"
@@ -155,9 +158,9 @@ and print_body b =
   List.iter print_stmt s;
   Printf.printf "}"
 
-and print_decl = 
+and print_decl d = 
   let open Printf in
-  function
+  match d.decl with 
   | D_var (v, l) -> printf "D_var (%s, %d)" (vartype_str v) (List.length l)
   | D_fun (r, n, p) -> printf "D_fun (%s, %s, %n)" (rettype_str r) n (List.length p)  
   | D_fdef (r, n, p, b) -> printf "D_fdef (%s, %s, %d, " (rettype_str r) n (List.length p); 

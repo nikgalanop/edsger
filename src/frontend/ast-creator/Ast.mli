@@ -13,13 +13,15 @@ and vartype =  PTR of primitive * int
 and rettype = VOID | RET of vartype
 and parameter = BYREF of vartype * var | BYVAL of vartype * var
 
-type ast_decl =
+type ast_decl = { decl : decl; meta : Lexing.position } 
+and decl =
   | D_var of vartype * (var * ast_expr option) list
   | D_fun of rettype * fname * parameter list  
   | D_fdef of rettype * fname * parameter list * ast_body
 and ast_body = 
-  | F_body of ast_decl list * ast_stmt list 
-and ast_stmt =
+  | F_body of ast_decl list * ast_stmt list
+and ast_stmt = { stmt : stmt; meta : Lexing.position } 
+and stmt =
   | S_NOP
   | S_expr of ast_expr
   | S_block of ast_stmt list
@@ -28,7 +30,8 @@ and ast_stmt =
   | S_cont of label option 
   | S_break of label option
   | S_ret of ast_expr option
-and ast_expr = 
+and ast_expr = { expr : expr; meta : Lexing.position }
+and expr = 
   | E_var of var
   | E_int of int 
   | E_char of char 
