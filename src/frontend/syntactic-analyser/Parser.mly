@@ -43,26 +43,17 @@
 %left  T_comma
 %right T_assign T_plusequals T_minusequals 
        T_timesequals T_divequals T_modequals
-/* 
- * Ternary operator has this precedence [?:]
- * Paragraph 4.2.1: http://cambium.inria.fr/~fpottier/menhir/manual.html 
- */
 %right T_question
 %left T_or
 %left T_and 
 %nonassoc T_eq T_neq T_gt T_lt T_le T_ge 
 %left T_plus T_minus 
 %left T_times T_div T_mod 
-/* Type conversion has this precedence [()] */
-%nonassoc T_leftpar // Check this again
+%nonassoc T_leftpar 
 %nonassoc T_plusplus T_minusminus
 %nonassoc T_new T_delete
-/* 
- * Same "symbol" for different operators. How do we face that. 
- * https://www.gnu.org/software/bison/manual/html_node/Contextual-Precedence.html 
- */ 
 %nonassoc TUOP
-%left T_leftsqbr  // Rethink associativity of these "tokens"
+%left T_leftsqbr  
 
 (* Type declarations *)
 %start program
@@ -94,7 +85,8 @@ declaration:
 ;
 
 variable_declaration: 
-        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { D_var ($1, $2) }
+        | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { { decl =  D_var ($1, $2); 
+                                                                                   meta =Lexing.dummy_pos } }
 ;
 
 pointer:
@@ -121,14 +113,15 @@ bracketed_const_expression:
 ;
 
 function_declaration: 
-        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { D_fun ($1, $2, $4) }
+        | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar T_semicolon   { { decl = D_fun ($1, $2, $4);
+                                                                                                          meta = $symbolstartpos } }
 ;
 
 %inline function_header:                                                 
         | result_data_type T_id T_leftpar separated_list(T_comma, parameter) T_rightpar { ($1, $2, $4) }
 ;
 
-%inline function_body:
+%inline function_body:  
         | T_leftbr list(declaration) list(statement) T_rightbr { F_body ($2, $3) } 
 ;
 
@@ -138,82 +131,109 @@ function_declaration:
 ;
 
 parameter:
-        | option(T_byref) data_type T_id     { 
-                                               match $1 with
+        | option(T_byref) data_type T_id     { match $1 with
                                                | None -> BYVAL ($2, $3)
-                                               | _ -> BYREF ($2, $3)  
-                                             }
+                                               | _ -> BYREF ($2, $3) }
 ;
 
 function_definition: 
-        | function_header function_body   { 
-                                            let (r, f, p) = $1 in 
-                                            D_fdef (r, f, p, $2) 
-                                          }
+        | function_header function_body   { let (r, f, p) = $1 in 
+                                            { decl = D_fdef (r, f, p, $2);
+                                              meta =$symbolstartpos } }
 ;
 
 statement:
-        | T_semicolon                                                                         { S_NOP } 
-        | expression T_semicolon                                                              { S_expr $1 } 
-        | T_leftbr list(statement) T_rightbr                                                  { S_block $2 } 
-        | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { S_if ($3, $5, None) } 
-        | T_if T_leftpar expression T_rightpar statement T_else statement                     { S_if ($3, $5, Some $7) }
-        | T_for for_control statement                                                         { 
-                                                                                                let (a, b, c) = $2 in
-                                                                                                S_for (a, b, c, $3, None) 
-                                                                                              } 
-        | T_id T_colon T_for for_control statement                                            { 
-                                                                                                let (a, b, c) = $4 in
-                                                                                                S_for (a, b, c, $5, Some $1) 
-                                                                                              }
-        | T_continue option(T_id) T_semicolon                                                 { S_cont $2 } 
-        | T_break option(T_id) T_semicolon                                                    { S_break $2 } 
-        | T_return option(expression) T_semicolon                                             { S_ret $2 }
+        | T_semicolon                                                                         { { stmt = S_NOP;
+                                                                                                  meta = $symbolstartpos } } 
+        | expression T_semicolon                                                              { { stmt = S_expr $1;
+                                                                                                  meta = $symbolstartpos } } 
+        | T_leftbr list(statement) T_rightbr                                                  { { stmt = S_block $2;
+                                                                                                  meta = $symbolstartpos } } 
+        | T_if T_leftpar expression T_rightpar statement                          %prec LOW   { { stmt = S_if ($3, $5, None);
+                                                                                                  meta = $symbolstartpos } } 
+        | T_if T_leftpar expression T_rightpar statement T_else statement                     { { stmt = S_if ($3, $5, Some $7); 
+                                                                                                  meta = $symbolstartpos } }
+        | T_for for_control statement                                                         { let (a, b, c) = $2 in
+                                                                                                { stmt = S_for (a, b, c, $3, None);
+                                                                                                  meta = $symbolstartpos } } 
+        | T_id T_colon T_for for_control statement                                            { let (a, b, c) = $4 in
+                                                                                                { stmt = S_for (a, b, c, $5, Some $1);
+                                                                                                  meta = $symbolstartpos } }
+        | T_continue option(T_id) T_semicolon                                                 { { stmt = S_cont $2; 
+                                                                                                  meta = $symbolstartpos } } 
+        | T_break option(T_id) T_semicolon                                                    { { stmt = S_break $2;
+                                                                                                  meta = $symbolstartpos } } 
+        | T_return option(expression) T_semicolon                                             { { stmt = S_ret $2; 
+                                                                                                  meta = $symbolstartpos } }
 ;
 
 %inline for_control:
-        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { 
-                                                                                                                    match $4 with 
-                                                                                                                    | None -> ($2, Some (E_bool true), $6)
+        | T_leftpar option(expression) T_semicolon option(expression) T_semicolon option(expression) T_rightpar   { let e = { expr = E_bool true; 
+                                                                                                                              meta = $startpos($4) } 
+                                                                                                                    in match $4 with 
+                                                                                                                    | None -> ($2, Some e, $6)
                                                                                                                     | _ -> ($2, $4, $6) 
                                                                                                                   }         
 ;
 
 expression:
-        | T_id                                                                    { E_var $1 }
-        | T_leftpar expression T_rightpar                                         { E_brack $2 } // Bracketed expression
-        | T_true                                                                  { E_bool true }
-        | T_false                                                                 { E_bool false }
-        | T_NULL                                                                  { E_NULL } 
-        | T_constint                                                              { E_int $1 }
-        | T_constchar                                                             { E_char $1 } 
-        | T_constreal                                                             { E_double $1 }
-        | T_string                                                                { E_str $1 }
-        | T_id T_leftpar option(expression) T_rightpar                            { match $3 with
+        | T_id                                                                    { { expr = E_var $1;
+                                                                                      meta = $symbolstartpos } }
+        | T_leftpar expression T_rightpar                                         { { expr = E_brack $2;
+                                                                                      meta = $symbolstartpos } } // Bracketed expression
+        | T_true                                                                  { { expr = E_bool true;
+                                                                                      meta = $symbolstartpos } }
+        | T_false                                                                 { { expr = E_bool false; 
+                                                                                      meta = $symbolstartpos } }
+        | T_NULL                                                                  { { expr = E_NULL; 
+                                                                                      meta = $symbolstartpos } } 
+        | T_constint                                                              { { expr = E_int $1;
+                                                                                      meta = $symbolstartpos } }
+        | T_constchar                                                             { { expr = E_char $1;
+                                                                                      meta = $symbolstartpos } } 
+        | T_constreal                                                             { { expr = E_double $1;
+                                                                                      meta = $symbolstartpos } }
+        | T_string                                                                { { expr = E_str $1;
+                                                                                      meta = $symbolstartpos } }
+        | T_id T_leftpar option(expression) T_rightpar                            { let exp = match $3 with
                                                                                     | None -> E_fcall ($1, [])
                                                                                     | Some e -> 
-                                                                                        let rec flatten expr acc =
-                                                                                            match expr with
+                                                                                        let rec flatten ex acc =
+                                                                                            match ex.expr with
                                                                                             | E_binop (x, O_comma, y) -> flatten x (y :: acc)
-                                                                                            | _ -> expr :: acc
-                                                                                        in E_fcall ($1, flatten e []) 
+                                                                                            | _ -> ex :: acc
+                                                                                        in E_fcall ($1, flatten e [])
+                                                                                    in { expr = exp; meta = $symbolstartpos }
                                                                                   } // Comma is left associative.
-        | expression T_leftsqbr expression T_rightsqbr                            { E_arracc ($1, $3) } 
-        | unary_operator expression                             %prec TUOP        { E_uop ($1, $2) }
-        | expression binary_operator expression                                   { E_binop ($1, $2, $3) }
-        | unary_assignment expression                                             { E_uasgnpre ($1, $2) }
-        | expression unary_assignment                                             { E_uasgnpost ($2, $1) }
-        | expression binary_assignment expression                                 { E_basgn ($1, $2, $3) }
-        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { E_tcast ($2, $4) } 
-        | expression T_question expression T_colon expression   %prec T_question  { E_ternary ($1, $3, $5) } 
+        | expression T_leftsqbr expression T_rightsqbr                            { { expr = E_arracc ($1, $3); 
+                                                                                      meta = $symbolstartpos } } 
+        | unary_operator expression                             %prec TUOP        { { expr = E_uop ($1, $2); 
+                                                                                      meta = $symbolstartpos } }
+        | expression binary_operator expression                                   { { expr = E_binop ($1, $2, $3); 
+                                                                                      meta = $symbolstartpos } }
+        | unary_assignment expression                                             { { expr = E_uasgnpre ($1, $2); 
+                                                                                      meta = $symbolstartpos } }
+        | expression unary_assignment                                             { { expr = E_uasgnpost ($2, $1); 
+                                                                                      meta = $symbolstartpos } }
+        | expression binary_assignment expression                                 { { expr = E_basgn ($1, $2, $3); 
+                                                                                      meta = $symbolstartpos } }
+        | T_leftpar data_type T_rightpar expression             %prec T_leftpar   { { expr = E_tcast ($2, $4); 
+                                                                                      meta = $symbolstartpos } } 
+        | expression T_question expression T_colon expression   %prec T_question  { { expr = E_ternary ($1, $3, $5); 
+                                                                                      meta = $symbolstartpos } } 
         | dynamic_allocation                                                      { $1 } 
-        | T_delete expression                                                     { E_delete $2 } 
+        | T_delete expression                                                     { { expr = E_delete $2; 
+                                                                                      meta = $symbolstartpos } }
 ; 
 
 
 dynamic_allocation:
-        | T_new data_type T_leftsqbr expression T_rightsqbr   { E_new ($2, $4) }
-        | T_new data_type { E_new ($2, E_int 1) }
+        | T_new data_type T_leftsqbr expression T_rightsqbr   { { expr = E_new ($2, $4); 
+                                                                  meta = $symbolstartpos } }
+        | T_new data_type { let e = { expr = E_int 1; 
+                                      meta = $endpos } 
+                            in { expr = E_new ($2, e); 
+                                 meta = $symbolstartpos } }
 ;
 
 const_expression:
