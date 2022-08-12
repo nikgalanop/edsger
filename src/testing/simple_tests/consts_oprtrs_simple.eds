@@ -1,0 +1,46 @@
+void main() {
+    int i;
+    bool b;
+    char c;
+    double d;
+    char *s;
+    int *p;
+    
+    i = 0;
+    i = 345;
+    i = 00340;
+    i = -003;
+    
+    b = true;
+    b = false;
+    
+    c = 'a';
+    c = '2';
+    c = '\n';
+    c = '\'';
+    c = '\x1d';
+    
+    d = 32.2;
+    d = 1.0;
+    d = 0.43;
+    d = 0.3e11;
+    d = 433e-31;
+    
+    s = "test";
+    s = "hello\n";
+    s = "text\ttext\n\\\"";
+    
+    b = i == 0;
+    b = i != 0;
+    b = i > 5;
+    b = (s+2) < (s+5);
+ 
+    p = new int [3];
+    for (i=0; i<3; i++) {p[i] = i;}
+    ++*(p+2);
+    delete p;
+    
+    i = b?3:4;
+    
+    
+}

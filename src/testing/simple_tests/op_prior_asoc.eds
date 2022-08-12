@@ -1,0 +1,40 @@
+int fun(int a) {
+    
+}
+
+int fun2(int a, int b, int c) {
+    
+}
+
+int* next(int* a) {
+    return a+1;
+}
+
+void main() {
+    int a, b, c;
+    int x, y;
+    int* p;
+    int d[10];
+    
+    for(x=0; x<10; x++) {d[x] = x;}
+    
+    a=3; b=5; c=8;
+    
+    x = a - b - c;
+    x = x - a + b;
+    y = a / b / c;
+    y = a * b / c * c / x;
+    
+    
+    
+    //should be parsed as implied by the spacing
+    x = a++>b ? b>--a?c:a : c<b?b:c;
+    y = a>b?a<b:b>c ? a<b?c:b : c>a?b:a;
+    
+    d[c, a>b?a:b] /= func(++c);
+    
+    p=d+3;
+    next(p)[2] = fun2(a, ((b,c), * p++), c);
+    
+    
+}
