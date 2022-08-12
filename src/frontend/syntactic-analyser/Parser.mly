@@ -50,9 +50,10 @@
 %left T_plus T_minus 
 %left T_times T_div T_mod 
 %nonassoc T_leftpar 
-%nonassoc T_plusplus T_minusminus
+%nonassoc TUAS
 %nonassoc T_new T_delete
 %nonassoc TUOP
+%nonassoc T_plusplus T_minusminus
 %left T_leftsqbr  
 
 (* Type declarations *)
@@ -211,7 +212,7 @@ expression:
                                                                                       meta = $symbolstartpos } }
         | expression binary_operator expression                                   { { expr = E_binop ($1, $2, $3); 
                                                                                       meta = $symbolstartpos } }
-        | unary_assignment expression                                             { { expr = E_uasgnpre ($1, $2); 
+        | unary_assignment expression                           %prec TUAS        { { expr = E_uasgnpre ($1, $2); 
                                                                                       meta = $symbolstartpos } }
         | expression unary_assignment                                             { { expr = E_uasgnpost ($2, $1); 
                                                                                       meta = $symbolstartpos } }
