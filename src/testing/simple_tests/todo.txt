@@ -1,18 +1,15 @@
-constants
-bad_constants
-op_simple
-op_weird
 pointers_weird
-func_recursive
-bad_func_recursive
 call_byref
 new_delete
 bad_new_delete
 commands_simple
-bad_for
-if_weird
-bad_if
-bad_break
+if_
 returns
 bad_include_not_exist
 function_call_with_only_func_decl
+fill in lib_math
+lib_tsdlib
+lib_string
+priority and associativity of operators
+
+https://en.cppreference.com/w/c/language/eval_order
