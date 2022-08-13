@@ -77,7 +77,7 @@ let is_ptr = function
   | TYPE_pointer _ -> true 
   | _ -> false
 let is_assignable t exp = 
-  (not @@ is_null exp) && is_mut t
+  (not @@ is_null exp) && is_mut t && is_lval exp
 
 let sem_mul pos t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
