@@ -27,12 +27,29 @@ let rec str_of_type = function
 let str_of_func frt n = 
   (str_of_type frt) ^ " " ^ n
 
-let id_of_func n p = 
+let id_of_func n = 
   id_make @@ "fun_" ^ n (* TODO: Currently ignores overloading. *)
 let id_of_var n = 
   id_make @@ "var_" ^ n
 let id_of_label l = 
   id_make @@ "label_" ^ l
+
+let exists_main () = (* Called after all sem. analysis is done.
+                        Currently ignores overloading. *)
+  let id = id_of_func "main" in
+  try
+    let e = lookupEntry id LOOKUP_CURRENT_SCOPE true in
+    match e.entry_info with 
+    | ENTRY_function inf -> begin 
+        let rt = inf.function_result in 
+        let params = inf.function_paramlist in
+        if (rt <> TYPE_proc || params <> []) then
+          failwith "Did not find a (void main ()) function in the global scope."
+      end
+    | _ -> 
+      failwith "Found a non-function with an identifier of a function."
+  with Exit -> 
+    failwith "Did not find a (void main ()) function in the global scope."
 
 let check_jmp = function 
   | Some l -> begin 
@@ -170,7 +187,7 @@ and add_parameters pos f ps =
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
 and add_declaration pos r n p =
-   let f_id = id_of_func n p in
+   let f_id = id_of_func n in
    let f, found = newFunction f_id in
    forwardFunction f;
    match f.entry_info with 
@@ -207,7 +224,7 @@ and add_declaration pos r n p =
     | _ -> 
         failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition pos r n p b = 
-  let f_id = id_of_func n p in
+  let f_id = id_of_func n in
   let f, found = newFunction f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
@@ -314,7 +331,7 @@ and sem_expr exp =
             TYPE_pointer r
         | _ -> sem_fail pos "Tried to deallocate a statically allocated array."
       else sem_fail pos "Tried to deallocate memory using a non-pointer."
-  | E_fcall (f, l) -> let fid = id_of_func f () in begin
+  | E_fcall (f, l) -> let fid = id_of_func f in begin
         try 
           let e = lookupEntry fid LOOKUP_ALL_SCOPES true in 
           let match_func ent =
@@ -398,3 +415,4 @@ let sem_analysis t =
   Printf.printf "\027[1;36mSemantic Analysis:\027[0m \n";
   initSymbolTable 256;
   List.iter sem_decl t;
+  exists_main ();
