@@ -9,8 +9,8 @@ let anon_fun filename =
 
 let speclist = 
   [("-O", Arg.Set opt_flag, "Enables code optimization");
-   ("-f", Arg.Set asm_flag, "Accepts an Edsger Program via stdin and dumps the final code in stdout");
-   ("-i", Arg.Set ir_flag, "Accepts an Edsger Program via stdin and dumps the LLVM IR in stdout")
+   ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the final code in stdout");
+   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")
   ]
 
 let () =
@@ -24,7 +24,7 @@ let () =
     end;
     let ext = Filename.extension !fn in
     if (ext <> ".eds") then begin
-      let msg = Printf.sprintf "Cannot compile a file with extension %s" ext in
+      let msg = Printf.sprintf "Cannot compile a file with extension '%s'" ext in
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
       exit 1
     end
