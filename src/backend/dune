@@ -1,0 +1,5 @@
+(include_subdirs unqualified)
+
+(library
+ (name lib_back)
+ (libraries lib_front llvm))
