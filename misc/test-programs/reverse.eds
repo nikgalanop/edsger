@@ -7,7 +7,7 @@ void main ()
 	{
 		int i, l;
 		for (i = 0, l = strlen(s); i < l; i++)
-		    r[i[ - s[l-i-1];
+		    r[i] = s[l-i-1];
 		r[i] = '\0';
 	}
 

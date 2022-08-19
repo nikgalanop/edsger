@@ -1,0 +1,15 @@
+pointers_weird
+call_byref
+new_delete
+bad_new_delete
+commands_simple
+if_
+returns
+bad_include_not_exist
+function_call_with_only_func_decl
+fill in lib_math
+lib_tsdlib
+lib_string
+priority and associativity of operators
+
+https://en.cppreference.com/w/c/language/eval_order

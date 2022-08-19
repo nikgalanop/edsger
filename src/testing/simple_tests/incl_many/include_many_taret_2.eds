@@ -1,0 +1,7 @@
+#include "include_many_target3.eds"
+#include "include_many_paral.eds"
+int func2(int v) {
+    int i;
+    i = otherfunc(func2(v), 20);
+    return ++i;
+}

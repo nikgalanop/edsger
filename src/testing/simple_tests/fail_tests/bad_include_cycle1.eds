@@ -1,0 +1,11 @@
+#include "bad_include_cycle2.eds"
+
+int func1(int a) {
+    return a*a;
+}
+
+
+void main() {
+    int i;
+    i = func2(8);
+}

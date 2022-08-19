@@ -1,3 +1,7 @@
+# Ignore Edsger Files
+*.eds
+*.h
+
 *.annot
 *.cmo
 *.cma

@@ -1,0 +1,7 @@
+#include "include_many_target2.eds"
+
+bool func(int v) {
+    int i;
+    i = func2(v);
+    return (i>30)? true : false;
+}

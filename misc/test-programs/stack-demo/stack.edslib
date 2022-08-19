@@ -1,0 +1,32 @@
+/*  
+ *  The stack() function assumes that the stack pointer doesn't point to 
+ *  a different dynamically allocated point in memory. It acts like a 
+ *  constructor function.
+ */
+
+void stack (byref int * stack, byref int size, byref int top, int initial_size){
+    size = initial_size;
+    stack = new int[size];
+    top = 0;
+}
+
+void copyStack (int * st_from, int si_from, int top_from, byref int * st_to, byref int si_to, byref int top_to){
+        
+}
+
+
+/*  
+ *  A simple "destructor" that ensures that the dynamically allocated memory
+ *  for the stack, is deallocated.
+ */
+ 
+void destroyStack (byref int * stack){
+    delete stack;
+}
+
+
+
+void stackReset (byref int * stack, byref int size, byref int top){
+    delete stack;
+
+}
