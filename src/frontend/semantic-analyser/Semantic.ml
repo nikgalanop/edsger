@@ -222,7 +222,7 @@ and add_declaration pos r n p =
           end
         end
     | _ -> 
-        failwith "Should not find an entry that is not a function, with a label of a function."  
+      failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition pos r n p b = 
   let f_id = id_of_func n in
   let f, found = newFunction f_id in
@@ -259,7 +259,7 @@ and add_definition pos r n p b =
           end
         end
     | _ -> 
-        failwith "Should not find an entry that is not a function, with a label of a function."
+      failwith "Should not find an entry that is not a function, with a label of a function."
 and vartype_sem t e = 
   let PTR (p, i) = t in 
   let pt = primitive_sem p in

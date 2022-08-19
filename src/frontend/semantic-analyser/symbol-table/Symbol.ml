@@ -209,7 +209,7 @@ let newParameter id typ mode f err =
               inf.function_paramlist <- e :: inf.function_paramlist;
               e
             with _ -> 
-                failwith "Named more than one parameters of the same function with the same name."
+              failwith "Named more than one parameters of the same function with the same name."
           end
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
@@ -256,7 +256,7 @@ let forwardFunction e =
       failwith "Cannot make a non-function forward"
 
 let newLabel id err = (* Err can be omitted, but the function would not be easily readable. *)
-    newEntry id (ENTRY_label (ref true)) err
+  newEntry id (ENTRY_label (ref true)) err
 
 let openForScope () = 
   forNest := !forNest + 1 

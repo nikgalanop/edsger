@@ -6,7 +6,7 @@ exception CGFailure of string
 let lcontext = global_context failwith "TODO"
 let lmodule = create_module lcontext "top-level"
 let lbuilder = builder lcontext
-let named_values:(string, llvalue) Hashtbl.t = Hashtbl.create 10
+let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10
 let double_type = double_type lcontext
 and int_type = i16_type lcontext
 and char_type = i8_type lcontext
@@ -32,8 +32,8 @@ let codegen_binop vl1 vl2 = function
   | O_gt -> failwith "TODO"
   | O_le -> failwith "TODO"
   | O_ge -> failwith "TODO"
-  | O_eq -> const_int bool_type (vl1 == vl2) (* Reconsider. *)
-  | O_neq -> const_int bool_type (vl1 <> vl2) (* Reconsider. *)
+  | O_eq -> const_int bool_type (vl1 == vl2) (* Reconsider. 100% incorrect. *)
+  | O_neq -> const_int bool_type (vl1 <> vl2) (* Reconsider. 100% incorrect. *)
   | O_and -> build_and vl1 vl2 "andtmp" lbuilder
   | O_or -> build_or vl1 vl2 "ortmp" lbuilder
   | O_comma -> vl2
@@ -54,7 +54,7 @@ let rec codegen_expr exp =
   | E_int d -> const_int integer_type d  
   | E_char c -> const_int char_type (Char.code c)
   | E_double f -> const_float double_type f
-  | E_str s -> failwith "TODO"
+  | E_str s -> const_stringz lcontext s
   | E_bool b -> let vl = if b then 1 else 0 in 
     const_int bool_type vl 
   | E_NULL -> failwith "TODO" (* :) *)
@@ -76,22 +76,24 @@ let rec codegen_expr exp =
 and codegen_stmt stm = 
   match stm.stmt with 
   | S_NOP -> failwith "TODO"
-  | S_expr e -> failwith "TODO"
+  | S_expr e -> ignore @@ codegen_expr e
   | S_block l -> failwith "TODO"
   | S_if (e, s, None) -> failwith "TODO"
   | S_if (e, s1, Some s2) -> failwith "TODO" 
-  | S_for of (o1, o2, o3, s, l) -> failwith "TODO"
+  | S_for of (o1, Some e2, o3, s, l) -> failwith "TODO"
+  | S_for of (_, None, _, _, _) -> 
+    failwith "Should not reach this state."
   | S_cont o -> failwith "TODO"
   | S_break o -> failwith "TODO"
   | S_ret o -> failwith "TODO"
 and codegen_body b = 
   let F_body (decs, stms) = b in 
-  faiwith "TODO"
+  List.iter codegen_stmt stms
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> failwith "TODO"
   | D_fun (rt, fn, ps) -> failwith "TODO"
-  | D_fdef (rt, fn, ps, b) -> failwith "TODO"
+  | D_fdef (rt, fn, ps, b) -> codegen_body b
 
 let codegen ~opt t = 
   failwith "TODO"
