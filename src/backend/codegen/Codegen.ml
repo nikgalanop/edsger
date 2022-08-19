@@ -3,7 +3,7 @@ open Llvm
 
 exception CGFailure of string
 
-let lcontext = global_context failwith "TODO"
+let lcontext = global_context ()
 let lmodule = create_module lcontext "top-level"
 let lbuilder = builder lcontext
 let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10
@@ -18,7 +18,7 @@ let codegen_uop vl = function
   | O_ref -> failwith "TODO"
   | O_dref -> failwith "TODO"
   | O_psgn -> vl
-  | O_nsgn -> faiwith "TODO" (* Have to know the "type" of vl in order to 
+  | O_nsgn -> failwith "TODO" (* Have to know the "type" of vl in order to 
                                 use the correct build_neg, build_fneg variation*)
                              (* Check typeof etc. *)
   | O_neg -> build_not vl "nottmp" lbuilder 
@@ -32,12 +32,14 @@ let codegen_binop vl1 vl2 = function
   | O_gt -> failwith "TODO"
   | O_le -> failwith "TODO"
   | O_ge -> failwith "TODO"
-  | O_eq -> const_int bool_type (vl1 == vl2) (* Reconsider. 100% incorrect. *)
-  | O_neq -> const_int bool_type (vl1 <> vl2) (* Reconsider. 100% incorrect. *)
+  | O_eq -> failwith "TODO" 
+    (* const_int bool_type (vl1 == vl2) <- Reconsider. 100% incorrect. *)
+  | O_neq -> failwith "TODO"
+    (* const_int bool_type (vl1 <> vl2) <- Reconsider. 100% incorrect. *)
   | O_and -> build_and vl1 vl2 "andtmp" lbuilder
   | O_or -> build_or vl1 vl2 "ortmp" lbuilder
   | O_comma -> vl2
-let codegen_uasgn = function (* Order matters. This function is not enough I think. *)
+let codegen_uasgn vl = function (* Order matters. This function is not enough I think. *)
   | O_plpl -> failwith "TODO"
   | O_mimi ->  failwith "TODO"
 let codegen_basgn = function 
@@ -51,7 +53,7 @@ let codegen_basgn = function
 let rec codegen_expr exp = 
   match exp.expr with 
   | E_var v -> failwith "TODO"
-  | E_int d -> const_int integer_type d  
+  | E_int d -> const_int int_type d  
   | E_char c -> const_int char_type (Char.code c)
   | E_double f -> const_float double_type f
   | E_str s -> const_stringz lcontext s
@@ -68,7 +70,7 @@ let rec codegen_expr exp =
   | E_basgn (e1, op, e2) -> failwith "TODO"
   | E_tcast (vt, e) -> failwith "TODO"
   | E_ternary (e1, e2, e3) -> failwith "TODO"
-  | E_new of (vt, e) -> failwith "TODO"
+  | E_new (vt, e) -> failwith "TODO"
   | E_delete e -> failwith "TODO"
   | E_fcall (fn, es) -> failwith "TODO"  
   | E_arracc (e1, e2) -> failwith "TODO"
@@ -80,8 +82,8 @@ and codegen_stmt stm =
   | S_block l -> failwith "TODO"
   | S_if (e, s, None) -> failwith "TODO"
   | S_if (e, s1, Some s2) -> failwith "TODO" 
-  | S_for of (o1, Some e2, o3, s, l) -> failwith "TODO"
-  | S_for of (_, None, _, _, _) -> 
+  | S_for (o1, Some e2, o3, s, l) -> failwith "TODO"
+  | S_for (_, None, _, _, _) -> 
     failwith "Should not reach this state."
   | S_cont o -> failwith "TODO"
   | S_break o -> failwith "TODO"
