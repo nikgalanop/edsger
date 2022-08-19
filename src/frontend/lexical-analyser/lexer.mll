@@ -6,6 +6,13 @@
   type globalSet = StringSet.t ref
   let set : globalSet = ref StringSet.empty
 
+  let add_stdin () = 
+    let fn = "Stdin" in
+    set := StringSet.add fn !set;
+    let lb = Lexing.from_channel stdin in
+    Lexing.set_filename lb fn;
+    lb
+
   let add_file filename = 
     set := StringSet.add filename !set;
     let c = Stdlib.open_in filename in
