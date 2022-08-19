@@ -1,4 +1,4 @@
-<ins>Basic Instructions For Dune:</ins>
+<h3> Basic Instructions For Dune: </h3>
 
 - `dune build` : <i> compiles all files it can find based on the "dune" files </i>
 - `dune exec edsger` : <i> executes the executable that results from `Main.ml` </i>
