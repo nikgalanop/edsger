@@ -1,38 +1,12 @@
 open Ast
-open Identifier
 open Symbol 
 open Types
+open SemUtilities
 
 exception SemFailure of Lexing.position * string
-let sem_fail pos msg = raise (SemFailure (pos, msg)) 
 
-let primitive_sem = function 
-  | INT -> TYPE_int 
-  | CHAR -> TYPE_char
-  | BOOL -> TYPE_bool 
-  | DOUBLE -> TYPE_double 
+let sem_fail pos msg = raise (SemFailure (pos, msg))
 
-let rec str_of_type = function 
-  | TYPE_none -> "none"
-  | TYPE_int -> "int"
-  | TYPE_bool -> "bool"
-  | TYPE_char -> "char"
-  | TYPE_double -> "double"
-  | TYPE_pointer { typ = t; 
-    dim = d; mut = m } -> 
-      (str_of_type t) ^ String.make d '*'      
-  | TYPE_null -> "null"
-  | TYPE_proc -> "void"
-
-let str_of_func frt n = 
-  (str_of_type frt) ^ " " ^ n
-
-let id_of_func n = 
-  id_make @@ "fun_" ^ n (* TODO: Currently ignores overloading. *)
-let id_of_var n = 
-  id_make @@ "var_" ^ n
-let id_of_label l = 
-  id_make @@ "label_" ^ l
 
 let exists_main () = (* Called after all sem. analysis is done.
                         Currently ignores overloading. *)
@@ -60,24 +34,6 @@ let check_jmp = function
         with Exit -> false
       end
   | None -> true
-   
-let is_null exp = 
-  match exp.expr with
-  | E_NULL -> true 
-  | _ -> false
-let is_mut = function 
-  | TYPE_pointer r -> r.mut 
-  | _ -> true
-let rec is_lval exp = 
-  match exp.expr with
-  | E_brack e -> is_lval e
-  | E_var _ | E_uop (O_dref, _) | E_arracc (_, _) -> true 
-  | _ -> false  
-let is_ptr = function 
-  | TYPE_pointer _ -> true 
-  | _ -> false
-let is_assignable t exp = 
-  (not @@ is_null exp) && is_mut t && is_lval exp
 
 let sem_mul pos t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -193,17 +149,18 @@ and add_declaration pos r n p =
    match f.entry_info with 
    | ENTRY_function inf -> begin
           let ft = (ftype_sem r) in
+          let ps = inf.function_paramlist in
           Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ft) n;
           if (found) then begin
             let def = inf.function_pstatus = PARDEF_COMPLETE in
             let frt = inf.function_result in
             if (not @@ equalType frt ft) then begin
-              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n) in 
+              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n ps) in 
               sem_fail pos msg
             end;
             if (def) then begin
               let msg = Printf.sprintf "Cannot redeclare an already defined function (%s)." 
-                (str_of_func ft n) in 
+                (str_of_func ft n ps) in 
               sem_fail pos msg
             end;
           end;
@@ -213,7 +170,7 @@ and add_declaration pos r n p =
               begin try
                 add_parameters pos f p; 
               with | _ -> 
-                let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n) in 
+                let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n ps) in 
                 sem_fail pos msg
               end;
               endFunctionHeader f ft;
@@ -229,16 +186,17 @@ and add_definition pos r n p b =
   match f.entry_info with 
   | ENTRY_function inf -> begin 
           let ft = (ftype_sem r) in
+          let ps = inf.function_paramlist in
           Printf.printf "-- Inside the definition of the function: %s %s.\n" (str_of_type ft) n;
           if (found) then begin
             let def = inf.function_pstatus = PARDEF_COMPLETE in
             let frt = inf.function_result in
             if (not @@ equalType frt ft) then
-              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n) in 
+              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n ps) in 
               sem_fail pos msg
             else if (def) then 
               let msg = Printf.sprintf "Cannot redefine the same function (%s) in the same scope."
-                (str_of_func ft n) in 
+                (str_of_func ft n ps) in 
               sem_fail pos msg 
           end;
           begin
@@ -247,7 +205,7 @@ and add_definition pos r n p b =
             begin try
               add_parameters pos f p;  
             with | _ -> 
-              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n) in 
+              let msg = Printf.sprintf "Cannot overload a function (%s)." (str_of_func ft n ps) in 
                 sem_fail pos msg
             end;
             endFunctionHeader f ft;
