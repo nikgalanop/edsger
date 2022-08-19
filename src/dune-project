@@ -9,7 +9,7 @@
 
 (authors "Nikolas Galanopoulos" "Odyssefs Vangelatos")
 
-(maintainers "Maintainer Name")
+(maintainers "Nikolas Galanopoulos" "Odyssefs Vangelatos")
 
 (license LICENSE)
 
@@ -17,11 +17,11 @@
 
 (package
  (name edsger)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "A compiler for the Edsger language.")
+ (description "A compiler for the Edsger language.")
  (depends ocaml dune menhir llvm)
  (tags
-  (topics "to describe" your project)))
+  (ocaml llvm menhir dune compiler edsger)))
 
 (using menhir 2.1)
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
