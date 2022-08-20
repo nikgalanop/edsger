@@ -70,25 +70,6 @@ let name_mangling ps =
   in
     List.fold_right ( ^ ) (List.map aux ps) ""  
 
-let is_null (exp : Ast.ast_expr) = 
-  match exp.expr with
-  | E_NULL -> true 
-  | _ -> false
-let is_mut = function 
-  | TYPE_pointer r -> r.mut 
-  | _ -> true
-let rec is_lval (exp : Ast.ast_expr) = 
-  match exp.expr with
-  | E_brack e -> is_lval e
-  | E_var _ | E_uop (O_dref, _) | E_arracc (_, _) -> true 
-  | _ -> false  
-let is_ptr = function 
-  | TYPE_pointer _ -> true 
-  | _ -> false
-let is_assignable t exp = 
-  (not @@ is_null exp) && is_mut t && is_lval exp
-
-
 let exists_main () = 
   let id = Identifier.id_of_func "main" "" in
   try

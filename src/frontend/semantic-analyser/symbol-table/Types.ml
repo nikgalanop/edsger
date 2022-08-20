@@ -14,3 +14,21 @@ let rec equalType t1 t2 =
    | TYPE_pointer r, TYPE_null | TYPE_null, TYPE_pointer r -> 
       r.mut 
    | _                                            -> t1 = t2
+
+let is_null exp = 
+  match exp.expr with
+  | E_NULL -> true 
+  | _ -> false
+let is_mut = function 
+  | TYPE_pointer r -> r.mut 
+  | _ -> true
+let rec is_lval exp = 
+  match exp.expr with
+  | E_brack e -> is_lval e
+  | E_var _ | E_uop (O_dref, _) | E_arracc (_, _) -> true 
+  | _ -> false  
+let is_ptr = function 
+  | TYPE_pointer _ -> true 
+  | _ -> false
+let is_assignable t exp = 
+  (not @@ is_null exp) && is_mut t && is_lval exp
