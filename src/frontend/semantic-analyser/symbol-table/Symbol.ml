@@ -187,8 +187,8 @@ let newParameter id typ mode f err =
               inf.function_paramlist <- e :: inf.function_paramlist;
               e
             with _ -> 
-                failwith "Named more than one parameters of the same function with the same name."
-          end
+              failwith "Named more than one parameters of the same function with the same name."
+          end 
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
           | p :: ps -> begin
@@ -198,9 +198,7 @@ let newParameter id typ mode f err =
                   if not (equalType inf.parameter_type typ) then
                     failwith "Parameter type mismatch."
                   else if inf.parameter_mode != mode then
-                    failwith "Parameter passing mode"
-                  else if p.entry_id != id then
-                    failwith "Parameter name mismatch."
+                    failwith "Parameter passing mode."
                   else
                     H.add !tab id p;
                   p
