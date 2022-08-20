@@ -26,19 +26,20 @@ let sem_comp pos t =
   | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
   | _ -> sem_fail pos "Cannot compare values with the provided type." 
 
-let sem_uop pos t = function 
+let sem_uop pos e t = function 
   | O_ref -> begin 
-      match t with 
-      | TYPE_pointer r ->
-        TYPE_pointer { r with dim = r.dim + 1; mut = true } 
-      | _ -> TYPE_pointer { typ = t; dim = 1; mut = true }
+    if (not @@ is_lval e) then sem_fail pos "Expected to refer to an l-value.";
+    match t with 
+    | TYPE_pointer r ->
+      TYPE_pointer { r with dim = r.dim + 1; mut = true } 
+    | _ -> TYPE_pointer { typ = t; dim = 1; mut = true }
     end
-  | O_dref -> begin 
+  | O_dref -> begin
     match t with
-      | TYPE_pointer r when (r.dim > 0) -> 
-        if (r.dim = 1) then r.typ 
-        else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
-      | _ -> sem_fail pos "Tried to dereference a non-pointer."
+    | TYPE_pointer r when (r.dim > 0) -> 
+      if (r.dim = 1) then r.typ 
+      else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
+    | _ -> sem_fail pos "Tried to dereference a non-pointer."
     end
   | O_psgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t
     else sem_fail pos "Cannot specify sign of non-numerical value."
@@ -114,7 +115,7 @@ and add_parameters pos f ps =
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
   in List.iter add_parameter ps
-and add_declaration pos r n p (* AST Parameters. *) =
+and add_declaration pos r n p =
    let p_str = name_mangling p in
    Printf.printf "DECLARATION MANGLING: %s\n" p_str;
    let f_id = id_of_func n p_str in
@@ -123,7 +124,7 @@ and add_declaration pos r n p (* AST Parameters. *) =
    match f.entry_info with 
    | ENTRY_function inf -> begin
         let ft = (ftype_sem r) in
-        let ps = inf.function_paramlist in (* Symbol table parameters. *)
+        let ps = inf.function_paramlist in
         Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ~ptr_format:true ft) n;
         if (found) then begin 
           let def = inf.function_pstatus = PARDEF_COMPLETE in
@@ -230,7 +231,7 @@ and sem_expr exp =
   | E_bool _ -> TYPE_bool
   | E_NULL -> TYPE_null
   | E_uop (op, e) -> let t = sem_expr e in 
-    sem_uop pos t op 
+    sem_uop pos e t op 
   | E_binop (e1, op, e2) -> let t1 = sem_expr e1 in 
     let t2 = sem_expr e2 in sem_binop pos t1 t2 op
   | E_uasgnpre (ua, e) | E_uasgnpost (ua, e) -> let t = sem_expr e in 

@@ -26,12 +26,19 @@ int func(int a, double d) {
     else return a+3;
 }
 
+int** func (int** a){
+	return a + 5;
+}
+
 void main() {
     int i;
+    int **a;
     i = func();
     i = func(2);
     i = func(true);
     i = func(3, false);
     i = func(false, 4);
     i = func(5, 4.2);
+    a = &(&i);
+    a = func(a);
 }
