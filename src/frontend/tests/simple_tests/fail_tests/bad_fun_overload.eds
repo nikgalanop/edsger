@@ -1,0 +1,26 @@
+int f (int a, char b, int c);
+
+int f (int f, char e, int g);
+
+int func(int a, bool b) {
+    if(b) return 9+a;
+    else return 9-a;
+}
+
+int func(int a, double d) {
+    if (d > 3.0) return a;
+    else return a+3;
+}
+
+double func(int a, double d) {
+    if (a > 2) return d;
+    else return d+3.1;
+} 
+
+void main() {
+    int i;
+    double f;
+    i = func(3, false);
+    i = func(5, 4.2);
+    f = func(6, 7.3);
+}

@@ -1,3 +1,4 @@
+(* Type of the diagnostic message to be printed. *)
 type printmode = Warning | Error
 
 (* Function for printing warning or error diagnostic messages. *)
