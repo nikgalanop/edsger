@@ -222,7 +222,7 @@ let forwardFunction e =
       failwith "Cannot make a non-function forward"
 
 let newLabel id err = (* Err can be omitted, but the function would not be easily readable. *)
-    newEntry id (ENTRY_label (ref true)) err
+  newEntry id (ENTRY_label (ref true)) err
 
 let openForScope () = 
   forNest := !forNest + 1 

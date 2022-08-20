@@ -1,0 +1,4 @@
+(executable
+ (public_name edsger)
+ (name Main)
+ (libraries lib_front))
