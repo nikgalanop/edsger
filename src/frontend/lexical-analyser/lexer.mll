@@ -71,9 +71,10 @@ rule lexer = parse
                       begin try  
                         let t = Parser.program lexer lb in
                         T_include t
-                      with _ -> let pos = lb.Lexing.lex_start_p in
-                          Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
-                          exit 1 
+                      with 
+                      | Parser.Error -> let pos = lb.Lexing.lex_start_p in
+                        Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
+                        exit 1 
                       end
                   | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename in
                       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;

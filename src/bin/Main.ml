@@ -41,7 +41,7 @@ let () =
       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
     | Failure msg -> 
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
-    | _ -> let pos = lb.Lexing.lex_curr_p in
+    | Parser.Error -> let pos = lb.Lexing.lex_curr_p in
       Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
   end;
   Printf.eprintf "• Compiled Successfully: \027[1;31m✗\027[0m\n";
