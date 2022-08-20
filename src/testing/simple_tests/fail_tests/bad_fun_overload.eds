@@ -4,11 +4,11 @@ int func(int a, bool b) {
 }
 
 int func(int a, double d) {
-    if (d > 3) return a;
+    if (d > 3.0) return a;
     else return a+3;
 }
 
-double func(int a, double d) {
+int func(int a, double d) {
     if (a > 2) return d;
     else return d+3.1;
 }

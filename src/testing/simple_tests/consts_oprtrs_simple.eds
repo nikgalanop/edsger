@@ -24,7 +24,7 @@ void main() {
     d = 1.0;
     d = 0.43;
     d = 0.3e11;
-    d = 433e-31;
+    d = 433.0e-31;
     
     s = "test";
     s = "hello\n";
