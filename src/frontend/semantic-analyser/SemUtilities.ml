@@ -56,6 +56,11 @@ let header_of_symbolf ft n ps =
 let str_of_fval_types vtyps =
   List.fold_right ( ^ ) (List.map (str_of_type ~ptr_format:false) vtyps) ""
 
+(* Name Mangling: https://en.wikipedia.org/wiki/Name_mangling *)
+(* We do not allow overloading cases like the following:
+  void test (int a); 
+  int test (byref int x); 
+  since the byref declaration (or definition) would never be used.*) 
 let name_mangling ps = 
   let aux = function 
     | Ast.BYREF (vt, _) | Ast.BYVAL (vt, _) -> 
@@ -63,19 +68,7 @@ let name_mangling ps =
       let dim_str = if (dim > 0) then string_of_int dim else "" in
       str_of_type ~ptr_format:false (primitive_sem ptyp) ^ dim_str
   in
-    List.fold_right ( ^ ) (List.map aux ps) "" 
-
-(* Name Mangling: https://en.wikipedia.org/wiki/Name_mangling *)
-(* We do not allow overloading cases like the following:
-  void test (int a); 
-  int test (byref int x); 
-  since the byref declaration (or definition) would never be used.*)  
-let id_of_func n pstr = 
-  id_make @@ "fun_" ^ n ^ "_" ^ pstr 
-let id_of_var n = 
-  id_make @@ "var_" ^ n
-let id_of_label l = 
-  id_make @@ "label_" ^ l
+    List.fold_right ( ^ ) (List.map aux ps) ""  
 
 let is_null (exp : Ast.ast_expr) = 
   match exp.expr with
@@ -94,3 +87,30 @@ let is_ptr = function
   | _ -> false
 let is_assignable t exp = 
   (not @@ is_null exp) && is_mut t && is_lval exp
+
+
+let exists_main () = 
+  let id = Identifier.id_of_func "main" "" in
+  try
+    let e = lookupEntry id LOOKUP_CURRENT_SCOPE true in
+    match e.entry_info with 
+    | ENTRY_function inf -> begin 
+      let rt = inf.function_result in 
+      let params = inf.function_paramlist in
+      if (rt <> TYPE_proc || params <> []) then
+        failwith "Did not find a `void main ()` function in the global scope."
+      end
+    | _ -> 
+      failwith "Found a non-function with an identifier of a function."
+  with Exit -> 
+    failwith "Did not find a `void main ()` function in the global scope."
+
+let check_jmp = function 
+  | Some l -> begin 
+      let id = Identifier.id_of_label l in 
+      try
+        ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
+        true
+      with Exit -> false
+    end
+  | None -> true 

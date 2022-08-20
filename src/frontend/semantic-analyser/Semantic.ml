@@ -1,37 +1,12 @@
 open Ast
 open Symbol 
+open Identifier
 open Types
 open SemUtilities
 
 exception SemFailure of Lexing.position * string
 
 let sem_fail pos msg = raise (SemFailure (pos, msg))
-
-let exists_main () = (* Called after all sem. analysis is done. *)
-  let id = id_of_func "main" "" in
-  try
-    let e = lookupEntry id LOOKUP_CURRENT_SCOPE true in
-    match e.entry_info with 
-    | ENTRY_function inf -> begin 
-      let rt = inf.function_result in 
-      let params = inf.function_paramlist in
-      if (rt <> TYPE_proc || params <> []) then
-        failwith "Did not find a `void main ()` function in the global scope."
-      end
-    | _ -> 
-      failwith "Found a non-function with an identifier of a function."
-  with Exit -> 
-    failwith "Did not find a `void main ()` function in the global scope."
-
-let check_jmp = function 
-  | Some l -> begin 
-      let id = id_of_label l in 
-      try
-        ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
-        true
-      with Exit -> false
-    end
-  | None -> true
 
 let sem_mul pos t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -160,8 +135,9 @@ and add_declaration pos r n p (* AST Parameters. *) =
             sem_fail pos msg
           end;
           if (def) then begin
-            let msg = Printf.sprintf "Cannot declare the already - defined function `%s`. `%s`" 
-              (header_of_symbolf ft n ps) (header_of_astf ft n p) in 
+            let msg = Printf.sprintf "Cannot declare the function `%s` when `%s` \
+              is already defined in the same scope." 
+              (header_of_astf ft n p) (header_of_symbolf ft n ps)  in 
             sem_fail pos msg
           end;
         end; 
@@ -180,7 +156,7 @@ and add_declaration pos r n p (* AST Parameters. *) =
       failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition pos r n p b = 
   let p_str = name_mangling p in
-  Printf.printf "DEFINITON MANGLING: %s\n" p_str;
+  Printf.printf "DEFINITION MANGLING: %s\n" p_str;
   let f_id = id_of_func n p_str in
   let f, found = newFunction f_id in
   match f.entry_info with 
@@ -198,8 +174,8 @@ and add_definition pos r n p b =
           sem_fail pos msg
         end;
         if (def) then begin
-          let msg = Printf.sprintf "Cannot redefine the function `%s` in the same scope. `%s`"
-            (header_of_symbolf ft n ps) (header_of_astf ft n p) in
+          let msg = Printf.sprintf "Cannot define the function `%s` in the same scope with `%s`."
+          (header_of_astf ft n p) (header_of_symbolf ft n ps) in
           sem_fail pos msg
         end; 
       end;
@@ -243,7 +219,7 @@ and sem_expr exp =
       | ENTRY_parameter i -> i.parameter_type
       | _ -> let msg = Printf.sprintf "'%s' is not a variable." s in 
           sem_fail pos msg
-    with Not_found -> let msg = Printf.sprintf "Variable '%s' does
+    with Not_found -> let msg = Printf.sprintf "Variable '%s' does \
       not exist." s in sem_fail pos msg
     end
   | E_int _ -> TYPE_int
@@ -301,12 +277,12 @@ and sem_expr exp =
         | _ -> failwith "Should not find a non-function that has an identifier of a function."
       in 
       if (not @@ match_func e) then
-        let msg = Printf.sprintf "No definitions/declarations of '%s' 
+        let msg = Printf.sprintf "No definitions/declarations of '%s' \
           match with the provided values." f in sem_fail pos msg
       else match e.entry_info with 
         | ENTRY_function inf -> inf.function_result
         | _ -> failwith "Should not reach this state." 
-    with Exit -> let msg = Printf.sprintf "Called a non-existing
+    with Exit -> let msg = Printf.sprintf "Called a non-existing \
       function: %s.\n" f in sem_fail pos msg
     end
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in
