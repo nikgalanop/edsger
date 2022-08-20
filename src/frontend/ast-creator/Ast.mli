@@ -54,4 +54,5 @@ and expr =
 
 type ast = ast_decl list
 
+(* Print the AST of a given Edsger program. *)
 val print_ast : ast -> unit

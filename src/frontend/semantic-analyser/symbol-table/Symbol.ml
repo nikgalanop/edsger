@@ -20,12 +20,10 @@ type scope = {
   sco_parent : scope option;
   sco_nesting : int;
   mutable sco_entries : entry list;
-  mutable sco_negofs : int
 }
 
 and variable_info = {
   variable_type   : Types.typ;
-  variable_offset : int
 }
 
 and function_info = {
@@ -34,25 +32,17 @@ and function_info = {
   mutable function_redeflist : entry list;
   mutable function_result    : Types.typ;
   mutable function_pstatus   : param_status;
-  mutable function_initquad  : int
 }
 
 and parameter_info = {
   parameter_type           : Types.typ;
-  mutable parameter_offset : int;
   parameter_mode           : pass_mode
-}
-
-and temporary_info = {
-  temporary_type   : Types.typ;
-  temporary_offset : int
 }
 
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
-               | ENTRY_temporary of temporary_info
                | ENTRY_label of bool ref
 
 and entry = {
@@ -63,14 +53,10 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
-let start_positive_offset = 8
-let start_negative_offset = 0
-
 let the_outer_scope = {
   sco_parent = None;
   sco_nesting = 0;
   sco_entries = [];
-  sco_negofs = start_negative_offset
 }
 
 let no_entry id = {
@@ -80,8 +66,6 @@ let no_entry id = {
 }
 
 let currentScope = ref the_outer_scope
-let quadNext = ref 1
-let tempNumber = ref 1
 let forNest = ref 0
 
 let tab = ref (H.create 0)
@@ -95,7 +79,6 @@ let openScope () =
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
     sco_entries = [];
-    sco_negofs = start_negative_offset
   } in
   currentScope := sco
 
@@ -152,19 +135,16 @@ let lookupEntry id how err =
     with Not_found ->
       (* Printf.printf "Unknown Identifier %s (First Occurrence)"
         (id_name id); *)
-      (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
       raise Exit
   else
     lookup ()
 
 let newVariable id typ err =
-  !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
     variable_type = typ;
-    variable_offset = !currentScope.sco_negofs
-  } in
-  newEntry id (ENTRY_variable inf) err
+  } 
+  in newEntry id (ENTRY_variable inf) err
 
 let newFunction id =
   try
@@ -189,7 +169,6 @@ let newFunction id =
       function_redeflist = [];
       function_result = TYPE_none;
       function_pstatus = PARDEF_DEFINE;
-      function_initquad = 0
     } in
     (newEntry id (ENTRY_function inf) false, false)
 
@@ -200,7 +179,6 @@ let newParameter id typ mode f err =
       | PARDEF_DEFINE ->
           let inf_p = {
             parameter_type = typ;
-            parameter_offset = 0;
             parameter_mode = mode
           } in
           begin
@@ -209,8 +187,8 @@ let newParameter id typ mode f err =
               inf.function_paramlist <- e :: inf.function_paramlist;
               e
             with _ -> 
-                failwith "Named more than one parameters of the same function with the same name."
-          end
+              failwith "Named more than one parameters of the same function with the same name."
+          end 
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
           | p :: ps -> begin
@@ -220,9 +198,7 @@ let newParameter id typ mode f err =
                   if not (equalType inf.parameter_type typ) then
                     failwith "Parameter type mismatch."
                   else if inf.parameter_mode != mode then
-                    failwith "Parameter passing mode"
-                  else if p.entry_id != id then
-                    failwith "Parameter name mismatch."
+                    failwith "Parameter passing mode."
                   else
                     H.add !tab id p;
                   p
@@ -238,16 +214,6 @@ let newParameter id typ mode f err =
   | _ -> 
       failwith "Cannot add a parameter to a non-function"
       
-let newTemporary typ =
-  let id = id_make ("$" ^ string_of_int !tempNumber) in
-  !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
-  let inf = {
-    temporary_type = typ;
-    temporary_offset = !currentScope.sco_negofs
-  } in
-  incr tempNumber;
-  newEntry id (ENTRY_temporary inf) false
-
 let forwardFunction e =
   match e.entry_info with
   | ENTRY_function inf ->
@@ -285,19 +251,6 @@ let endFunctionHeader e typ =
             failwith "Cannot end parameters in an already defined function."
         | PARDEF_DEFINE ->
             inf.function_result <- typ;
-            let offset = ref start_positive_offset in
-            let fix_offset e =
-              match e.entry_info with
-              | ENTRY_parameter inf ->
-                  inf.parameter_offset <- !offset;
-                  let size =
-                    match inf.parameter_mode with
-                    | PASS_BY_VALUE     -> sizeOfType inf.parameter_type
-                    | PASS_BY_REFERENCE -> 2 in
-                  offset := !offset + size
-              | _ ->
-                failwith "Cannot fix offset to a non parameter" 
-            in List.iter fix_offset inf.function_paramlist;
             inf.function_paramlist <- List.rev inf.function_paramlist
         | PARDEF_CHECK ->
             if inf.function_redeflist <> [] then
