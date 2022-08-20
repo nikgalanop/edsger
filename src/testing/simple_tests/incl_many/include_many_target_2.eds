@@ -1,4 +1,4 @@
-#include "include_many_target3.eds"
+#include "include_many_target_3.eds"
 #include "include_many_paral.eds"
 int func2(int v) {
     int i;

@@ -1,8 +1,8 @@
-#include "include_many_target4.eds"
+#include "include_many_target_4.eds"
 
 bool func3(int v) {
     bool ret;
-    bool = false;
+    ret = false;
     if (v > func4(5)) ret = true;
     return ret;
 }
