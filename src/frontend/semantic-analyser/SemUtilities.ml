@@ -70,6 +70,7 @@ let name_mangling ps =
   in
     List.fold_right ( ^ ) (List.map aux ps) ""  
 
+
 let exists_main () = 
   let id = Identifier.id_of_func "main" "" in
   try

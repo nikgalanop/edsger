@@ -196,9 +196,9 @@ let newParameter id typ mode f err =
               match p.entry_info with
               | ENTRY_parameter inf ->
                   if not (equalType inf.parameter_type typ) then
-                    failwith "Parameter type mismatch."
+                    failwith "Parameter type mismatch"
                   else if inf.parameter_mode != mode then
-                    failwith "Parameter passing mode."
+                    failwith "Parameter passing mode mismatch"
                   else
                     H.add !tab id p;
                   p

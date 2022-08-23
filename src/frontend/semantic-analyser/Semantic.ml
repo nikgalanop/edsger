@@ -51,18 +51,18 @@ let sem_binop pos t1 t2 = function
   | O_times | O_div -> if (equalType t1 t2) then sem_mul pos t1
     else sem_fail pos "Cannot multiply/divide values with different types."
   | O_mod -> if (equalType t1 t2 && equalType t1 TYPE_int) then t1 
-    else sem_fail pos "Cannot compute 'mod' if operands are not both integers."
+    else sem_fail pos "Cannot compute `mod` if operands are not both integers."
   | O_plus | O_minus -> sem_plus pos t1 t2
   | O_lt | O_gt | O_le | O_ge -> if (equalType t1 t2) then sem_comp pos t1  
     else sem_fail pos "Can only compare values of the same type."
   | O_eq -> if (equalType t1 t2) then TYPE_bool
-    else sem_fail pos "Cannot apply '==' on operands of different type." 
+    else sem_fail pos "Cannot apply `==` on operands of different type." 
   | O_neq -> if (equalType t1 t2) then TYPE_bool 
-    else sem_fail pos "Cannot apply '!=' on operands of different type."
+    else sem_fail pos "Cannot apply `!=` on operands of different type."
   | O_and -> if (equalType t1 t2 && equalType t1 TYPE_bool) then TYPE_bool
-    else sem_fail pos "Cannot apply 'and' on non-booleans."
+    else sem_fail pos "Cannot apply `and` on non-booleans."
   | O_or -> if (equalType t1 t2 && equalType t1 TYPE_bool) then TYPE_bool
-    else sem_fail pos "Cannot apply 'or' on non-booleans."
+    else sem_fail pos "Cannot apply `or` on non-booleans."
   | O_comma -> t2
 let sem_uasgn pos t = 
   match t with 
@@ -74,7 +74,7 @@ let sem_basgn pos t1 t2 = function
   | O_mulasgn | O_divasgn -> if (equalType t1 t2) then sem_mul pos t1
     else sem_fail pos "Cannot multiply/divide values with different types."
   | O_modasgn -> if (equalType t1 t2 && equalType t1 TYPE_int) then t1 
-    else sem_fail pos "Cannot compute 'mod' if operands are not both integers."
+    else sem_fail pos "Cannot compute `mod` if operands are not both integers."
   | O_plasgn | O_minasgn -> sem_plus pos t1 t2   
 
 let rec accept_parameters entrs ps = 
@@ -102,7 +102,14 @@ and add_variables pos vt l =
       ignore @@ newVariable (id_of_var n) vtype true
     with | Failure msg -> sem_fail pos msg
   in List.iter add_variable l; Printf.printf "\n"
-and add_parameters pos f ps = 
+and add_parameters pos f ps =  
+  let info = match f.entry_info with 
+  | ENTRY_function inf -> inf
+  | _ -> failwith "Should not find a non-function."
+  in let def = info.function_pstatus = PARDEF_COMPLETE in
+  let ft = info.function_result in 
+  let pf = info.function_paramlist in
+  let n = ent_name_of_id f.entry_id in
   let add_parameter p = 
     let insert_param par mode = 
       let typ = vartype_sem (fst par) None in 
@@ -110,7 +117,10 @@ and add_parameters pos f ps =
       Printf.printf "%s " (snd par);
       try
         ignore @@ newParameter id typ mode f true
-      with | Failure msg -> sem_fail pos msg
+      with | Failure m -> let msg = if def then m
+        else Printf.sprintf "%s while trying to overload `%s` with `%s`."
+          m (header_of_astf ft n ps) (header_of_symbolf ft n pf) 
+        in sem_fail pos msg 
     in match p with 
     | BYREF (t, i) -> insert_param (t, i) PASS_BY_REFERENCE
     | BYVAL (t, i) -> insert_param (t, i) PASS_BY_VALUE
@@ -131,7 +141,7 @@ and add_declaration pos r n p =
           let frt = inf.function_result in
           if (not @@ equalType frt ft) then begin
             let msg = Printf.sprintf "Cannot overload the function `%s` with a function \
-              of a different return type, but same - type parameters, `%s`." 
+              of a different return type, but same-type parameters, `%s`." 
               (header_of_symbolf frt n ps) (header_of_astf ft n p) in 
             sem_fail pos msg
           end;
@@ -146,8 +156,6 @@ and add_declaration pos r n p =
           Printf.printf "--- Parameters: ";
           openScope ();
           add_parameters pos f p; 
-            (* let msg = Printf.sprintf "Parameter mismatch between the declarations
-              of the function `%s`." (str_of_func ft n ps) in  *)
           endFunctionHeader f ft;
           closeScope ();
           Printf.printf "\n-- Outside the declaration of the function: %s %s.\n" (str_of_type ~ptr_format:true ft) n
@@ -184,8 +192,6 @@ and add_definition pos r n p b =
         openScope ();
         Printf.printf "--- Parameters: ";
         add_parameters pos f p;  
-          (* let msg = Printf.sprintf "Parameter mismatch between the declaration 
-            and definition of the function `%s`." (str_of_func ft n ps) in  *)
         endFunctionHeader f ft;
         Printf.printf "\n--- Body of the function.\n";
         sem_body ft b;  
@@ -196,6 +202,18 @@ and add_definition pos r n p b =
     end
   | _ -> 
     failwith "Should not find an entry that is not a function, with a label of a function."
+and is_const (exp : Ast.ast_expr) = 
+  match exp.expr with 
+  | E_int _ | E_bool _ | E_double _ 
+  | E_char _ | E_NULL | E_str _ -> true
+  | E_uop (O_neg, e) -> is_const e
+  | E_binop (e1, _, e2) -> 
+    is_const e1 && is_const e2
+  | E_tcast (v, e) -> is_const e
+  | E_ternary (e1, e2, e3) ->
+    is_const e1 && is_const e2 && is_const e3
+  | E_brack e -> is_const e
+  | _ -> false
 and vartype_sem t e = 
   let PTR (p, i) = t in 
   let pt = primitive_sem p in
@@ -204,9 +222,10 @@ and vartype_sem t e =
   | None, i -> TYPE_pointer { typ = pt;
     dim = i; mut = true }
   | Some x, i -> let t = sem_expr x in 
-    if (equalType t TYPE_int) then TYPE_pointer { typ = pt; 
-      dim = i + 1; mut = false }
-    else sem_fail x.meta "Cannot declare an array with a non-integer length."   
+    if (equalType t TYPE_int) then 
+      if (is_const x) then TYPE_pointer { typ = pt; dim = i + 1; mut = false }
+      else sem_fail x.meta "Cannot declare a static array with a non-constant length."
+    else sem_fail x.meta "Cannot declare a static array with a non-integer length."   
 and ftype_sem = function 
   | VOID -> TYPE_proc
   | RET vt -> vartype_sem vt None
@@ -218,9 +237,9 @@ and sem_expr exp =
       match entry.entry_info with 
       | ENTRY_variable i -> i.variable_type
       | ENTRY_parameter i -> i.parameter_type
-      | _ -> let msg = Printf.sprintf "'%s' is not a variable." s in 
+      | _ -> let msg = Printf.sprintf "`%s` is not a variable." s in 
           sem_fail pos msg
-    with Not_found -> let msg = Printf.sprintf "Variable '%s' does \
+    with Not_found -> let msg = Printf.sprintf "Variable `%s` does \
       not exist." s in sem_fail pos msg
     end
   | E_int _ -> TYPE_int
@@ -256,7 +275,7 @@ and sem_expr exp =
       match t2 with 
       | TYPE_pointer r when r.mut -> 
         TYPE_pointer { r with dim = r.dim + 1 }
-      | TYPE_pointer r -> sem_fail pos "Cannot allocate memory of type 'static array'."
+      | TYPE_pointer r -> sem_fail pos "Cannot allocate memory of type `static array`."
       | t -> TYPE_pointer { typ = t; dim = 1; mut = true }
     else sem_fail pos "Cannot allocate an array of non-integer length." 
   | E_delete (e) -> let t = sem_expr e in 
@@ -278,7 +297,7 @@ and sem_expr exp =
         | _ -> failwith "Should not find a non-function that has an identifier of a function."
       in 
       if (not @@ match_func e) then
-        let msg = Printf.sprintf "No definitions/declarations of '%s' \
+        let msg = Printf.sprintf "No definitions/declarations of `%s` \
           match with the provided values." f in sem_fail pos msg
       else match e.entry_info with 
         | ENTRY_function inf -> inf.function_result
