@@ -37,7 +37,7 @@ let hex_digit = digit | ['a'-'f']
 let letter = ['a'-'z''A'-'Z']
 let whitespace = [' ''\t''\r']
 
-let id_trail = letter | digit | '_'
+let id_trail = (letter | digit | '_')*
 
 let exp_part = digit+ (['e''E'] (['+''-']?) digit+)? 
 
@@ -137,7 +137,7 @@ rule lexer = parse
     | "}"           { T_rightbr }
 
     (* Rest *)
-    | letter (id_trail)*                        { T_id (Lexing.lexeme lexbuf)}        
+    | letter id_trail                           { T_id (Lexing.lexeme lexbuf)}        
     | digit+                                    { T_constint (int_of_string @@ Lexing.lexeme lexbuf)} 
     | digit+ '.' exp_part?                      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} 
     | '\'' (common_char | esc_char as c) '\''   { match c with 
