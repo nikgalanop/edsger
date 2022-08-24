@@ -1,13 +1,7 @@
 open Identifier
 open Symbol
 open Types 
-
-let primitive_sem = function 
-  | Ast.INT -> TYPE_int 
-  | Ast.CHAR -> TYPE_char
-  | Ast.BOOL -> TYPE_bool 
-  | Ast.DOUBLE -> TYPE_double 
-
+ 
 let rec str_of_type ~ptr_format = function 
   | TYPE_none -> "none"
   | TYPE_int -> "int"
@@ -33,7 +27,7 @@ let rec sep_but_last f = function
 let header_of_astf ft n ps = 
   let ptr_str vt = 
     let Ast.PTR (ptyp, dim) = vt in 
-    str_of_type ~ptr_format:true (primitive_sem ptyp) ^ (String.make dim '*')
+    str_of_type ~ptr_format:true (typ_of_primitive ptyp) ^ (String.make dim '*')
   in let aux = function 
     | Ast.BYREF (vt, _) -> "byref" ^ ptr_str vt
     | Ast.BYVAL (vt, _) -> ptr_str vt
@@ -66,10 +60,9 @@ let name_mangling ps =
     | Ast.BYREF (vt, _) | Ast.BYVAL (vt, _) -> 
       let Ast.PTR (ptyp, dim) = vt in 
       let dim_str = if (dim > 0) then string_of_int dim else "" in
-      str_of_type ~ptr_format:false (primitive_sem ptyp) ^ dim_str
+      str_of_type ~ptr_format:false (typ_of_primitive ptyp) ^ dim_str
   in
     List.fold_right ( ^ ) (List.map aux ps) ""  
-
 
 let exists_main () = 
   let id = Identifier.id_of_func "main" "" in

@@ -1,4 +1,3 @@
-val primitive_sem : Ast.primitive -> Types.typ 
 val str_of_type : ptr_format : bool -> Types.typ -> string 
 val header_of_astf : Types.typ -> Ast.fname ->
                     Ast.parameter list -> string 

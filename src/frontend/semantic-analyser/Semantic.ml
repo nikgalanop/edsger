@@ -202,21 +202,9 @@ and add_definition pos r n p b =
     end
   | _ -> 
     failwith "Should not find an entry that is not a function, with a label of a function."
-and is_const (exp : Ast.ast_expr) = 
-  match exp.expr with 
-  | E_int _ | E_bool _ | E_double _ 
-  | E_char _ | E_NULL | E_str _ -> true
-  | E_uop (O_neg, e) -> is_const e
-  | E_binop (e1, _, e2) -> 
-    is_const e1 && is_const e2
-  | E_tcast (v, e) -> is_const e
-  | E_ternary (e1, e2, e3) ->
-    is_const e1 && is_const e2 && is_const e3
-  | E_brack e -> is_const e
-  | _ -> false
 and vartype_sem t e = 
   let PTR (p, i) = t in 
-  let pt = primitive_sem p in
+  let pt = typ_of_primitive p in
   match (e, i) with 
   | None, 0 -> pt 
   | None, i -> TYPE_pointer { typ = pt;
