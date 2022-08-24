@@ -100,7 +100,7 @@ let rec codegen_expr exp =
   | E_int d -> const_int int_type d  
   | E_char c -> const_int char_type (Char.code c)
   | E_double f -> const_float double_type f
-  | E_str s -> const_stringz lcontext s (* Revise? Check how this interacts with the "Edsger library" *)
+  | E_str s -> const_stringz lcontext s (* Should return a pointer to the said string. *)
   | E_bool b -> let vl = if b then 1 else 0 in 
     const_int bool_type vl 
   | E_NULL -> failwith "TODO" (* :) *)

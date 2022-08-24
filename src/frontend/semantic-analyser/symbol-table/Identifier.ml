@@ -21,7 +21,7 @@ let id_of_var n =
 let id_of_label l = 
   id_make @@ "label/" ^ l
 
-let ent_name_of_id id = (* Should change the separator from _ to something else in the following 3 functions. *)
+let ent_name_of_id id =
   let n = id_name id in 
   let _ :: ename :: _ = String.split_on_char '/' n in 
   ename
