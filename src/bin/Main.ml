@@ -46,8 +46,8 @@ let () =
         See: ./edsger -help" in 
       cli_error msg 
   end;
-  let lb = if (from_file) then Lexer.add_file !fn 
-    else Lexer.add_stdin () 
+  let lb = Lexer.add_file @@ 
+    if (from_file) then !fn else "stdin" 
   in begin try
     let t = Parser.program Lexer.lexer lb in 
     Ast.print_ast t;

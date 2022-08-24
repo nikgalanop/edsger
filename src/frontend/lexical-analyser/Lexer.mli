@@ -1,10 +1,9 @@
 (* Returns the lexical analyzing function *)
 val lexer : Lexing.lexbuf -> Parser.token
 
-(* Create a buffer from stdin *)
-val add_stdin : unit -> Lexing.lexbuf
-
-(* Create a buffer from an existing file *)
+(* Create a buffer from an existing .eds file.
+   Special case: add_file "stdin" creates a 
+   buffer that 'reads' from stdin.*)
 val add_file : string -> Lexing.lexbuf 
 
 (* When the lexical analyser fails to do something, like 
