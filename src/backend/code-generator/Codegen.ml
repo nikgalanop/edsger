@@ -33,38 +33,44 @@ let codegen_binop vl1 vl2 = function
   | O_mod -> build_srem vl1 vl2 "modtmp" lbuilder
   | O_plus -> begin 
       match type_of vl1 with 
-      | int_type -> build_add vl1 vl2 "addtmp"
-      | double_type -> build_fadd vl1 vl2 "addtmp"
+      | int_type -> build_add vl1 vl2 "addtmp" lbuilder
+      | double_type -> build_fadd vl1 vl2 "addtmp" lbuilder
       | _ ->  failwith "TODO" (* Pointer type?? *)
     end
   | O_minus -> begin 
       match type_of vl1 with 
-      | int_type -> build_sub vl1 vl2 "subtmp"
-      | double_type -> build_fsub vl1 vl2 "subtmp"
+      | int_type -> build_sub vl1 vl2 "subtmp" lbuilder
+      | double_type -> build_fsub vl1 vl2 "subtmp" lbuilder
       | _ ->  failwith "TODO" (* Pointer type?? *)
     end
   | O_lt -> begin 
       match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Slt vl1 vl2 "lttmp"
-      | bool_type -> build_icmp Icmp.Ult vl1 vl2 "lttmp"
-      | double_type -> build_fcmp Fcmp.Olt vl1 vl2 "lttmp"
+      | int_type -> build_icmp Icmp.Slt vl1 vl2 "lttmp" lbuilder
+      | bool_type -> build_icmp Icmp.Ult vl1 vl2 "lttmp" lbuilder
+      | double_type -> build_fcmp Fcmp.Olt vl1 vl2 "lttmp" lbuilder
       | _ -> failwith "TODO" (* Pointer type?? *)
     end 
   | O_gt -> begin 
       match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Sgt vl1 vl2 "gttmp"
-      | bool_type -> build_icmp Icmp.Ugt vl1 vl2 "gttmp"
-      | double_type -> build_fcmp Fcmp.Ogt vl1 vl2 "gttmp"
+      | int_type -> build_icmp Icmp.Sgt vl1 vl2 "gttmp" lbuilder
+      | bool_type -> build_icmp Icmp.Ugt vl1 vl2 "gttmp" lbuilder
+      | double_type -> build_fcmp Fcmp.Ogt vl1 vl2 "gttmp" lbuilder
       | _ -> failwith "TODO" (* Pointer type?? *)
     end 
   | O_le -> begin 
       match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Sle vl1 vl2 "letmp"
-      | bool_type -> build_icmp Icmp.Ule vl1 vl2 "letmp"
-      | double_type -> build_fcmp Fcmp.Ole vl1 vl2 "letmp"
+      | int_type -> build_icmp Icmp.Sle vl1 vl2 "letmp" lbuilder
+      | bool_type -> build_icmp Icmp.Ule vl1 vl2 "letmp" lbuilder
+      | double_type -> build_fcmp Fcmp.Ole vl1 vl2 "letmp" lbuilder
       | _ -> failwith "TODO" (* Pointer type?? *)
     end 
-  | O_ge -> let t = type_of vl1 in
+  | O_ge -> begin 
+      match type_of vl1 with 
+      | int_type -> build_icmp Icmp.Sge vl1 vl2 "getmp" lbuilder
+      | bool_type -> build_icmp Icmp.Uge vl1 vl2 "getmp" lbuilder
+      | double_type -> build_fcmp Fcmp.Oge vl1 vl2 "getmp" lbuilder
+      | _ -> failwith "TODO" (* Pointer type?? *)
+    end 
   | O_eq -> let t = type_of vl1 in
     let equal = if (t = double_type) then build_fcmp Fcmp.Oeq 
       else build_icmp Icmp.Eq in 
@@ -72,7 +78,7 @@ let codegen_binop vl1 vl2 = function
   | O_neq -> let t = type_of vl1 in
     let inequal = if (t = double_type) then build_fcmp Fcmp.One 
       else build_icmp Icmp.Ne in 
-    equal vl1 vl2 "eqtmp" lbuilder
+    inequal vl1 vl2 "eqtmp" lbuilder
   | O_and -> build_and vl1 vl2 "andtmp" lbuilder
   | O_or -> build_or vl1 vl2 "ortmp" lbuilder
   | O_comma -> vl2
