@@ -6,7 +6,8 @@ exception CGFailure of string
 let lcontext = global_context ()
 let lmodule = create_module lcontext "edsger-module"
 let lbuilder = builder lcontext
-let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10
+(* let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10 *)
+(* Could be a good idea to use the symbol table that we used for semantic analysis. *)
 let int_type = i16_type lcontext
 and char_type = i8_type lcontext
 and bool_type = i8_type lcontext (* According to the specification, sizeof(bool) = 1 byte.*)
