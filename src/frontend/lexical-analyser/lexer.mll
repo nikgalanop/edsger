@@ -144,10 +144,10 @@ rule lexer = parse
     | digit+                                    { T_constint (int_of_string @@ Lexing.lexeme lexbuf)} 
     | digit+ '.' exp_part?                      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} 
     | '\'' (common_char | esc_char as c) '\''   { match c with 
-                                                  | "\\0" -> T_constchar '\000'
+                                                  | "\\0" -> T_constchar (Char.chr 0)
                                                   | _ -> T_constchar (Scanf.unescaped c).[0] } 
     | '\"' (str_body as s) '\"'                 { let r = Str.regexp {|\\0|} in
-                                                  let templ = "\000" in
+                                                  let templ = String.make 1 (Char.chr 0) in
                                                   let str = s |> 
                                                   Str.global_replace r templ |>
                                                   Scanf.unescaped in
