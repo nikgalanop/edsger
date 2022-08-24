@@ -26,7 +26,8 @@ let rec is_const (exp : Ast.ast_expr) =
   match exp.expr with 
   | E_int _ | E_bool _ | E_double _ 
   | E_char _ | E_NULL | E_str _ -> true
-  | E_uop (O_neg, e) -> is_const e
+  | E_uop (O_psgn, e) | E_uop (O_nsgn, e) 
+  | E_uop (O_neg, e)  -> is_const e
   | E_binop (e1, _, e2) -> 
     is_const e1 && is_const e2
   | E_tcast (v, e) -> is_const e
