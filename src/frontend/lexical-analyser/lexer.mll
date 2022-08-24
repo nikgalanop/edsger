@@ -46,6 +46,9 @@ let common_char = [^'\"''\'''\\']
 let hex_code = hex_digit hex_digit
 let esc_char = '\\' (['n''t''r''0''\\''\'''\"'] | ('x' hex_code))
 
+(* String Regex *)
+let str_body = ([^'\n''\"'] | '\\''\"')*
+
 (* Comments Regex *)
 let one_liner = "//" [^'\n']* '\n'
 
@@ -141,9 +144,15 @@ rule lexer = parse
     | digit+                                    { T_constint (int_of_string @@ Lexing.lexeme lexbuf)} 
     | digit+ '.' exp_part?                      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} 
     | '\'' (common_char | esc_char as c) '\''   { match c with 
-                                                  | "\\0" -> T_constchar (Char.chr 0)
+                                                  | "\\0" -> T_constchar '\000'
                                                   | _ -> T_constchar (Scanf.unescaped c).[0] } 
-    | '\"' ([^'\n''\"'] | '\\''\"')* '\"'       { T_string (Lexing.lexeme lexbuf)} 
+    | '\"' (str_body as s) '\"'                 { let r = Str.regexp {|\\0|} in
+                                                  let templ = "\000" in
+                                                  let str = s |> 
+                                                  Str.global_replace r templ |>
+                                                  Scanf.unescaped in
+                                                  T_string str
+                                                } 
     | one_liner                                 { Lexing.new_line lexbuf; lexer lexbuf } 
     | "/*"                                      { multi_comment lexbuf }
     | '\n'                                      { Lexing.new_line lexbuf; lexer lexbuf }

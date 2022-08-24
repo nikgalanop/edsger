@@ -121,7 +121,8 @@ let rec print_expr e =
   | E_int i -> printf "E_int(%d)" i
   | E_char c -> printf "E_char(%c)" c
   | E_double d -> printf "E_double(%f)" d
-  | E_str s -> printf "E_str(%s)" s
+  | E_str s -> printf "E_str(%s)" 
+    (String.escaped s)
   | E_bool b -> printf "E_bool(%B)" b
   | E_NULL -> printf "E_NULL()"
   | E_uop (op, e) -> printf "E_uop(\"%s\"," 
