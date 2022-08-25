@@ -63,5 +63,6 @@ and expr =
   | E_brack of ast_expr
 
 type ast = ast_decl list
+
 (* Print the AST of a given Edsger program. *)
 val print_ast : ast -> unit

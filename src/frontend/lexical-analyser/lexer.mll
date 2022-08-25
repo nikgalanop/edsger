@@ -65,26 +65,30 @@ rule lexer = parse
   | incl    { let pos = lexbuf.Lexing.lex_start_p in
               let line_pos = pos.pos_cnum - pos.pos_bol in
               if (line_pos <> 0) then
-                lex_fail pos "Directives should be in the beginning of a line"
-              else if (not @@ Sys.file_exists filename) then
+                lex_fail pos "Directives should be in the beginning of a line";
+              if (not @@ Sys.file_exists filename) then begin
                 let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
                 lex_fail pos msg
-              else begin
-                let res = safe_find filename set in
-                match res with
-                | None -> let lb = add_file filename in 
-                    begin try  
-                      let t = Parser.program lexer lb in
-                      T_include t
-                    with 
-                    | Parser.Error -> let pos = lb.Lexing.lex_start_p in
-                      Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
-                      exit 1 
-                    end
-                | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename in
-                    Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
-                    T_include [] 
-              end } 
+              end;
+              let ext = Filename.extension filename in
+              if (ext <> ".eds" && ext <> ".h") then begin
+                let msg = Printf.sprintf "Can only include files with extension \
+                  '.h' or '.eds', not '%s'" ext in
+                lex_fail pos msg
+              end;
+              let res = safe_find filename set in
+              match res with
+              | None -> let lb = add_file filename in 
+                begin try  
+                  let t = Parser.program lexer lb in
+                  T_include t
+                with | Parser.Error -> let pos = lb.Lexing.lex_start_p in
+                  Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
+                  exit 1 
+                end
+              | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename in
+                Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
+                T_include [] } 
 
   (* Keywords *)
   | "bool"      { T_bool }
@@ -165,6 +169,7 @@ rule lexer = parse
                     chr (Char.code chr) in
                   Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
                   lexer lexbuf }
+                  
 (* Count the lines of the multilined comments *)
 and multi_comment = parse 
     "*/"          { lexer lexbuf }
