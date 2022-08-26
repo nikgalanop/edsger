@@ -12,8 +12,7 @@ let anon_fun filename =
 let speclist = 
   [("-O", Arg.Set opt_flag, "Enables code optimization");
    ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the assembly in stdout");
-   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")
-  ]
+   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")]
 
 let cli_error msg = 
   Utilities.print_diagnostic ~p:None msg Utilities.Error;
@@ -22,7 +21,7 @@ let cli_error msg =
 let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
-    let msg = "Cannot print both the assembly and the LLVM IR at the same time." in
+    let msg = "Cannot print both the assembly and the LLVM IR at the same time" in
     cli_error msg
   end;
   let from_file = not (!asm_flag || !ir_flag) in

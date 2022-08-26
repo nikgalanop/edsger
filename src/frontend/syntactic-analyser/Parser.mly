@@ -69,13 +69,14 @@
 %type <uassign> unary_assignment
 %type <bassign> binary_assignment
 
-%% /* Grammar rules and actions follow */
-
+%% 
+(* Grammar Rules & Semantic Actions *)
 program: 
-        | nonempty_list(line) T_eof { List.flatten $1 } // Maybe find a more efficient way of writing?
+        | nonempty_list(line) T_eof { List.flatten $1 } 
+;
 
 line:
-        | declaration { [$1] } // Don't quite like that
+        | declaration { [$1] } 
         | T_include   { $1 }
 ;
 
@@ -181,7 +182,7 @@ expression:
         | T_id                                                                    { { expr = E_var $1;
                                                                                       meta = $symbolstartpos } }
         | T_leftpar expression T_rightpar                                         { { expr = E_brack $2;
-                                                                                      meta = $symbolstartpos } } // Bracketed expression
+                                                                                      meta = $symbolstartpos } }
         | T_true                                                                  { { expr = E_bool true;
                                                                                       meta = $symbolstartpos } }
         | T_false                                                                 { { expr = E_bool false; 
@@ -205,7 +206,7 @@ expression:
                                                                                             | _ -> ex :: acc
                                                                                         in E_fcall ($1, flatten e [])
                                                                                     in { expr = exp; meta = $symbolstartpos }
-                                                                                  } // Comma is left associative.
+                                                                                  } 
         | expression T_leftsqbr expression T_rightsqbr                            { { expr = E_arracc ($1, $3); 
                                                                                       meta = $symbolstartpos } } 
         | unary_operator expression                             %prec TUOP        { { expr = E_uop ($1, $2); 

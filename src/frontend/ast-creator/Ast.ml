@@ -128,7 +128,7 @@ let rec print_expr e =
   | E_uop (op, e) -> printf "E_uop(\"%s\"," 
     (uop_str op); print_expr e; printf ")"
   | E_binop (e1, op, e2) -> printf "E_binop("; 
-    print_expr e1; printf ", \"%s\" , " 
+    print_expr e1; printf ", \"%s\", " 
     (binop_str op); print_expr e2; printf ")"
   | E_uasgnpre (ua, e) -> printf "E_uasgnpre(\"%s\", "
     (uassign_str ua); print_expr e; printf ")"
@@ -167,45 +167,45 @@ and for_label =
 and print_stmt s = 
   let open Printf in
   match s.stmt with
-  | S_NOP -> printf "S_NOP ()"
-  | S_expr e -> printf "S_expr ("; 
-    print_expr e; printf ")"
-  | S_block s -> printf "S_block (";
-    List.iter print_stmt s; printf ")"
-  | S_if (e, s, None) -> printf "S_if (";
+  | S_NOP -> printf "S_NOP () "
+  | S_expr e -> printf "S_expr("; 
+    print_expr e; printf ") "
+  | S_block s -> printf "S_block(";
+    List.iter print_stmt s; printf ") "
+  | S_if (e, s, None) -> printf "S_if(";
     print_expr e; printf ","; 
-    print_stmt s; printf ")"
-  | S_if (e, s1, Some s2) -> printf "S_if (";
+    print_stmt s; printf ") "
+  | S_if (e, s1, Some s2) -> printf "S_if(";
     print_expr e; printf ","; 
     print_stmt s1; printf ","; 
-    print_stmt s2; printf ")"
+    print_stmt s2; printf ") "
   | S_for (o1, o2, o3, s, l) -> printf "S_for(";
     for_expr o1; for_expr o2; 
     for_expr o3; print_stmt s; 
-    printf ", "; for_label l; printf ")"
-  | S_cont l -> printf "S_cont(%s)" (label_str l)
-  | S_break l -> printf "S_break(%s)" (label_str l)
-  | S_ret None -> printf "S_ret()"
+    printf ", "; for_label l; printf ") "
+  | S_cont l -> printf "S_cont(%s) " (label_str l)
+  | S_break l -> printf "S_break(%s) " (label_str l)
+  | S_ret None -> printf "S_ret() "
   | S_ret Some e -> printf "S_ret(";
-    print_expr e; printf ")"
+    print_expr e; printf ") "
 and print_body b =
   let F_body (d, s) = b in 
   Printf.printf "{ ";
   List.iter print_decl d;
-  Printf.printf " ,";
+  Printf.printf ", ";
   List.iter print_stmt s;
   Printf.printf "}"
 
 and print_decl d = 
   let open Printf in
   match d.decl with 
-  | D_var (v, l) -> printf "D_var (%s, %d)" 
+  | D_var (v, l) -> printf "D_var(%s, %d) " 
     (vartype_str v) (List.length l)
-  | D_fun (r, n, p) -> printf "D_fun (%s, %s, %n)"
+  | D_fun (r, n, p) -> printf "D_fun(%s, %s, %n)  "
     (rettype_str r) n (List.length p)  
-  | D_fdef (r, n, p, b) -> printf "D_fdef (%s, %s, %d, " 
+  | D_fdef (r, n, p, b) -> printf "D_fdef(%s, %s, %d, " 
     (rettype_str r) n (List.length p); 
-    print_body b; printf ")"
+    print_body b; printf ") "
 
 let print_ast t = 
   Printf.printf "\027[1;36mAST:\027[0m \n";
