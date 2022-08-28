@@ -162,7 +162,19 @@ and codegen_stmt stm =
     end
   | S_for (o1, o2, o3, s, l) -> begin 
       match o2 with 
-      | Some e2 -> failwith "TODO"
+      | Some e2 -> begin
+          match o1 with 
+          | Some e1 -> ignore @@ codegen_expr e1;
+          | None -> ();
+          let prevbb = insertion_block lbuilder in 
+          let f = block_parent @@ prevbb in 
+          let loopbb = append_block lcontext "loop" f in
+          let bodybb = append_block lcontext "body" f in
+          let afterbb = append_block lcontext "endfor" f in
+          ignore @@ build_br loopbb lbuilder;
+          position_at_end loopbb lbuilder;
+          (* TODO . . . . . . . . . . . . . . . . . . . . .*)
+        end
       | _ -> failwith "Should not reach this state."
     end
   | S_cont o -> failwith "TODO"
