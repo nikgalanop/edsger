@@ -322,14 +322,18 @@ and sem_stmt ft (stm : ast_stmt) =
   | S_NOP -> ()
   | S_expr e -> ignore @@ sem_expr e
   | S_block b -> List.iter (sem_stmt ft) b
-  | S_if (e, s, None) -> check_condition e; 
-    sem_stmt ft s
-  | S_if (e, s1, Some s2) -> check_condition e; 
-    sem_stmt ft s1; sem_stmt ft s2
-  | S_for (o1, Some c, o3, s, l) -> check_option o1; 
-    check_condition c; check_option o3; sem_for ft s l
-  | S_for (_, None, _, _, _) -> 
-    sem_fail pos "For-loops should always have a terminating condition."
+  | S_if (e, s1, o) -> begin match o with 
+      | None -> check_condition e; 
+        sem_stmt ft s1
+      | Some s2 -> check_condition e; 
+        sem_stmt ft s1; sem_stmt ft s2
+    end
+  | S_for (o1, o2, o3, s, l) -> begin match o2 with 
+      | Some c -> check_option o1; check_condition c; 
+        check_option o3; sem_for ft s l
+      | _ -> 
+        sem_fail pos "For-loops should always have a terminating condition."
+    end
   | S_cont l -> if (insideFor ()) then 
       if (check_jmp l) then () 
       else sem_fail pos "Cannot continue to an unreachable label." 
@@ -338,11 +342,13 @@ and sem_stmt ft (stm : ast_stmt) =
       if (check_jmp l) then () 
       else sem_fail pos "Cannot break and jump to an unreachable label."
     else sem_fail pos "Cannot break when not inside a for statement." 
-  | S_ret None -> if (equalType ft TYPE_proc) then () 
-    else sem_fail pos "Must return a value that matches the function's return type."
-  | S_ret Some e -> let t = sem_expr e in 
-    if (equalType ft t) then () 
-    else sem_fail pos "Must return a value that matches the function's return type."
+  | S_ret o -> begin match o with 
+      | Some e -> let t = sem_expr e in 
+        if (equalType ft t) then () 
+        else sem_fail pos "Must return a value that matches the function's return type."
+      | None -> if (equalType ft TYPE_proc) then () 
+        else sem_fail pos "Must return a value that matches the function's return type."
+    end 
 and sem_body ft b = 
   let F_body (d, s) = b in
   List.iter sem_decl d;

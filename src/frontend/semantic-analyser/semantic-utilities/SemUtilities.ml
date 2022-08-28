@@ -10,8 +10,9 @@ let rec str_of_type ~ptr_format = function
   | TYPE_double -> "double"
   | TYPE_pointer { typ = t; 
     dim = d; mut = m } -> 
-    let dim_str = if (ptr_format) then String.make d '*' 
-    else string_of_int d in (str_of_type ~ptr_format:false t) ^ dim_str       
+    let dim_str = if (ptr_format) then 
+      String.make d '*' else string_of_int d 
+    in (str_of_type ~ptr_format:false t) ^ dim_str       
   | TYPE_null -> "null"
   | TYPE_proc -> "void"
 
@@ -27,7 +28,8 @@ let rec sep_but_last f = function
 let header_of_astf ft n ps = 
   let ptr_str vt = 
     let Ast.PTR (ptyp, dim) = vt in 
-    str_of_type ~ptr_format:true (typ_of_primitive ptyp) ^ (String.make dim '*')
+    str_of_type ~ptr_format:true 
+    (typ_of_primitive ptyp) ^ (String.make dim '*')
   in let aux = function 
     | Ast.BYREF (vt, _) -> "byref" ^ ptr_str vt
     | Ast.BYVAL (vt, _) -> ptr_str vt
