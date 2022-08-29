@@ -19,7 +19,7 @@ let short_circuiting = function
 let lltype_of_ast t = 
   failwith "TODO"
 
-let codegen_uop vl = function 
+let rec codegen_uop vl = function 
   | O_ref -> vl (* !! *)
   | O_dref -> failwith "TODO"
   | O_psgn -> vl
@@ -28,12 +28,25 @@ let codegen_uop vl = function
       else build_fneg in 
     invert_sign vl "invtmp" lbuilder
   | O_neg -> build_not vl "nottmp" lbuilder 
-let codegen_sc_binop e1 e2 = function (* TODO: Fix short-circuiting. *)
-  | O_and -> failwith "TODO"
-    (* build_and vl1 vl2 "andtmp" lbuilder *)
-  | O_or -> failwith "TODO"
-    (* build_or vl1 vl2 "ortmp" lbuilder *)
-let codegen_binop vl1 vl2 = function 
+and codegen_sc_binop e1 e2 op = 
+  let vl1 = codegen_expr e1 in 
+  let scconst = const_int bool_type @@ 
+  match op with | O_and -> 0 | O_or -> 1 in
+  let cond = build_icmp Icmp.Eq vl scconst
+    "sccond" lbuilder in (* Revisit this line. *)
+  let f = block_parent @@ insertion_block lbuilder in
+  let scbb = append_block lcontext "scbool" f in
+  let fullbb = append_block lcontext "fullbool" f in
+  let afterbb = append_block lcontext "endbool" f in
+  ignore @@ build_cond_br cond scbb fullbb lbuilder;
+  position_at_end scbb lbuilder;
+  ignore @@ build_br afterbb lbuilder;
+  position_at_end fullbb lbuilder;
+  let vl2 = codegen_expr e2 in
+  ignore @@ build_br afterbb lbuilder;
+  position_at_end afterbb lbuilder;
+  build_phi [(scconst, scbb); (vl2, fullbb)] "scbtmp" lbuilder
+and codegen_binop vl1 vl2 = function 
   | O_times -> let t = type_of vl1 in
     let multiply = if (t = int_type) then build_mul
       else build_fmul in 
@@ -93,18 +106,18 @@ let codegen_binop vl1 vl2 = function
     inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
   | _ -> failwith "Invalid operator."
-let codegen_uasgn vl = function (* Order matters. This function is not enough I think. 
+and codegen_uasgn vl = function (* Order matters. This function is not enough I think. 
                                   We need one for pre and one for post.*)
   | O_plpl -> failwith "TODO"
   | O_mimi -> failwith "TODO"
-let codegen_basgn = function 
+and codegen_basgn = function 
   | O_asgn -> failwith "TODO"
   | O_mulasgn -> failwith "TODO"
   | O_divasgn -> failwith "TODO"
   | O_modasgn -> failwith "TODO"
   | O_plasgn -> failwith "TODO"
   | O_minasgn -> failwith "TODO"
-let rec codegen_expr exp = 
+and codegen_expr exp = 
   match exp.expr with 
   | E_var v -> failwith "TODO"
   | E_int d -> const_int int_type d  
@@ -127,7 +140,24 @@ let rec codegen_expr exp =
   | E_uasgnpost (op, e) -> failwith "TODO"
   | E_basgn (e1, op, e2) -> failwith "TODO"
   | E_tcast (vt, e) -> failwith "TODO"
-  | E_ternary (e1, e2, e3) -> failwith "TODO"
+  | E_ternary (e1, e2, e3) -> begin
+      let vl1 = codegen_expr e1 in 
+      let cond = build_icmp Icmp.Eq vl (const_int bool_type 1)
+        "trncond" lbuilder in (* Revisit this line. *)
+      let f = block_parent @@ insertion_block lbuilder in
+      let trntbb = append_block lcontext "trntrue" f in
+      let trnfbb = append_block lcontext "trnfalse" f in
+      let afterbb = append_block lcontext "endtrn" f in
+      ignore @@ build_cond_br cond trntbb trnfbb lbuilder;
+      position_at_end trntbb lbuilder;
+      let vl2 = codegen_expr e2 in
+      ignore @@ build_br afterbb lbuilder;
+      position_at_end trnfbb lbuilder;
+      let vl3 = codegen_expr e3 in
+      ignore @@ build_br afterbb lbuilder;
+      position_at_end afterbb lbuilder;
+      build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
+    end
   | E_new (vt, e) -> let vl = codegen_expr e in 
     let t = lltype_of_ast vt in (* TODO: Should check that vl is positive. *)
     failwith "TODO"
@@ -143,7 +173,7 @@ and codegen_stmt stm =
   | S_block l -> List.iter codegen_stmt l
   | S_if (e, s1, o) -> begin 
       let vl = codegen_expr e in 
-      let cond = build_icmp Icmp.Ne vl (const_int int_type 0) 
+      let cond = build_icmp Icmp.Ne vl (const_int bool_type 0) 
         "ifcond" lbuilder in (* Revisit this line. *)
       let f = block_parent @@ insertion_block lbuilder in
       let thenbb = append_block lcontext "then" f in
@@ -173,7 +203,8 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
-          (* TODO . . . . . . . . . . . . . . . . . . . . .*)
+          (* TODO . . . . . . . . . . . . . . . . . . . . . *)
+          (* Label Handling??? *)
         end
       | _ -> failwith "Should not reach this state."
     end
