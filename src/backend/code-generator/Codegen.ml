@@ -4,7 +4,7 @@ open Llvm
 exception CGFailure of string
 
 let lcontext = global_context ()
-let lmodule = create_module lcontext "edsger-module"
+let lmodule = create_module lcontext "edsger-program"
 let lbuilder = builder lcontext
 (* let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10 *)
 (* Could be a good idea to use the symbol table that we used for semantic analysis. *)
@@ -12,10 +12,11 @@ let int_type = i16_type lcontext
 and char_type = i8_type lcontext
 and bool_type = i8_type lcontext (* According to the specification, sizeof(bool) = 1 byte.*)
 and double_type = double_type lcontext
+let const_int = const_int int_type
+and const_char = const_int char_type
+and const_bool = const_int bool_type
+and const_double = const_float double_type
 
-let short_circuiting = function 
-  | O_and | O_or -> true  
-  | _ -> false
 let lltype_of_ast t = 
   failwith "TODO"
 
@@ -23,17 +24,18 @@ let rec codegen_uop vl = function
   | O_ref -> vl (* !! *)
   | O_dref -> failwith "TODO"
   | O_psgn -> vl
-  | O_nsgn -> let t = type_of vl in 
-    let invert_sign = if (t = int_type) then build_neg 
-      else build_fneg in 
-    invert_sign vl "invtmp" lbuilder
+  | O_nsgn -> let invert_sign = match type_of vl with 
+    | int_type -> build_neg 
+    | _ -> build_fneg 
+    in invert_sign vl "invtmp" lbuilder
   | O_neg -> build_not vl "nottmp" lbuilder 
 and codegen_sc_binop e1 e2 op = 
   let vl1 = codegen_expr e1 in 
-  let scconst = const_int bool_type @@ 
-  match op with | O_and -> 0 | O_or -> 1 in
-  let cond = build_icmp Icmp.Eq vl scconst
-    "sccond" lbuilder in (* Revisit this line. *)
+  let scconst = const_bool @@ match op with 
+  | O_and -> 0 | O_or -> 1 
+  in let cond = build_icmp Icmp.Eq vl scconst 
+    (* Revisit. If true is just a value <> 0, this needs to be changed. *)
+    "sccond" lbuilder in (* Revisit. Maybe needs a load. *)
   let currbb = insertion_block lbuilder in
   let f = block_parent @@ currbb in
   let fullbb = append_block lcontext "fullbool" f in
@@ -45,14 +47,14 @@ and codegen_sc_binop e1 e2 op =
   position_at_end afterbb lbuilder;
   build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
 and codegen_binop vl1 vl2 = function 
-  | O_times -> let t = type_of vl1 in
-    let multiply = if (t = int_type) then build_mul
-      else build_fmul in 
-    multiply vl1 vl2 "multmp" lbuilder 
-  | O_div -> let t = type_of vl1 in 
-    let divide = if (t = int_type) then build_sdiv
-      else build_fdiv in 
-    divide vl1 vl2 "divtmp" lbuilder
+  | O_times -> let multiply = match type_of vl1 with
+      | int_type -> build_mul
+      | _ -> build_fmul 
+    in multiply vl1 vl2 "multmp" lbuilder 
+  | O_div -> let divide = match type_of vl1 with
+      | int_type -> build_sdiv
+      | _ -> build_fdiv
+    in divide vl1 vl2 "divtmp" lbuilder
   | O_mod -> build_srem vl1 vl2 "modtmp" lbuilder
   | O_plus -> begin 
       match type_of vl1 with 
@@ -94,54 +96,69 @@ and codegen_binop vl1 vl2 = function
       | double_type -> build_fcmp Fcmp.Oge vl1 vl2 "getmp" lbuilder
       | _ -> failwith "TODO" (* Pointer type?? *)
     end 
-  | O_eq -> let t = type_of vl1 in
-    let equal = if (t = double_type) then build_fcmp Fcmp.Oeq 
-      else build_icmp Icmp.Eq in 
-    equal vl1 vl2 "eqtmp" lbuilder
-  | O_neq -> let t = type_of vl1 in
-    let inequal = if (t = double_type) then build_fcmp Fcmp.One 
-      else build_icmp Icmp.Ne in 
-    inequal vl1 vl2 "neqtmp" lbuilder
+  | O_eq -> let equal = match type_of vl1 with 
+      | double_type -> build_fcmp Fcmp.Oeq
+      | _ -> build_icmp Icmp.Eq
+    in equal vl1 vl2 "eqtmp" lbuilder
+  | O_neq -> let inequal = match type_of vl1 with
+      | double_type -> build_fcmp Fcmp.One 
+      | _ -> build_icmp Icmp.Ne 
+    in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
   | _ -> failwith "Invalid operator."
-and codegen_uasgn vl = function (* Order matters. This function is not enough I think. 
-                                  We need one for pre and one for post.*)
-  | O_plpl -> failwith "TODO"
-  | O_mimi -> failwith "TODO"
-and codegen_basgn = function 
-  | O_asgn -> failwith "TODO"
-  | O_mulasgn -> failwith "TODO"
-  | O_divasgn -> failwith "TODO"
-  | O_modasgn -> failwith "TODO"
-  | O_plasgn -> failwith "TODO"
-  | O_minasgn -> failwith "TODO"
+and codegen_uasgn vl op =  
+  let const = match t with 
+  | double_type -> const_double 1.
+  | _ -> const_int 1 
+  in let asgn = match op with 
+  | O_plpl -> O_plasgn 
+  | O_mimi -> O_modasgn
+  in codegen_basgn vl const asgn 
+and codegen_basgn vl1 vl2 op = 
+  let lhs = vl1 in 
+  let rhs = match op with 
+  | O_asgn -> vl2
+  | O_mulasgn -> codegen_binop vl1 vl2 O_times
+  | O_divasgn -> codegen_binop vl1 vl2 O_div
+  | O_modasgn -> codegen_binop vl1 vl2 O_mod
+  | O_plasgn -> codegen_binop vl1 vl2 O_plus
+  | O_minasgn -> codegen_binop vl1 vl2 O_minus
+  in (* Revisit. What is rhs? Do we need a load? *)
+  (* Can we simply return the result of build_store?*)
+  ignore @@ build_store rhs lhs lbuilder; 
+  lhs
 and codegen_expr exp = 
   match exp.expr with 
   | E_var v -> failwith "TODO"
-  | E_int d -> const_int int_type d  
-  | E_char c -> const_int char_type (Char.code c)
-  | E_double f -> const_float double_type f
+  | E_int d -> const_int d  
+  | E_char c -> const_char (Char.code c)
+  | E_double f -> const_double f
   | E_str s -> build_global_stringptr s "strtmp" lbuilder
-  | E_bool b -> let vl = if b then 1 else 0 in 
-    const_int bool_type vl 
-  | E_NULL -> failwith "TODO" (* :) *)
+  | E_bool b -> const_bool (if b then 1 else 0)
+  | E_NULL -> const_pointer_null (pointer_type int_type)
   | E_uop (op, e) -> let vl = codegen_expr e in 
     codegen_uop vl op
-  | E_binop (e1, op, e2) -> if (short_circuiting op) then 
-      codegen_sc_binop e1 e2 op
-    else begin 
-      let vl1 = codegen_expr e1 in 
-      let vl2 = codegen_expr e2 in codegen_binop vl1 vl2 op
+  | E_binop (e1, op, e2) -> begin match op with 
+      | O_and | O_or -> codegen_sc_binop e1 e2 op
+      | _ -> let vl1 = codegen_expr e1 in 
+        let vl2 = codegen_expr e2 in codegen_binop vl1 vl2 op
     end
   | E_uasgnpre (op, e) -> let vl = codegen_expr e in 
     codegen_uasgn vl op
-  | E_uasgnpost (op, e) -> failwith "TODO"
-  | E_basgn (e1, op, e2) -> failwith "TODO"
-  | E_tcast (vt, e) -> failwith "TODO"
+  | E_uasgnpost (op, e) -> let vl = codegen_expr e in 
+    ignore @@ codegen_uasgn vl op; vl
+  | E_basgn (e1, op, e2) -> let vl1 = codegen_expr e1 in
+    let vl2 = codegen_expr e2 in codegen_basgn vl1 vl2 op 
+  | E_tcast (vt, e) -> begin 
+      let vl = codegen_expr e in
+      let tfrom = type_of vl in 
+      let tto = lltype_of_ast vt in 
+      failwith "TODO"
+    end 
   | E_ternary (e1, e2, e3) -> begin
       let vl1 = codegen_expr e1 in 
-      let cond = build_icmp Icmp.Eq vl (const_int bool_type 1)
-        "trncond" lbuilder in (* Revisit this line. *)
+      let cond = build_icmp Icmp.Eq vl (const_bool 1)
+        "trncond" lbuilder in (* Revisit. Maybe needs a load. *)
       let f = block_parent @@ insertion_block lbuilder in
       let trntbb = append_block lcontext "trntrue" f in
       let trnfbb = append_block lcontext "trnfalse" f in
@@ -157,7 +174,7 @@ and codegen_expr exp =
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
   | E_new (vt, e) -> let vl = codegen_expr e in 
-    let t = lltype_of_ast vt in (* TODO: Should check that vl is positive. *)
+    let t = lltype_of_ast vt in (* Revisit. Should check that vl is positive. *)
     failwith "TODO"
   | E_delete e -> let vl = codegen_expr e in 
     build_free vl lbuilder
@@ -171,8 +188,8 @@ and codegen_stmt stm =
   | S_block l -> List.iter codegen_stmt l
   | S_if (e, s1, o) -> begin 
       let vl = codegen_expr e in 
-      let cond = build_icmp Icmp.Ne vl (const_int bool_type 0) 
-        "ifcond" lbuilder in (* Revisit this line. *)
+      let cond = build_icmp Icmp.Ne vl (const_bool 0) 
+        "ifcond" lbuilder in (* Revisit. Maybe needs a load. *)
       let f = block_parent @@ insertion_block lbuilder in
       let thenbb = append_block lcontext "then" f in
       let elsebb = append_block lcontext "else" f in
