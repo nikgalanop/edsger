@@ -34,18 +34,16 @@ and codegen_sc_binop e1 e2 op =
   match op with | O_and -> 0 | O_or -> 1 in
   let cond = build_icmp Icmp.Eq vl scconst
     "sccond" lbuilder in (* Revisit this line. *)
-  let f = block_parent @@ insertion_block lbuilder in
-  let scbb = append_block lcontext "scbool" f in
+  let currbb = insertion_block lbuilder in
+  let f = block_parent @@ currbb in
   let fullbb = append_block lcontext "fullbool" f in
   let afterbb = append_block lcontext "endbool" f in
-  ignore @@ build_cond_br cond scbb fullbb lbuilder;
-  position_at_end scbb lbuilder;
-  ignore @@ build_br afterbb lbuilder;
+  ignore @@ build_cond_br cond afterbb fullbb lbuilder;
   position_at_end fullbb lbuilder;
   let vl2 = codegen_expr e2 in
   ignore @@ build_br afterbb lbuilder;
   position_at_end afterbb lbuilder;
-  build_phi [(scconst, scbb); (vl2, fullbb)] "scbtmp" lbuilder
+  build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
 and codegen_binop vl1 vl2 = function 
   | O_times -> let t = type_of vl1 in
     let multiply = if (t = int_type) then build_mul
