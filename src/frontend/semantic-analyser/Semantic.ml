@@ -311,10 +311,17 @@ and check_condition c =
 and check_option = function 
   | Some e -> ignore @@ sem_expr e 
   | _ -> ()      
-and sem_for ft s = function 
+and sem_for pos ft s = function 
   | Some l -> let l_id = (id_of_label l) in
-    ignore @@ newLabel l_id true;
-    openForScope (); sem_stmt ft s; closeForScope (Some l_id)
+    begin try
+      ignore @@ newLabel l_id true;
+      openForScope (); sem_stmt ft s; 
+      closeForScope (Some l_id)
+    with | Failure _ -> 
+      let msg = Printf.sprintf "Should not find two labels with the same name (`%s`) \
+        inside the same function." l in
+      sem_fail pos msg
+    end
   | None -> openForScope (); sem_stmt ft s; closeForScope None
 and sem_stmt ft (stm : ast_stmt) = 
   let pos = stm.meta in
@@ -330,7 +337,7 @@ and sem_stmt ft (stm : ast_stmt) =
     end
   | S_for (o1, o2, o3, s, l) -> begin match o2 with 
       | Some c -> check_option o1; check_condition c; 
-        check_option o3; sem_for ft s l
+        check_option o3; sem_for pos ft s l
       | _ -> 
         sem_fail pos "For-loops should always have a terminating condition."
     end

@@ -33,7 +33,7 @@ and codegen_sc_binop e1 e2 op =
   let vl1 = codegen_expr e1 in 
   let scconst = const_bool @@ match op with 
   | O_and -> 0 | O_or -> 1 
-  in let cond = build_icmp Icmp.Eq vl scconst 
+  in let cond = build_icmp Icmp.Eq vl1 scconst 
     (* Revisit. If true is just a value <> 0, this needs to be changed. *)
     "sccond" lbuilder in (* Revisit. Maybe needs a load. *)
   let currbb = insertion_block lbuilder in
@@ -107,7 +107,7 @@ and codegen_binop vl1 vl2 = function
   | O_comma -> vl2
   | _ -> failwith "Invalid operator."
 and codegen_uasgn vl op =  
-  let const = match t with 
+  let const = match type_of vl with 
   | double_type -> const_double 1.
   | _ -> const_int 1 
   in let asgn = match op with 
@@ -157,7 +157,7 @@ and codegen_expr exp =
     end 
   | E_ternary (e1, e2, e3) -> begin
       let vl1 = codegen_expr e1 in 
-      let cond = build_icmp Icmp.Eq vl (const_bool 1)
+      let cond = build_icmp Icmp.Eq vl1 (const_bool 1)
         "trncond" lbuilder in (* Revisit. Maybe needs a load. *)
       let f = block_parent @@ insertion_block lbuilder in
       let trntbb = append_block lcontext "trntrue" f in
