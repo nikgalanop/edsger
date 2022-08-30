@@ -17,6 +17,10 @@ and const_char = const_int char_type
 and const_bool = const_int bool_type
 and const_double = const_float double_type
 
+let load_value v = (* Prototype. Revisit. *)
+  match classify_type @@ type_of v with 
+  | Llvm.TypeKind.Pointer -> build_load v "loadtmp" lbuilder 
+  | _ -> v
 let lltype_of_ast t = 
   failwith "TODO"
 
@@ -25,24 +29,24 @@ let rec codegen_uop vl = function
   | O_dref -> failwith "TODO"
   | O_psgn -> vl
   | O_nsgn -> let invert_sign = match type_of vl with 
-    | int_type -> build_neg 
-    | _ -> build_fneg 
+      | int_type -> build_neg 
+      | _ -> build_fneg 
     in invert_sign vl "invtmp" lbuilder
   | O_neg -> build_not vl "nottmp" lbuilder 
 and codegen_sc_binop e1 e2 op = 
-  let vl1 = codegen_expr e1 in 
+  let vl1 = load_value @@ codegen_expr e1 in 
   let scconst = const_bool @@ match op with 
   | O_and -> 0 | O_or -> 1 
   in let cond = build_icmp Icmp.Eq vl1 scconst 
     (* Revisit. If true is just a value <> 0, this needs to be changed. *)
-    "sccond" lbuilder in (* Revisit. Maybe needs a load. *)
+    "sccond" lbuilder in
   let currbb = insertion_block lbuilder in
   let f = block_parent @@ currbb in
   let fullbb = append_block lcontext "fullbool" f in
   let afterbb = append_block lcontext "endbool" f in
   ignore @@ build_cond_br cond afterbb fullbb lbuilder;
   position_at_end fullbb lbuilder;
-  let vl2 = codegen_expr e2 in
+  let vl2 = load_value @@ codegen_expr e2 in
   ignore @@ build_br afterbb lbuilder;
   position_at_end afterbb lbuilder;
   build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
@@ -118,9 +122,9 @@ and codegen_basgn vl1 vl2 op =
   | O_modasgn -> codegen_binop vl1 vl2 O_mod
   | O_plasgn -> codegen_binop vl1 vl2 O_plus
   | O_minasgn -> codegen_binop vl1 vl2 O_minus
-  in (* Revisit. What is rhs? Do we need a load? *)
+  in
   (* Can we simply return the result of build_store?*)
-  ignore @@ build_store rhs lhs lbuilder; 
+  ignore @@ build_store (load_value rhs) lhs lbuilder; 
   lhs
 and codegen_expr exp = 
   match exp.expr with 
@@ -151,25 +155,26 @@ and codegen_expr exp =
       failwith "TODO"
     end 
   | E_ternary (e1, e2, e3) -> begin
-      let vl1 = codegen_expr e1 in 
+      let vl1 = load_value @@ codegen_expr e1 in 
       let cond = build_icmp Icmp.Eq vl1 (const_bool 1)
-        "trncond" lbuilder in (* Revisit. Maybe needs a load. *)
+        "trncond" lbuilder in
       let f = block_parent @@ insertion_block lbuilder in
       let trntbb = append_block lcontext "trntrue" f in
       let trnfbb = append_block lcontext "trnfalse" f in
       let afterbb = append_block lcontext "endtrn" f in
       ignore @@ build_cond_br cond trntbb trnfbb lbuilder;
       position_at_end trntbb lbuilder;
-      let vl2 = codegen_expr e2 in
+      let vl2 = load_value @@ codegen_expr e2 in
       ignore @@ build_br afterbb lbuilder;
       position_at_end trnfbb lbuilder;
-      let vl3 = codegen_expr e3 in
+      let vl3 = load_value @@ codegen_expr e3 in
       ignore @@ build_br afterbb lbuilder;
       position_at_end afterbb lbuilder;
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
   | E_new (vt, e) -> let vl = codegen_expr e in 
-    let t = lltype_of_ast vt in (* Revisit. Should check that vl is positive. *)
+    let t = lltype_of_ast vt in 
+    (* Revisit. Should check that vl is positive or it needs to be loaded. *)
     failwith "TODO"
   | E_delete e -> let vl = codegen_expr e in 
     build_free vl lbuilder
@@ -181,10 +186,10 @@ and codegen_stmt stm =
   | S_NOP -> ()
   | S_expr e -> ignore @@ codegen_expr e
   | S_block l -> List.iter codegen_stmt l
-  | S_if (e, s1, o) -> begin 
-      let vl = codegen_expr e in 
+  | S_if (e, s1, o) -> begin  
+      let vl = load_value @@ codegen_expr e in 
       let cond = build_icmp Icmp.Ne vl (const_bool 0) 
-        "ifcond" lbuilder in (* Revisit. Maybe needs a load. *)
+        "ifcond" lbuilder in
       let f = block_parent @@ insertion_block lbuilder in
       let thenbb = append_block lcontext "then" f in
       let elsebb = append_block lcontext "else" f in
@@ -213,7 +218,7 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
-          let vl = codegen_expr e2 in (* Revisit. Maybe needs a load. *)
+          let vl = load_value @@ codegen_expr e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
             "forcond" lbuilder in
           ignore @@ build_cond_br cond bodybb afterbb lbuilder; 
@@ -224,7 +229,6 @@ and codegen_stmt stm =
           | None -> ();
           ignore @@ build_br loopbb lbuilder;
           position_at_end afterbb lbuilder; 
-          (* TODO . . . . . . . . . . . . . . . . . . . . . *)
           (* Label Handling??? *)
         end
       | _ -> failwith "Should not reach this state."
