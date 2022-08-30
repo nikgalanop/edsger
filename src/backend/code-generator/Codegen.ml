@@ -56,53 +56,48 @@ and codegen_binop vl1 vl2 = function
       | _ -> build_fdiv
     in divide vl1 vl2 "divtmp" lbuilder
   | O_mod -> build_srem vl1 vl2 "modtmp" lbuilder
-  | O_plus -> begin 
-      match type_of vl1 with 
-      | int_type -> build_add vl1 vl2 "addtmp" lbuilder
-      | double_type -> build_fadd vl1 vl2 "addtmp" lbuilder
-      | _ ->  failwith "TODO" (* Pointer type?? *)
-    end
-  | O_minus -> begin 
-      match type_of vl1 with 
-      | int_type -> build_sub vl1 vl2 "subtmp" lbuilder
-      | double_type -> build_fsub vl1 vl2 "subtmp" lbuilder
-      | _ ->  failwith "TODO" (* Pointer type?? *)
-    end
-  | O_lt -> begin 
-      match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Slt vl1 vl2 "lttmp" lbuilder
-      | bool_type -> build_icmp Icmp.Ult vl1 vl2 "lttmp" lbuilder
-      | double_type -> build_fcmp Fcmp.Olt vl1 vl2 "lttmp" lbuilder
-      | _ -> failwith "TODO" (* Pointer type?? *)
-    end 
-  | O_gt -> begin 
-      match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Sgt vl1 vl2 "gttmp" lbuilder
-      | bool_type -> build_icmp Icmp.Ugt vl1 vl2 "gttmp" lbuilder
-      | double_type -> build_fcmp Fcmp.Ogt vl1 vl2 "gttmp" lbuilder
-      | _ -> failwith "TODO" (* Pointer type?? *)
-    end 
-  | O_le -> begin 
-      match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Sle vl1 vl2 "letmp" lbuilder
-      | bool_type -> build_icmp Icmp.Ule vl1 vl2 "letmp" lbuilder
-      | double_type -> build_fcmp Fcmp.Ole vl1 vl2 "letmp" lbuilder
-      | _ -> failwith "TODO" (* Pointer type?? *)
-    end 
-  | O_ge -> begin 
-      match type_of vl1 with 
-      | int_type -> build_icmp Icmp.Sge vl1 vl2 "getmp" lbuilder
-      | bool_type -> build_icmp Icmp.Uge vl1 vl2 "getmp" lbuilder
-      | double_type -> build_fcmp Fcmp.Oge vl1 vl2 "getmp" lbuilder
-      | _ -> failwith "TODO" (* Pointer type?? *)
-    end 
+  | O_plus -> let add = match type_of vl1 with 
+      | int_type -> build_add vl1 vl2 
+      | double_type -> build_fadd vl1 vl2 
+      | _ -> build_gep vl1 [|vl2|]
+    in add "addtmp" lbuilder      
+  | O_minus -> let subtract = match type_of vl1 with 
+      | int_type -> build_sub vl1 vl2 
+      | double_type -> build_fsub vl1 vl2
+      | _ -> let negvl2 = build_neg vl2 "negtmp" lbuilder in 
+        build_gep vl1 [|negvl2|]
+    in subtract "subtmp" lbuilder
+  | O_lt -> let lessthan = match type_of vl1 with 
+      | int_type -> build_icmp Icmp.Slt vl1 vl2
+      | bool_type -> build_icmp Icmp.Ult vl1 vl2
+      | double_type -> build_fcmp Fcmp.Olt vl1 vl2
+      | _ -> failwith "TODO" 
+    in lessthan "lttmp" lbuilder
+  | O_gt -> let greaterthan = match type_of vl1 with 
+      | int_type -> build_icmp Icmp.Sgt vl1 vl2 
+      | bool_type -> build_icmp Icmp.Ugt vl1 vl2
+      | double_type -> build_fcmp Fcmp.Ogt vl1 vl2
+      | _ -> failwith "TODO" 
+    in greaterthan "gttmp" lbuilder
+  | O_le -> let lessequal = match type_of vl1 with 
+      | int_type -> build_icmp Icmp.Sle vl1 vl2
+      | bool_type -> build_icmp Icmp.Ule vl1 vl2 
+      | double_type -> build_fcmp Fcmp.Ole vl1 vl2 
+      | _ -> failwith "TODO"
+    in lessequal "letmp" lbuilder
+  | O_ge -> let greaterequal = match type_of vl1 with 
+      | int_type -> build_icmp Icmp.Sge vl1 vl2 
+      | bool_type -> build_icmp Icmp.Uge vl1 vl2 
+      | double_type -> build_fcmp Fcmp.Oge vl1 vl2
+      | _ -> failwith "TODO"
+    in greaterequal "getmp" lbuilder
   | O_eq -> let equal = match type_of vl1 with 
       | double_type -> build_fcmp Fcmp.Oeq
-      | _ -> build_icmp Icmp.Eq
+      | t -> build_icmp Icmp.Eq (* Revisit. How to 'compare' pointers? *)
     in equal vl1 vl2 "eqtmp" lbuilder
   | O_neq -> let inequal = match type_of vl1 with
       | double_type -> build_fcmp Fcmp.One 
-      | _ -> build_icmp Icmp.Ne 
+      | t -> build_icmp Icmp.Ne (* Revisit. How to 'compare' pointers? *)
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
   | _ -> failwith "Invalid operator."
@@ -218,14 +213,37 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
+          let vl = codegen_expr e2 in (* Revisit. Maybe needs a load. *)
+          let cond = build_icmp Icmp.Eq vl (const_bool 1) 
+            "forcond" lbuilder in
+          ignore @@ build_cond_br cond bodybb afterbb lbuilder; 
+          position_at_end bodybb lbuilder;
+          codegen_stmt s;
+          match o3 with 
+          | Some e3 -> ignore @@ codegen_expr e2; 
+          | None -> ();
+          ignore @@ build_br loopbb lbuilder;
+          position_at_end afterbb lbuilder; 
           (* TODO . . . . . . . . . . . . . . . . . . . . . *)
           (* Label Handling??? *)
         end
       | _ -> failwith "Should not reach this state."
     end
-  | S_cont o -> failwith "TODO"
-  | S_break o -> failwith "TODO"
-  | S_ret o -> failwith "TODO"
+  | S_cont o -> begin 
+      match o with 
+      | Some l -> failwith "TODO" (* Should remember the "blocks" of the for - loop with the label l.*)
+      | None -> failwith "TODO" (* Should remember the latest active for - loop. *)
+    end
+  | S_break o -> begin 
+    match o with 
+    | Some l -> failwith "TODO" (* Should remember the "blocks" of the for - loop with the label l.*)
+    | None -> failwith "TODO" (* Should remember the latest active for - loop. *)
+    end
+  | S_ret o -> begin 
+    match o with (* Should remember the caller. *)
+    | Some l -> failwith "TODO"
+    | None -> failwith "TODO"
+    end
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_stmt stms
