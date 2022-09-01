@@ -10,15 +10,24 @@ let lbuilder = builder lcontext
 (* Could be a good idea to use the symbol table that we used for semantic analysis. *)
 let int_type = i16_type lcontext
 and char_type = i8_type lcontext
-and bool_type = i8_type lcontext (* According to the specification, sizeof(bool) = 1 byte. *)
+and bool_type = i8_type lcontext 
 and double_type = double_type lcontext
 let const_int = const_int int_type 
 and const_char = const_int char_type
 and const_bool = const_int bool_type
 and const_double = const_float double_type
 
-let lltype_of_ast t = 
-  failwith "TODO"
+let lltype_of_primitive = function 
+  | INT -> int_type
+  | CHAR -> char_type
+  | BOOL -> bool_type
+  | DOUBLE -> double_type
+let lltype_of_vartype t = 
+  let PTR (pt, d) = t in
+  let rec aux pt = function 
+    | 0 -> lltype_of_primitive pt 
+    | d -> pointer_type @@ aux pt (d - 1)
+  in aux pt d 
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -112,11 +121,11 @@ and codegen_uasgn ~pre e op =
   let lhs = codegen_expr e in
   let vl = to_rval e lhs in 
   let const = match type_of vl with 
-  | double_type -> const_double 1.
-  | _ -> const_int 1 
+    | double_type -> const_double 1.
+    | _ -> const_int 1 
   in let op' = match op with 
-  | O_plpl -> O_plus
-  | O_mimi -> O_minus
+    | O_plpl -> O_plus
+    | O_mimi -> O_minus
   in let rhs = codegen_binop' vl const op' in
   ignore @@ build_store rhs lhs lbuilder;
   if (pre) then rhs else vl
@@ -125,15 +134,13 @@ and codegen_basgn e1 e2 op =
   let vl1 = to_rval e1 lhs in 
   let vl2 = compute_rval e2 in
   let rhs = match op with 
-  | O_asgn -> vl2
-  | O_mulasgn -> codegen_binop' vl1 vl2 O_times
-  | O_divasgn -> codegen_binop' vl1 vl2 O_div
-  | O_modasgn -> codegen_binop' vl1 vl2 O_mod
-  | O_plasgn -> codegen_binop' vl1 vl2 O_plus
-  | O_minasgn -> codegen_binop' vl1 vl2 O_minus
-  in
-  (* Can we simply return the result of build_store?*)
-  ignore @@ build_store rhs lhs lbuilder; 
+    | O_asgn -> vl2
+    | O_mulasgn -> codegen_binop' vl1 vl2 O_times
+    | O_divasgn -> codegen_binop' vl1 vl2 O_div
+    | O_modasgn -> codegen_binop' vl1 vl2 O_mod
+    | O_plasgn -> codegen_binop' vl1 vl2 O_plus
+    | O_minasgn -> codegen_binop' vl1 vl2 O_minus
+  in ignore @@ build_store rhs lhs lbuilder; 
   rhs
 and codegen_expr exp = 
   match exp.expr with 
@@ -155,7 +162,7 @@ and codegen_expr exp =
   | E_tcast (vt, e) -> begin 
       let vl = codegen_expr e in
       let tfrom = type_of vl in 
-      let tto = lltype_of_ast vt in 
+      let tto = lltype_of_vartype vt in 
       failwith "TODO"
     end 
   | E_ternary (e1, e2, e3) -> begin
@@ -177,20 +184,29 @@ and codegen_expr exp =
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
   | E_new (vt, e) -> let vl = compute_rval e in 
-    let t = lltype_of_ast vt in 
+    let t = lltype_of_vartype vt in 
     (* Revisit. Should check that vl is positive. 
       Is the following code enough/correct? *)
     build_array_malloc t vl "newtmp" lbuilder
   | E_delete e -> let vl = compute_rval e in 
     build_free vl lbuilder
   | E_fcall (fn, es) -> failwith "TODO"  
-  | E_arracc (e1, e2) -> failwith "TODO"
+  | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
+    let ofst = compute_rval e2 in
+    build_gep arr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
+and codegen_block = function 
+  | [] -> () 
+  | h :: t -> codegen_stmt h;
+    begin match h.stmt with 
+      | S_cont _ | S_break _ -> () 
+      | _ -> codegen_block t 
+    end 
 and codegen_stmt stm = 
   match stm.stmt with 
   | S_NOP -> () 
   | S_expr e -> ignore @@ codegen_expr e
-  | S_block l -> List.iter codegen_stmt l
+  | S_block b -> codegen_block codegen_stmt b
   | S_if (e, s1, o) -> begin  
       let vl = compute_rval e in 
       let cond = build_icmp Icmp.Ne vl (const_bool 0) 
@@ -210,7 +226,7 @@ and codegen_stmt stm =
       ignore @@ build_br afterbb lbuilder;
       position_at_end afterbb lbuilder;
     end
-  | S_for (o1, o2, o3, s, l) -> begin 
+  | S_for (o1, o2, o3, s, lo) -> begin 
       match o2 with 
       | Some e2 -> begin
           match o1 with 
@@ -224,6 +240,11 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
+          (* match lo with 
+            | Some l -> newLabel (...);
+            | None -> ();
+            set_blocks lo stepbb afterbb; 
+            update_current_loop stepbb afterbb; *)
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
             "forcond" lbuilder in
@@ -237,20 +258,33 @@ and codegen_stmt stm =
           | None -> ();
           ignore @@ build_br loopbb lbuilder;                     
           position_at_end afterbb lbuilder; 
-          (* Label Handling??? *)
         end
       | _ -> failwith "Should not reach this state." 
     end
   | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << << } *)
-      match o with (* branch unconditionally to the stepbb of the correct for loop. *)
+      (* let prevbb = insertion_block lbuilder in 
+        let f = block_parent @@ prevbb in 
+        let contbb = append_block lcontext "cont" f in 
+        ignore @@ build_br contbb lbuilder; *)
+      let jl = match o with
       (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
-      | Some l -> failwith "TODO" (* Should remember the "blocks" of the for - loop with the label l.*)
-      | None -> failwith "TODO" (* Should remember the latest active for - loop. *)
+      | Some l -> failwith "TODO"
+        (* lookup_label ... *)
+      | None -> failwith "TODO"
+      (* current_loop () *)
+      in ignore @@ build_br jl.stepbb lbuilder 
     end
   | S_break o -> begin 
-    match o with (* branch unconditionally to the afterbb of the correct for loop. *)
-    | Some l -> failwith "TODO" (* Should remember the "blocks" of the for - loop with the label l.*)
-    | None -> failwith "TODO" (* Should remember the latest active for - loop. *)
+      (* let prevbb = insertion_block lbuilder in 
+        let f = block_parent @@ prevbb in 
+        let brkbb = append_block lcontext "break" f in 
+        ignore @@ build_br brkbb lbuilder; *)
+      let jl = match o with
+      | Some l -> failwith "TODO"
+        (* lookup_label ... *)
+      | None -> failwith "TODO"
+      (* current_loop ()*)
+      in ignore @@ build_br jl.afterbb lbuilder
     end
   | S_ret o -> begin 
     match o with (* Should remember the caller. *)
