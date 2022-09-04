@@ -28,6 +28,9 @@ let lltype_of_vartype t =
     | 0 -> lltype_of_primitive pt 
     | d -> pointer_type @@ aux pt (d - 1)
   in aux pt d 
+let can_add_terminator () = 
+  let cbb = insertion_block lbuilder in
+  block_terminator cbb = None
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -116,7 +119,7 @@ and codegen_binop' vl1 vl2 = function
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
-  | _ -> failwith "Invalid operator."
+  | _ -> failwith "Invalid binary operator."
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let vl = to_rval e lhs in 
@@ -144,7 +147,7 @@ and codegen_basgn e1 e2 op =
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> failwith "TODO"
+  | E_var v -> failwith "TODO" 
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -195,18 +198,12 @@ and codegen_expr exp =
     let ofst = compute_rval e2 in
     build_gep arr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
-and codegen_block = function 
-  | [] -> () 
-  | h :: t -> codegen_stmt h;
-    begin match h.stmt with 
-      | S_cont _ | S_break _ -> () 
-      | _ -> codegen_block t 
-    end 
-and codegen_stmt stm = 
+and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also returns if the stmt contains code that alternates
+   the control flow. *)
   match stm.stmt with 
-  | S_NOP -> () 
-  | S_expr e -> ignore @@ codegen_expr e
-  | S_block b -> codegen_block codegen_stmt b
+  | S_NOP -> ()
+  | S_expr e -> ignore @@ codegen_expr e;
+  | S_block b -> List.iter codegen_stmt b;
   | S_if (e, s1, o) -> begin  
       let vl = compute_rval e in 
       let cond = build_icmp Icmp.Ne vl (const_bool 0) 
@@ -218,13 +215,16 @@ and codegen_stmt stm =
       ignore @@ build_cond_br cond thenbb elsebb lbuilder;
       position_at_end thenbb lbuilder;
       codegen_stmt s1;
-      ignore @@ build_br afterbb lbuilder;
+       (* No terminators inside the current basic block.*)
+      if (can_add_terminator ()) then 
+        ignore @@ build_br afterbb lbuilder;
       position_at_end elsebb lbuilder;
       match o with
       | Some s2 -> codegen_stmt s2;
       | None -> ();
-      ignore @@ build_br afterbb lbuilder;
-      position_at_end afterbb lbuilder;
+      if (can_add_terminator ()) then
+        ignore @@ build_br afterbb lbuilder;
+      position_at_end afterbb lbuilder; 
     end
   | S_for (o1, o2, o3, s, lo) -> begin 
       match o2 with 
@@ -241,44 +241,38 @@ and codegen_stmt stm =
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
           (* match lo with 
-            | Some l -> newLabel (...);
+            | Some l -> newLabel (...);x
             | None -> ();
             set_blocks lo stepbb afterbb; 
-            update_current_loop stepbb afterbb; *)
+            push_current_loop stepbb afterbb; *)
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
             "forcond" lbuilder in
           ignore @@ build_cond_br cond bodybb afterbb lbuilder; 
           position_at_end bodybb lbuilder;
           codegen_stmt s;
-          ignore @@ build_br stepbb lbuilder;
+          if (can_add_terminator ()) then
+            ignore @@ build_br stepbb lbuilder; 
           position_at_end stepbb lbuilder;
           match o3 with 
           | Some e3 -> ignore @@ codegen_expr e2; 
           | None -> ();
           ignore @@ build_br loopbb lbuilder;                     
           position_at_end afterbb lbuilder; 
+          (* pop_current_loop (); *)
         end
       | _ -> failwith "Should not reach this state." 
     end
-  | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << << } *)
-      (* let prevbb = insertion_block lbuilder in 
-        let f = block_parent @@ prevbb in 
-        let contbb = append_block lcontext "cont" f in 
-        ignore @@ build_br contbb lbuilder; *)
+  | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << <<;  } *)
       let jl = match o with
       (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
       | Some l -> failwith "TODO"
         (* lookup_label ... *)
       | None -> failwith "TODO"
-      (* current_loop () *)
-      in ignore @@ build_br jl.stepbb lbuilder 
+        (* current_loop () *)
+      in ignore @@ build_br jl.stepbb lbuilder ;
     end
   | S_break o -> begin 
-      (* let prevbb = insertion_block lbuilder in 
-        let f = block_parent @@ prevbb in 
-        let brkbb = append_block lcontext "break" f in 
-        ignore @@ build_br brkbb lbuilder; *)
       let jl = match o with
       | Some l -> failwith "TODO"
         (* lookup_label ... *)
@@ -287,16 +281,19 @@ and codegen_stmt stm =
       in ignore @@ build_br jl.afterbb lbuilder
     end
   | S_ret o -> begin 
-    match o with (* Should remember the caller. *)
-    | Some l -> failwith "TODO"
-    | None -> failwith "TODO"
+    match o with (* Should fix the basic blocks. *)
+    | Some e -> let retvl = compute_rval e in 
+    | None -> build_ret_void lbuilder
     end
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_stmt stms
+and codegen_vars vt vs = 
+  let vllt = lltype_of_vartype vt in 
+  failwith "TODO"
 and codegen_decl dec = 
   match dec.decl with 
-  | D_var (vt, vs) -> failwith "TODO"
+  | D_var (vt, vs) -> codegen_vars vt vs
   | D_fun (rt, fn, ps) -> failwith "TODO"
   | D_fdef (rt, fn, ps, b) -> codegen_body b
 
