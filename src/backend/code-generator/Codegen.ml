@@ -32,6 +32,8 @@ let lltype_of_vartype t =
   in aux pt d 
 let can_add_terminator () = 
   block_terminator @@ insertion_block lbuilder = None
+let function_type_of_ftype rt ps = 
+  failwith "TODO"
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -291,10 +293,16 @@ and codegen_body b =
 and codegen_vars vt vs = 
   let vllt = lltype_of_vartype vt in 
   failwith "TODO"
+and codegen_decl rt fn ps = 
+  (* We only care to declare global scope functions, since some of 
+    these will be the ones that we will have to link with later on. *)
+  if (in_outer_scope ()) then
+    let fllt = function_type_of_ftype rt ps in 
+    ignore @@ declare_function fn fllt lmodule
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
-  | D_fun (rt, fn, ps) -> failwith "TODO"
+  | D_fun (rt, fn, ps) -> codegen_decl rt fn ps 
   | D_fdef (rt, fn, ps, b) -> codegen_body b
 
 let codegen t = 
