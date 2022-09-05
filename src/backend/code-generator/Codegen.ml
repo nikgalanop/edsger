@@ -2,6 +2,8 @@ open Ast
 open Llvm
 
 exception CGFailure of string
+let cg_fail msg = 
+  raise (CGFailure msg)
 
 let lcontext = global_context ()
 let lmodule = create_module lcontext "edsger-program"
@@ -29,8 +31,7 @@ let lltype_of_vartype t =
     | d -> pointer_type @@ aux pt (d - 1)
   in aux pt d 
 let can_add_terminator () = 
-  let cbb = insertion_block lbuilder in
-  block_terminator cbb = None
+  block_terminator @@ insertion_block lbuilder = None
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -119,7 +120,7 @@ and codegen_binop' vl1 vl2 = function
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
-  | _ -> failwith "Invalid binary operator."
+  | _ -> cg_fail "Invalid binary operator."
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let vl = to_rval e lhs in 
@@ -147,7 +148,8 @@ and codegen_basgn e1 e2 op =
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> failwith "TODO" 
+  | E_var v -> failwith "TODO"
+    (* let entr = lookup_entry ... *) 
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -198,8 +200,7 @@ and codegen_expr exp =
     let ofst = compute_rval e2 in
     build_gep arr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
-and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also returns if the stmt contains code that alternates
-   the control flow. *)
+and codegen_stmt stm = 
   match stm.stmt with 
   | S_NOP -> ()
   | S_expr e -> ignore @@ codegen_expr e;
@@ -215,7 +216,6 @@ and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also
       ignore @@ build_cond_br cond thenbb elsebb lbuilder;
       position_at_end thenbb lbuilder;
       codegen_stmt s1;
-       (* No terminators inside the current basic block.*)
       if (can_add_terminator ()) then 
         ignore @@ build_br afterbb lbuilder;
       position_at_end elsebb lbuilder;
@@ -241,9 +241,9 @@ and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
           (* match lo with 
-            | Some l -> newLabel (...);x
+            | Some l -> new_label (...);
             | None -> ();
-            set_blocks lo stepbb afterbb; 
+            set_loop_blocks lo stepbb afterbb; 
             push_current_loop stepbb afterbb; *)
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
@@ -261,13 +261,13 @@ and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also
           position_at_end afterbb lbuilder; 
           (* pop_current_loop (); *)
         end
-      | _ -> failwith "Should not reach this state." 
+      | _ -> cg_fail "Unreachable state." 
     end
   | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << <<;  } *)
       let jl = match o with
       (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
       | Some l -> failwith "TODO"
-        (* lookup_label ... *)
+        (* let entr = lookup_entry ... *)
       | None -> failwith "TODO"
         (* current_loop () *)
       in ignore @@ build_br jl.stepbb lbuilder ;
@@ -275,15 +275,15 @@ and codegen_stmt stm = (* codegen_stmt produces the codegen of stm.stmt but also
   | S_break o -> begin 
       let jl = match o with
       | Some l -> failwith "TODO"
-        (* lookup_label ... *)
+        (* let entr = lookup_entry ... *)
       | None -> failwith "TODO"
-      (* current_loop ()*)
+        (* current_loop ()*)
       in ignore @@ build_br jl.afterbb lbuilder
     end
-  | S_ret o -> begin 
-    match o with (* Should fix the basic blocks. *)
-    | Some e -> let retvl = compute_rval e in 
-    | None -> build_ret_void lbuilder
+  | S_ret o -> begin match o with
+      | Some e -> let retvl = compute_rval e in 
+        build_ret retvl lbuilder
+      | None -> build_ret_void lbuilder
     end
 and codegen_body b = 
   let F_body (decs, stms) = b in 
@@ -298,5 +298,6 @@ and codegen_decl dec =
   | D_fdef (rt, fn, ps, b) -> codegen_body b
 
 let codegen t = 
-  failwith "TODO"
+  List.iter codegen_decl t;
+  lmodule
 
