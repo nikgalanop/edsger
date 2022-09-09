@@ -93,15 +93,13 @@ and accept_parameter ent p =
   | _ -> 
     failwith "Should not find a non-parameter inside a paramlist."
 and add_variables pos vt l = 
-  Printf.printf "--- Variables:\n ";
   let add_variable var = 
     let (n, e) = var in
     let vtype = vartype_sem vt e in 
-    Printf.printf "%s " n;
     try
       ignore @@ newVariable (id_of_var n) vtype true
     with | Failure msg -> sem_fail pos msg
-  in List.iter add_variable l; Printf.printf "\n"
+  in List.iter add_variable l; 
 and add_parameters pos f ps =  
   let info = match f.entry_info with 
   | ENTRY_function inf -> inf
@@ -114,7 +112,6 @@ and add_parameters pos f ps =
     let insert_param par mode = 
       let typ = vartype_sem (fst par) None in 
       let id = id_of_var (snd par) in 
-      Printf.printf "%s " (snd par);
       try
         ignore @@ newParameter id typ mode f true
       with | Failure m -> let msg = if def then m
@@ -127,7 +124,6 @@ and add_parameters pos f ps =
   in List.iter add_parameter ps
 and add_declaration pos r n p =
    let p_str = name_mangling p in
-   Printf.printf "DECLARATION MANGLING: %s\n" p_str;
    let f_id = id_of_func n p_str in
    let f, found = newFunction f_id in
    forwardFunction f;
@@ -135,7 +131,6 @@ and add_declaration pos r n p =
    | ENTRY_function inf -> begin
         let ft = (ftype_sem r) in
         let ps = inf.function_paramlist in
-        Printf.printf "-- Inside the declaration of the function: %s %s.\n" (str_of_type ~ptr_format:true ft) n;
         if (found) then begin 
           let def = inf.function_pstatus = PARDEF_COMPLETE in
           let frt = inf.function_result in
@@ -153,26 +148,22 @@ and add_declaration pos r n p =
           end;
         end; 
         begin
-          Printf.printf "--- Parameters: ";
           openScope ();
           add_parameters pos f p; 
           endFunctionHeader f ft;
           closeScope ();
-          Printf.printf "\n-- Outside the declaration of the function: %s %s.\n" (str_of_type ~ptr_format:true ft) n
         end
       end
     | _ -> 
       failwith "Should not find an entry that is not a function, with a label of a function."  
 and add_definition pos r n p b = 
   let p_str = name_mangling p in
-  Printf.printf "DEFINITION MANGLING: %s\n" p_str;
   let f_id = id_of_func n p_str in
   let f, found = newFunction f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
       let ft = (ftype_sem r) in
       let ps = inf.function_paramlist in
-      Printf.printf "-- Inside the definition of the function: %s %s.\n" (str_of_type ~ptr_format:true ft) n;
       if (found) then begin
         let def = inf.function_pstatus = PARDEF_COMPLETE in
         let frt = inf.function_result in
@@ -190,14 +181,10 @@ and add_definition pos r n p b =
       end;
       begin 
         openScope ();
-        Printf.printf "--- Parameters: ";
         add_parameters pos f p;  
         endFunctionHeader f ft;
-        Printf.printf "\n--- Body of the function.\n";
         sem_body ft b;  
         closeScope ();
-        Printf.printf "--- End of body.\n";
-        Printf.printf "-- Outside the definition of the function: %s %s.\n"   (str_of_type ~ptr_format:true ft) n
       end
     end
   | _ -> 
@@ -278,7 +265,6 @@ and sem_expr exp =
     else sem_fail pos "Tried to deallocate memory using a non-pointer."
   | E_fcall (f, l) -> let p_types = List.map sem_expr l in
     let p_str = str_of_fval_types p_types in
-    Printf.printf "FCALL: %s\n" p_str;
     let fid = id_of_func f p_str in begin
     try 
       let e = lookupEntry fid LOOKUP_ALL_SCOPES true in 
@@ -372,7 +358,6 @@ and sem_decl (dec : ast_decl) =
   | D_fdef (r, n, p, b) -> add_definition pos r n p b 
 
 let sem_analysis t = 
-  Printf.printf "\027[1;36mSemantic Analysis:\027[0m \n";
   initSymbolTable 256;
   List.iter sem_decl t;
   exists_main ();
