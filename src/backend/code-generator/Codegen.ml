@@ -52,15 +52,15 @@ let build_edsger_cast vl tto =
         | _ -> failwith "Unreachable."
       end
     | bool_type -> begin match tfrom with 
-        | int_type -> build_icmp Icmp.Ne vl (const_int 0) lbuilder
-        | char_type -> build_icmp Icmp.Ne vl (const_char 0) lbuilder
-        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) lbuilder
+        | int_type -> build_icmp Icmp.Ne vl (const_int 0) "tmpcast" lbuilder
+        | char_type -> build_icmp Icmp.Ne vl (const_char 0) "tmpcast" lbuilder
+        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) "tmpcast" lbuilder
         | _ -> failwith "Unreachable."
       end
     | double_type -> begin match tfrom with
-        | int_type -> build_sitofp ll double_type "tmpcast" lbuilder
-        | char_type -> build_uitofp ll double_type "tmpcast" lbuilder
-        | bool_type -> build_uitofp ll double_type "tmpcast" lbuilder
+        | int_type -> build_sitofp vl double_type "tmpcast" lbuilder
+        | char_type -> build_uitofp vl double_type "tmpcast" lbuilder
+        | bool_type -> build_uitofp vl double_type "tmpcast" lbuilder
         | _ -> failwith "Unreachable."
       end
     | _ -> vl (* Revisit: Pointer conversion 
