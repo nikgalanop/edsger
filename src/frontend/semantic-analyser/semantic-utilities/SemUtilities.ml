@@ -25,6 +25,9 @@ let rec sep_but_last f = function
   | [x] -> f x
   | h :: t -> f h ^ ", " ^ sep_but_last f t
 
+let str_of_fcall n vtyps = 
+  n ^ " (" ^ (sep_but_last (str_of_type ~ptr_format:false) vtyps) ^ ")" 
+
 let header_of_astf ft n ps = 
   let ptr_str vt = 
     let Ast.PTR (ptyp, dim) = vt in 
