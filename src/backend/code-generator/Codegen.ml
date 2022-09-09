@@ -205,8 +205,8 @@ and codegen_expr exp =
   | E_uasgnpost (op, e) -> codegen_uasgn ~pre:false e op
   | E_basgn (e1, op, e2) -> codegen_basgn e1 e2 op 
   | E_tcast (vt, e) -> let vl = compute_rval e in
-      let tto = lltype_of_vartype vt in 
-      build_edsger_cast vl tto
+    let tto = lltype_of_vartype vt in 
+    build_edsger_cast vl tto
   | E_ternary (e1, e2, e3) -> begin
       let vl1 = compute_rval e1 in 
       let cond = build_icmp Icmp.Eq vl1 (const_bool 1)
