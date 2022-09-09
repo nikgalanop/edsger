@@ -249,8 +249,12 @@ and sem_expr exp =
       if (is_lval e1) then let t2 = sem_expr e2 in sem_basgn pos t1 t2 op
       else sem_fail pos "Tried a binary assignment to a non-lvalue."
     else sem_fail pos "Tried to assign a value to something non-assignable."  
-  | E_tcast (v, e) -> ignore @@ sem_expr e; 
-    let t1 = vartype_sem v None in t1
+  | E_tcast (v, e) -> let t1 = sem_expr e in
+    let t2 = vartype_sem v None in
+    if (valid_cast t1 t2) then t2 
+    else let msg = Printf.sprintf "Invalid type conversion from %s to %s" 
+      (str_of_type ~ptr_format:true t1) (str_of_type ~ptr_format:true t2)
+    in sem_fail pos msg
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
     let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
     if (equalType t1 TYPE_bool) then

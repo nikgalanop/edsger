@@ -21,6 +21,12 @@ let typ_of_primitive = function
   | Ast.BOOL -> TYPE_bool 
   | Ast.DOUBLE -> TYPE_double
 
+let valid_cast t1 t2 = 
+  match t1, t2 with 
+  | TYPE_pointer _, TYPE_pointer _ -> true 
+  | TYPE_pointer _, _ -> false 
+  | _, TYPE_pointer _ -> false 
+  | _ -> true 
 
 let rec is_const (exp : Ast.ast_expr) = 
   match exp.expr with 

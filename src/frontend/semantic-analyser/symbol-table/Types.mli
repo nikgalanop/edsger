@@ -11,6 +11,8 @@ val equalType : typ -> typ -> bool
 
 val typ_of_primitive: Ast.primitive -> typ
 
+val valid_cast : typ -> typ -> bool
+
 val is_const : Ast.ast_expr -> bool
 val is_null : Ast.ast_expr -> bool
 val is_mut : typ -> bool

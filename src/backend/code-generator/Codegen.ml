@@ -33,7 +33,42 @@ let lltype_of_vartype t =
 let can_add_terminator () = 
   block_terminator @@ insertion_block lbuilder = None
 let function_type_of_ftype rt ps = 
-  failwith "TODO"
+  failwith "TODO 1"
+let build_edsger_cast vl tto = 
+  let tfrom = type_of vl in 
+  if (tfrom = tto) then vl 
+  else begin match tto with 
+    | int_type -> begin match tfrom with 
+        | char_type -> build_zext vl tto "tmpcast" lbuilder
+        | bool_type -> build_zext vl tto "tmpcast" lbuilder
+        | double_type -> build_fptosi vl tto "tmpcast" lbuilder
+        | _ -> failwith "Unreachable." 
+      end
+    | char_type -> begin match tfrom with 
+        | int_type -> build_trunc vl tto "tmpcast" lbuilder 
+        | bool_type -> vl (* Revisit. I think that we do not 
+          need to do a cast here. (Same sized types) *)
+        | double_type -> build_fptoui vl tto "tmpcast" lbuilder
+        | _ -> failwith "Unreachable."
+      end
+    | bool_type -> begin match tfrom with 
+        | int_type -> build_icmp Icmp.Ne vl (const_int 0) lbuilder
+        | char_type -> build_icmp Icmp.Ne vl (const_char 0) lbuilder
+        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) lbuilder
+        | _ -> failwith "Unreachable."
+      end
+    | double_type -> begin match tfrom 
+        | int_type -> build_sitofp ll double_type "tmpcast" lbuilder
+        | char_type -> build_uitofp ll double_type "tmpcast" lbuilder
+        | bool_type -> build_uitofp ll double_type "tmpcast" lbuilder
+        | _ -> failwith "Unreachable."
+      end
+    | _ -> vl (* Revisit: Pointer conversion 
+      We do not actually need to cast the pointer value 
+      unless not all pointers have the same size in asm, 
+      something that we definitely do not want according
+      to the edsger language specification.  *)
+  end
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -47,7 +82,8 @@ and codegen_uop e op =
   match op with
   | O_ref -> vl
   | O_dref -> build_load vl "dreftmp" lbuilder 
-    (* Do we need to check for a null pointer, or we automatically cannot load from a null ptr? *)
+    (* Revisit. Do we need to check for a null pointer,
+      or we automatically cannot load from a null ptr? *)
   | O_psgn -> to_rval e vl
   | O_nsgn -> let rvl = to_rval e vl in
       let invert_sign = match type_of rvl with 
@@ -150,8 +186,10 @@ and codegen_basgn e1 e2 op =
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> failwith "TODO"
-    (* let entr = lookup_entry ... *) 
+  | E_var v -> failwith "TODO 3"
+    (* let entr = lookup_entry ... in 
+      match entr with 
+      | ENTRY_ *) 
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -168,9 +206,8 @@ and codegen_expr exp =
   | E_basgn (e1, op, e2) -> codegen_basgn e1 e2 op 
   | E_tcast (vt, e) -> begin 
       let vl = codegen_expr e in
-      let tfrom = type_of vl in 
       let tto = lltype_of_vartype vt in 
-      failwith "TODO"
+      build_edsger_cast vl tto
     end 
   | E_ternary (e1, e2, e3) -> begin
       let vl1 = compute_rval e1 in 
@@ -197,7 +234,7 @@ and codegen_expr exp =
     build_array_malloc t vl "newtmp" lbuilder
   | E_delete e -> let vl = compute_rval e in 
     build_free vl lbuilder
-  | E_fcall (fn, es) -> failwith "TODO"  
+  | E_fcall (fn, es) -> failwith "TODO 4"  
   | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
     let ofst = compute_rval e2 in
     build_gep arr [|ofst|] "aractmp" lbuilder
@@ -268,44 +305,48 @@ and codegen_stmt stm =
   | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << <<;  } *)
       let jl = match o with
       (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
-      | Some l -> failwith "TODO"
+      | Some l -> failwith "TODO 5"
         (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO"
+      | None -> failwith "TODO 6"
         (* current_loop () *)
-      in ignore @@ build_br jl.stepbb lbuilder ;
+      in () 
+      (* in ignore @@ build_br jl.stepbb lbuilder ; *)
     end
   | S_break o -> begin 
       let jl = match o with
-      | Some l -> failwith "TODO"
+      | Some l -> failwith "TODO 7"
         (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO"
+      | None -> failwith "TODO 8"
         (* current_loop ()*)
-      in ignore @@ build_br jl.afterbb lbuilder
+      in ()
+      (* in ignore @@ build_br jl.afterbb lbuilder *)
     end
   | S_ret o -> begin match o with
       | Some e -> let retvl = compute_rval e in 
-        build_ret retvl lbuilder
-      | None -> build_ret_void lbuilder
+        ignore @@ build_ret retvl lbuilder
+      | None -> ignore @@ build_ret_void lbuilder
     end
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_stmt stms
 and codegen_vars vt vs = 
   let vllt = lltype_of_vartype vt in 
-  failwith "TODO"
-and codegen_decl rt fn ps = 
+  failwith "TODO 9"
+and codegen_header rt fn ps = 
+  let fllt = function_type_of_ftype rt ps in 
+  ignore @@ declare_function fn fllt lmodule
+and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
-  if (in_outer_scope ()) then
-    let fllt = function_type_of_ftype rt ps in 
-    ignore @@ declare_function fn fllt lmodule
+  if (false(* in_outer_scope () *)) then (* Create in_outer_scope () *)
+    codegen_header rt fn ps
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
-  | D_fun (rt, fn, ps) -> codegen_decl rt fn ps 
+  | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps 
   | D_fdef (rt, fn, ps, b) -> codegen_body b
 
 let codegen t = 
   List.iter codegen_decl t;
-  lmodule
+  ignore @@ lmodule
 
