@@ -31,36 +31,50 @@ let lltype_of_vartype t =
     | d -> pointer_type @@ aux pt (d - 1)
   in aux pt d 
 let can_add_terminator () = 
-  block_terminator @@ insertion_block lbuilder = None
-let function_type_of_ftype rt ps = 
-  failwith "TODO 1"
+  let tmp = block_terminator @@ 
+    insertion_block lbuilder 
+  in tmp = None
+let lltype_of_rettype = function  
+  | VOID -> void_type lcontext
+  | RET vt -> lltype_of_vartype vt
+let lltype_of_parameters ps =
+  let lltype_of_parameter = function
+    | BYREF (vt, _) -> 
+      pointer_type @@ lltype_of_vartype vt
+    | BYVAL (vt, _) -> lltype_of_vartype vt
+  in ps |> List.map lltype_of_parameter |>
+  Array.of_list
+let function_type_of_header rt ps = 
+  let llrt = lltype_of_rettype rt in 
+  let prms = lltype_of_parameters ps in 
+  function_type llrt prms
 let build_edsger_cast vl tto = 
   let tfrom = type_of vl in 
   if (tfrom = tto) then vl 
   else begin match tto with 
     | int_type -> begin match tfrom with 
-        | char_type -> build_zext vl tto "tmpcast" lbuilder
-        | bool_type -> build_zext vl tto "tmpcast" lbuilder
-        | double_type -> build_fptosi vl tto "tmpcast" lbuilder
+        | char_type -> build_zext vl tto "casttmp" lbuilder
+        | bool_type -> build_zext vl tto "casttmp" lbuilder
+        | double_type -> build_fptosi vl tto "casttmp" lbuilder
         | _ -> failwith "Unreachable." 
       end
     | char_type -> begin match tfrom with 
-        | int_type -> build_trunc vl tto "tmpcast" lbuilder 
+        | int_type -> build_trunc vl tto "casttmp" lbuilder 
         | bool_type -> vl (* Revisit. I think that we do not 
           need to do a cast here. (Same sized types) *)
-        | double_type -> build_fptoui vl tto "tmpcast" lbuilder
+        | double_type -> build_fptoui vl tto "casttmp" lbuilder
         | _ -> failwith "Unreachable."
       end
     | bool_type -> begin match tfrom with 
-        | int_type -> build_icmp Icmp.Ne vl (const_int 0) "tmpcast" lbuilder
-        | char_type -> build_icmp Icmp.Ne vl (const_char 0) "tmpcast" lbuilder
-        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) "tmpcast" lbuilder
+        | int_type -> build_icmp Icmp.Ne vl (const_int 0) "casttmp" lbuilder
+        | char_type -> build_icmp Icmp.Ne vl (const_char 0) "casttmp" lbuilder
+        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) "casttmp" lbuilder
         | _ -> failwith "Unreachable."
       end
     | double_type -> begin match tfrom with
-        | int_type -> build_sitofp vl double_type "tmpcast" lbuilder
-        | char_type -> build_uitofp vl double_type "tmpcast" lbuilder
-        | bool_type -> build_uitofp vl double_type "tmpcast" lbuilder
+        | int_type -> build_sitofp vl double_type "casttmp" lbuilder
+        | char_type -> build_uitofp vl double_type "casttmp" lbuilder
+        | bool_type -> build_uitofp vl double_type "casttmp" lbuilder
         | _ -> failwith "Unreachable."
       end
     | _ -> vl (* Revisit: Pointer conversion 
@@ -186,10 +200,9 @@ and codegen_basgn e1 e2 op =
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> failwith "TODO 3"
-    (* let entr = lookup_entry ... in 
-      match entr with 
-      | ENTRY_ *) 
+  | E_var v -> failwith "TODO 1"
+    (* let entr = find variable .... in 
+        .... *) 
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -232,7 +245,11 @@ and codegen_expr exp =
     build_array_malloc t vl "newtmp" lbuilder
   | E_delete e -> let vl = compute_rval e in 
     build_free vl lbuilder
-  | E_fcall (fn, es) -> failwith "TODO 4"  
+  | E_fcall (fn, es) -> failwith "TODO 2"
+    (* let f = find function ...... in
+      let name = if (is_void f) then "" else "calltmp" in
+      let args = args_of_parameter_list es in
+      build_call f args name lbuilder *)  
   | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
     let ofst = compute_rval e2 in
     build_gep arr [|ofst|] "aractmp" lbuilder
@@ -303,18 +320,18 @@ and codegen_stmt stm =
   | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << <<;  } *)
       let jl = match o with
       (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
-      | Some l -> failwith "TODO 5"
+      | Some l -> failwith "TODO 3"
         (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO 6"
+      | None -> failwith "TODO 4" 
         (* current_loop () *)
       in () 
       (* in ignore @@ build_br jl.stepbb lbuilder ; *)
     end
   | S_break o -> begin 
       let jl = match o with
-      | Some l -> failwith "TODO 7"
+      | Some l -> failwith "TODO 5"
         (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO 8"
+      | None -> failwith "TODO 6"
         (* current_loop ()*)
       in ()
       (* in ignore @@ build_br jl.afterbb lbuilder *)
@@ -329,20 +346,22 @@ and codegen_body b =
   List.iter codegen_stmt stms
 and codegen_vars vt vs = 
   let vllt = lltype_of_vartype vt in 
-  failwith "TODO 9"
+  failwith "TODO 7"
 and codegen_header rt fn ps = 
-  let fllt = function_type_of_ftype rt ps in 
+  let fllt = function_type_of_header rt ps in 
   ignore @@ declare_function fn fllt lmodule
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
-  if (false(* in_outer_scope () *)) then (* Create in_outer_scope () *)
+  if (false(* in_outer_scope () *)) then
     codegen_header rt fn ps
+and codegen_fdef rt fn ps b = 
+    failwith "TODO 8"
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
   | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps 
-  | D_fdef (rt, fn, ps, b) -> codegen_body b
+  | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
 
 let codegen t = 
   List.iter codegen_decl t;
