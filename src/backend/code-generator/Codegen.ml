@@ -57,7 +57,7 @@ let build_edsger_cast vl tto =
         | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) lbuilder
         | _ -> failwith "Unreachable."
       end
-    | double_type -> begin match tfrom 
+    | double_type -> begin match tfrom with
         | int_type -> build_sitofp ll double_type "tmpcast" lbuilder
         | char_type -> build_uitofp ll double_type "tmpcast" lbuilder
         | bool_type -> build_uitofp ll double_type "tmpcast" lbuilder
