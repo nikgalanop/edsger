@@ -22,7 +22,7 @@ let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
     let msg = "Cannot print both the assembly and the LLVM IR at the same time" in
-    cli_error msg
+    cli_error msg;
   end;
   let from_file = not (!asm_flag || !ir_flag) in
   if (from_file) then begin
@@ -51,26 +51,34 @@ let () =
     let t = Parser.program Lexer.lexer lb in 
     Ast.print_ast t;
     Semantic.sem_analysis t;
-    (* Codegen.codegen t;
-      (* Optimize LLVM IR before printing. *)
-      let ir = Llvm.string_of_llmodule Codegen.lmodule in
-      if (from_file) then 
-        (* Create <file>.ll and dump LLVM IR, do not exit yet. *)
-      else if (ir_flag) then begin 
-        print_string ir; exit 0 
-      end;
-      let llc_flag = TODO (* https://llvm.org/docs/CommandGuide/llc.html *) 
-      (* Produce assembly from IR and act based on asm_flag. *) 
-    *)
-    Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n";
+    (* let lmodule = Codegen.codegen t in
+    if (opt_flag) then Optimizer.optimize lmodule;
+    if (from_file) then begin
+      let n = Filename.remove_extension !fn in 
+      let irfn = Printf.sprintf "%s.ll" n in 
+      let f = Out_channel.open_text irfn in 
+      Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
+      Out_channel.close f
+      let llccmd = Printf.sprintf "llc %s -o %s.s" irfn n in 
+      ignore @@ Sys.command llccmd;
+      (* TODO: Produce executable. *)
+      Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n";
+    end
+    else if (ir_flag) then 
+      print_string @@ Llvm.string_of_llmodule lmodule; 
+    else begin 
+      let llccmd = Printf.sprintf "echo \"%s\" > llc" 
+        (Llvm.string_of_llmodule lmodule) in 
+      ignore @@ Sys.command llccmd;
+    end; *)
     exit 0
   with 
     | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg) -> 
       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-    | Failure msg -> 
+    | Failure msg | Codegen.CGFailure msg -> 
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
     | Parser.Error -> let pos = lb.Lexing.lex_curr_p in
       Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
   end;
   Printf.eprintf "• Compiled Successfully: \027[1;31m✗\027[0m\n";
-  exit 0;
+  exit 1;
