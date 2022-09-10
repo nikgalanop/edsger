@@ -2,4 +2,5 @@
 
 (library
  (name lib_back)
- (libraries lib_front llvm))
+ (wrapped false)
+ (libraries lib_front llvm llvm.analysis llvm.scalar_opts))

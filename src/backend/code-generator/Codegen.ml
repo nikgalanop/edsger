@@ -147,7 +147,7 @@ and codegen_binop' vl1 vl2 = function
       | _ -> let negvl2 = build_neg vl2 "negtmp" lbuilder in 
         build_gep vl1 [|negvl2|]
     in subtract "subtmp" lbuilder
-  | O_lt -> let lessthan = match type_of v.l1 with 
+  | O_lt -> let lessthan = match type_of vl1 with 
       | double_type -> build_fcmp Fcmp.Olt
       | _ -> build_icmp Icmp.Slt
     in lessthan vl1 vl2 "lttmp" lbuilder
