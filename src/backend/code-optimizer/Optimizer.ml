@@ -6,6 +6,6 @@ let optimize m =
   let opts = [add_memory_to_register_promotion;
     add_instruction_combination; add_reassociation;
     add_aggressive_dce; add_cfg_simplification; 
-    (* add_constant_propagation;*) add_gvn] in
+    add_gvn] in
   List.iter (( |> ) fpm) opts;
   ignore @@ PassManager.run_module m

@@ -58,18 +58,18 @@ let () =
       let irfn = Printf.sprintf "%s.ll" n in 
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
-      Out_channel.close f
+      Out_channel.close f;
       let llccmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
       ignore @@ Sys.command llccmd;
       (* TODO: Produce executable via Clang *)
-      Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n";
+      Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
     end
     else if (ir_flag) then 
       print_string @@ Llvm.string_of_llmodule lmodule; 
     else begin 
       let llccmd = Printf.sprintf "echo \"%s\" > llc -march=\"x86-64\"" 
         (Llvm.string_of_llmodule lmodule) in 
-      ignore @@ Sys.command llccmd;
+      ignore @@ Sys.command llccmd
     end; *)
     exit 0
   with 
