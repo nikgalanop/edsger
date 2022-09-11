@@ -21,10 +21,9 @@ let typ_of_primitive = function
   | Ast.BOOL -> TYPE_bool 
   | Ast.DOUBLE -> TYPE_double
 
-let valid_cast t1 t2 = 
-  match t1, t2 with 
-  | TYPE_pointer _, TYPE_pointer _ -> true 
-  | TYPE_pointer _, _ -> false 
+let valid_cast tfrom tto = 
+  match tfrom, tto with 
+  | TYPE_pointer _, _ -> true 
   | _, TYPE_pointer _ -> false 
   | _ -> true 
 

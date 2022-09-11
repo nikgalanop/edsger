@@ -56,26 +56,26 @@ let build_edsger_cast vl tto =
         | char_type -> build_zext vl tto "casttmp" lbuilder
         | bool_type -> build_zext vl tto "casttmp" lbuilder
         | double_type -> build_fptosi vl tto "casttmp" lbuilder
-        | _ -> failwith "Unreachable." 
+        | _ -> build_pointercast vl tto "casttmp" lbuilder  
       end
     | char_type -> begin match tfrom with 
         | int_type -> build_trunc vl tto "casttmp" lbuilder 
         | bool_type -> vl (* Revisit. I think that we do not 
           need to do a cast here. (Same sized types) *)
         | double_type -> build_fptoui vl tto "casttmp" lbuilder
-        | _ -> failwith "Unreachable."
+        | _ -> build_pointercast vl tto "casttmp" lbuilder  
       end
     | bool_type -> begin match tfrom with 
         | int_type -> build_icmp Icmp.Ne vl (const_int 0) "casttmp" lbuilder
         | char_type -> build_icmp Icmp.Ne vl (const_char 0) "casttmp" lbuilder
         | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) "casttmp" lbuilder
-        | _ -> failwith "Unreachable."
+        | _ -> build_pointercast vl tto "casttmp" lbuilder  
       end
     | double_type -> begin match tfrom with
         | int_type -> build_sitofp vl double_type "casttmp" lbuilder
         | char_type -> build_uitofp vl double_type "casttmp" lbuilder
         | bool_type -> build_uitofp vl double_type "casttmp" lbuilder
-        | _ -> failwith "Unreachable."
+        | _ -> build_pointercast vl tto "casttmp" lbuilder  
       end
     | _ -> vl (* Revisit: Pointer conversion 
       We do not actually need to cast the pointer value 
