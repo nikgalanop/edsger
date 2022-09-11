@@ -10,7 +10,7 @@ let anon_fun filename =
   fn := filename
 
 let speclist = 
-  [("-O", Arg.Set opt_flag, "Enables code optimization");
+  [("-O", Arg.Set opt_flag, "Enables LLVM IR optimization");
    ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the assembly in stdout");
    ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")]
 
@@ -59,15 +59,15 @@ let () =
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f
-      let llccmd = Printf.sprintf "llc %s -o %s.s" irfn n in 
+      let llccmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
       ignore @@ Sys.command llccmd;
-      (* TODO: Produce executable. *)
+      (* TODO: Produce executable via Clang *)
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n";
     end
     else if (ir_flag) then 
       print_string @@ Llvm.string_of_llmodule lmodule; 
     else begin 
-      let llccmd = Printf.sprintf "echo \"%s\" > llc" 
+      let llccmd = Printf.sprintf "echo \"%s\" > llc -march=\"x86-64\"" 
         (Llvm.string_of_llmodule lmodule) in 
       ignore @@ Sys.command llccmd;
     end; *)
