@@ -90,7 +90,7 @@ let check_jmp = function
       let id = Identifier.id_of_label l in 
       try
         let entr = lookupEntry id LOOKUP_CURRENT_SCOPE true in 
-        match entr with 
+        match entr.entry_info with 
         | ENTRY_label inf -> !inf
         | _ -> failwith "Should not find an entry that is not a label \
             with an id of a label."
