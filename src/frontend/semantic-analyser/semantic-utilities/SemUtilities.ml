@@ -89,8 +89,11 @@ let check_jmp = function
   | Some l -> begin 
       let id = Identifier.id_of_label l in 
       try
-        ignore @@ lookupEntry id LOOKUP_ALL_SCOPES true;
-        true
+        let entr = lookupEntry id LOOKUP_CURRENT_SCOPE true in 
+        match entr with 
+        | ENTRY_label inf -> !inf
+        | _ -> failwith "Should not find an entry that is not a label \
+            with an id of a label."
       with Exit -> false
     end
   | None -> true 

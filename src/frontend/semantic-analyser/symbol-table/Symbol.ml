@@ -113,7 +113,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    let msg = Printf.sprintf "Duplicate Identifier %s" (id_name id) in
+    let msg = Printf.sprintf "Duplicate identifier %s" (ent_name_of_id id) in
     failwith msg
 
 let lookupEntry id how err =
@@ -161,7 +161,7 @@ let newFunction id =
       when inf.function_pstatus = PARDEF_COMPLETE ->
         (e, true)
     | _ -> 
-        failwith "Duplicate Identifier."
+        failwith "Duplicate identifier."
   with Not_found ->
     let inf = {
       function_isForward = false;

@@ -88,7 +88,7 @@ declaration:
 
 variable_declaration: 
         | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { { decl = D_var ($1, $2); 
-                                                                                   meta = Lexing.dummy_pos } }
+                                                                                   meta = $symbolstartpos } }
 ;
 
 pointer:
