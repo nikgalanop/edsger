@@ -1,4 +1,5 @@
 open Ast
+open CGSymbol
 open Llvm
 
 exception CGFailure of string
@@ -8,7 +9,6 @@ let cg_fail msg =
 let lcontext = global_context ()
 let lmodule = create_module lcontext "edsger-program"
 let lbuilder = builder lcontext
-(* let named_values : (string, llvalue) Hashtbl.t = Hashtbl.create 10 *)
 (* Could be a good idea to use the symbol table that we used for semantic analysis. *)
 let int_type = i16_type lcontext
 and char_type = i8_type lcontext
@@ -84,6 +84,64 @@ let build_edsger_cast vl tto =
       to the edsger language specification.  *)
   end
 
+type const = | C_int of int | C_double of float
+let compute_const_binop v1 v2 = function
+  | O_times -> begin match v1, v2 with
+      | C_int i1, C_int i2 -> C_int (i1 * i2)
+      | C_double d1, C_double d2 -> C_double (d1 *. d2)
+      | _ -> failwith "Unreachable state."
+    end
+  | O_div -> begin match v1, v2 with
+      | C_int i1, C_int i2 -> C_int (i1 / i2)
+      | C_double d1, C_double d2 -> C_double (d1 /. d2)
+      | _ -> failwith "Unreachable state."
+    end 
+  | O_mod -> begin match v1, v2 with 
+      | C_int i1, C_int i2 -> C_int (i1 mod i2)
+      | _ -> failwith "Unreachable state."
+    end 
+  | O_plus -> begin match v1, v2 with
+      | C_int i1, C_int i2 -> C_int (i1 + i2)
+      | C_double d1, C_double d2 -> C_double (d1 +. d2)
+      | _ -> failwith "Unreachable state."
+    end
+  | O_minus ->  begin match v1, v2 with
+      | C_int i1, C_int i2 -> C_int (i1 - i2)
+      | C_double d1, C_double d2 -> C_double (d1 -. d2)
+      | _ -> failwith "Unreachable state."
+    end
+  | _ -> cg_fail "Bad operation in array initializer"
+
+let const_cast tto v = 
+  match v with
+  | C_int i -> begin match tto with 
+      | PTR(INT, 0) -> v
+      | PTR(DOUBLE, 0) -> C_double (float_of_int i)
+      | _ -> cg_fail "Bad casting in array initializer" 
+    end
+  | C_double d -> begin match tto with 
+      | PTR(INT, 0) -> C_int (int_of_float d)
+      | PTR(DOUBLE, 0) -> v
+      | _ -> cg_fail "Bad casting in array initializer" 
+    end
+let rec compute_const exp =
+  match exp.expr with 
+  | E_int i -> C_int i
+  | E_double d -> C_double d
+  | E_uop (O_psgn, e) -> compute_const e
+  | E_uop (O_nsgn, e) -> let v = compute_const e in 
+    begin match v with 
+      | C_int i -> C_int (- i)
+      | C_double d -> C_double (-. d)
+    end
+  | E_binop (e1, op, e2) -> let v1 = compute_const e1 in 
+    let v2 = compute_const e2 in 
+    compute_const_binop v1 v2 op
+  | E_tcast (vt, e) -> let v = compute_const e in
+    const_cast vt v
+  | E_brack e -> compute_const e
+  | _ -> cg_fail "Bad array initializer."
+
 let rec to_rval e vl = 
   match Types.is_lval e with 
   | true -> build_load vl "loadtmp" lbuilder 
@@ -139,13 +197,13 @@ and codegen_binop' vl1 vl2 = function
   | O_plus -> let add = match type_of vl1 with 
       | int_type -> build_add vl1 vl2 
       | double_type -> build_fadd vl1 vl2 
-      | _ -> build_gep vl1 [|vl2|]
+      | _ -> build_gep vl1 [|const_int 0; vl2|]
     in add "addtmp" lbuilder      
   | O_minus -> let subtract = match type_of vl1 with 
       | int_type -> build_sub vl1 vl2 
       | double_type -> build_fsub vl1 vl2
       | _ -> let negvl2 = build_neg vl2 "negtmp" lbuilder in 
-        build_gep vl1 [|negvl2|]
+        build_gep vl1 [|const_int 0; negvl2|]
     in subtract "subtmp" lbuilder
   | O_lt -> let lessthan = match type_of vl1 with 
       | double_type -> build_fcmp Fcmp.Olt
@@ -202,7 +260,7 @@ and codegen_expr exp =
   match exp.expr with 
   | E_var v -> failwith "TODO 1"
     (* let entr = find variable .... in 
-        .... *) 
+      .... *) 
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -252,7 +310,7 @@ and codegen_expr exp =
       build_call f args name lbuilder *)  
   | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
     let ofst = compute_rval e2 in
-    build_gep arr [|ofst|] "aractmp" lbuilder
+    build_gep arr [|const_int 0; ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
 and codegen_stmt stm = 
   match stm.stmt with 
@@ -295,10 +353,9 @@ and codegen_stmt stm =
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
           (* match lo with 
-            | Some l -> new_label (...);
-            | None -> ();
-            set_loop_blocks lo stepbb afterbb; 
-            push_current_loop stepbb afterbb; *)
+            | Some l -> ignore @@ newLabel (???) stepbb afterbb (???);
+            | None -> (); *)
+          pushCurrentLoop stepbb afterbb;
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
             "forcond" lbuilder in
@@ -313,28 +370,23 @@ and codegen_stmt stm =
           | None -> ();
           ignore @@ build_br loopbb lbuilder;                     
           position_at_end afterbb lbuilder; 
-          (* pop_current_loop (); *)
+          popCurrentLoop ()
         end
       | _ -> failwith "Unreachable state." 
     end
-  | S_cont o -> begin (* let current_loop = {stepbb : mutable llbasicblock; afterbb: << <<;  } *)
+  | S_cont o -> begin 
       let jl = match o with
-      (* ENTRY_label of ref bool -> ref bool => label_info ... {stepbb; afterbb}*)
       | Some l -> failwith "TODO 3"
-        (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO 4" 
-        (* current_loop () *)
-      in () 
-      (* in ignore @@ build_br jl.stepbb lbuilder ; *)
+        (* let entr = lookupEntry (???) (LOOKUP_CURRENT_SCOPE) (???) ... *)
+      | None -> getCurrentLoop ()
+      in ignore @@ build_br jl.stepbb lbuilder
     end
   | S_break o -> begin 
       let jl = match o with
-      | Some l -> failwith "TODO 5"
-        (* let entr = lookup_entry ... *)
-      | None -> failwith "TODO 6"
-        (* current_loop ()*)
-      in ()
-      (* in ignore @@ build_br jl.afterbb lbuilder *)
+      | Some l -> failwith "TODO 4"
+        (* let entr = lookupEntry (???) (LOOKUP_CURRENT_SCOPE) (???) ... *)
+      | None -> getCurrentLoop ()
+      in ignore @@ build_br jl.afterbb lbuilder
     end
   | S_ret o -> begin match o with
       | Some e -> let retvl = compute_rval e in 
@@ -344,19 +396,38 @@ and codegen_stmt stm =
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_stmt stms
-and codegen_vars vt vs = 
+(* and declare_global vllt = function 
+  | (vn, None) -> define_global vllt vn lbuilder 
+  | (vn, Some e) -> let v = compute_const e in
+    match v with 
+    | C_int i -> if (i > 0) then 
+        let invl = if (vllt = double_type) then 
+          const_double 0.0 else const_int 0 in
+        let init = const_array vllt @@ Array.make i invl in
+        define_global vn init lbuilder
+      else cg_fail "Non-positive array initializer." 
+    | _ -> failwith "Unreachable State."
+and declare_local vllt = function 
+  | (vn, None) -> build_alloca vllt vn lbuilder
+  | (vn, Some e) -> let vl = codegen_expr e in 
+    build_array_alloca vllt vl vn lbuilder  *) 
+and codegen_vars vt vs =
   let vllt = lltype_of_vartype vt in 
-  failwith "TODO 7"
+  failwith "TODO 5"
+  (* let declare = vllt |> 
+    if (inOuterScope ()) then declare_global
+    else declare_local in 
+    List.iter declare vs*)
 and codegen_header rt fn ps = 
   let fllt = function_type_of_header rt ps in 
   ignore @@ declare_function fn fllt lmodule
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
-  if (false(* in_outer_scope () *)) then
+  if (inOuterScope ()) then
     codegen_header rt fn ps
 and codegen_fdef rt fn ps b = 
-    failwith "TODO 8"
+    failwith "TODO 6"
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
