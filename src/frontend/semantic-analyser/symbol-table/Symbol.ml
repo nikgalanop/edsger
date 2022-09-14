@@ -230,14 +230,14 @@ let openForScope () =
 let closeForScope = function
   | None -> forNest := !forNest - 1
   | Some id -> try 
-        let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
-        begin
+      let e = lookupEntry id LOOKUP_CURRENT_SCOPE true in 
+      begin
         match e.entry_info with 
-          | ENTRY_label b -> b := false; forNest := !forNest - 1
-          | _ -> Printf.eprintf "Should not find an entry of type label with an id of a label." 
-        end
-      with Exit -> 
-          Printf.eprintf "Cannot close scope of non-existing label"
+        | ENTRY_label b -> b := false; forNest := !forNest - 1
+        | _ -> Printf.eprintf "Should not find an entry of non - label type with an id of a label." 
+      end
+    with Exit -> 
+      Printf.eprintf "Cannot close scope of non-existing label"
 
 let insideFor () = 
   !forNest > 0
