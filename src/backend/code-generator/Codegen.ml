@@ -1,4 +1,5 @@
 open Ast
+open Identifier
 open CGSymbol
 open Llvm
 
@@ -9,7 +10,6 @@ let cg_fail msg =
 let lcontext = global_context ()
 let lmodule = create_module lcontext "edsger-program"
 let lbuilder = builder lcontext
-(* Could be a good idea to use the symbol table that we used for semantic analysis. *)
 let int_type = i16_type lcontext
 and char_type = i8_type lcontext
 and bool_type = i8_type lcontext 
@@ -89,26 +89,31 @@ let compute_const_binop v1 v2 = function
   | O_times -> begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 * i2)
       | C_double d1, C_double d2 -> C_double (d1 *. d2)
-      | _ -> failwith "Unreachable state."
+      | _ -> failwith "Unreachable state. \
+            (Bad multiplication in array initizalization)"
     end
   | O_div -> begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 / i2)
       | C_double d1, C_double d2 -> C_double (d1 /. d2)
-      | _ -> failwith "Unreachable state."
+      | _ -> failwith "Unreachable state. \
+            (Bad division in array initizalization)"
     end 
   | O_mod -> begin match v1, v2 with 
       | C_int i1, C_int i2 -> C_int (i1 mod i2)
-      | _ -> failwith "Unreachable state."
+      | _ -> failwith "Unreachable state. \
+            (Bad multiplication in array initizalization)"
     end 
   | O_plus -> begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 + i2)
       | C_double d1, C_double d2 -> C_double (d1 +. d2)
-      | _ -> failwith "Unreachable state."
+      | _ -> failwith "Unreachable state. \
+            (Bad addition in array initialization)"
     end
   | O_minus ->  begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 - i2)
       | C_double d1, C_double d2 -> C_double (d1 -. d2)
-      | _ -> failwith "Unreachable state."
+      | _ -> failwith "Unreachable state. \ 
+            (Bad subtraction in array initialization)"
     end
   | _ -> cg_fail "Bad operation in array initializer"
 
@@ -352,10 +357,10 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
-          (* match lo with 
-            | Some l -> ignore @@ newLabel (???) stepbb afterbb (???);
-            | None -> (); *)
-          pushCurrentLoop stepbb afterbb;
+          match lo with 
+          | Some l -> ignore @@ newLabel (id_of_label l) stepbb afterbb;
+          | None -> ();
+          pushLoop stepbb afterbb;
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
             "forcond" lbuilder in
@@ -370,24 +375,28 @@ and codegen_stmt stm =
           | None -> ();
           ignore @@ build_br loopbb lbuilder;                     
           position_at_end afterbb lbuilder; 
-          popCurrentLoop ()
+          popLoop ()
         end
-      | _ -> failwith "Unreachable state." 
+      | _ -> failwith "Unreachable state. (No for-loop condition)" 
     end
-  | S_cont o -> begin 
-      let jl = match o with
-      | Some l -> failwith "TODO 3"
-        (* let entr = lookupEntry (???) (LOOKUP_CURRENT_SCOPE) (???) ... *)
-      | None -> getCurrentLoop ()
-      in ignore @@ build_br jl.stepbb lbuilder
-    end
-  | S_break o -> begin 
-      let jl = match o with
-      | Some l -> failwith "TODO 4"
-        (* let entr = lookupEntry (???) (LOOKUP_CURRENT_SCOPE) (???) ... *)
-      | None -> getCurrentLoop ()
-      in ignore @@ build_br jl.afterbb lbuilder
-    end
+  | S_cont o -> let jl = match o with
+    | Some l -> let id = id_of_label l in
+      let ent = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
+      begin match ent.entry_info with 
+        | ENTRY_label inf -> inf 
+        | _ -> failwith "Found a non label with the id of a label."
+      end
+    | None -> peekLoop ()
+    in ignore @@ build_br jl.stepbb lbuilder
+  | S_break o -> let jl = match o with
+    | Some l -> let id = id_of_label l in
+      let ent = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
+      begin match ent.entry_info with 
+        | ENTRY_label inf -> inf 
+        | _ -> failwith "Found a non label with the id of a label."
+      end
+    | None -> peekLoop ()
+    in ignore @@ build_br jl.afterbb lbuilder
   | S_ret o -> begin match o with
       | Some e -> let retvl = compute_rval e in 
         ignore @@ build_ret retvl lbuilder
@@ -396,28 +405,32 @@ and codegen_stmt stm =
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_stmt stms
-(* and declare_global vllt = function 
-  | (vn, None) -> define_global vllt vn lbuilder 
+and declare_global' vllt = function 
+  | (vn, None) -> declare_global vllt vn lmodule |> 
+    newVariable (id_of_var vn) |> ignore
   | (vn, Some e) -> let v = compute_const e in
     match v with 
     | C_int i -> if (i > 0) then 
         let invl = if (vllt = double_type) then 
           const_double 0.0 else const_int 0 in
         let init = const_array vllt @@ Array.make i invl in
-        define_global vn init lbuilder
+        define_global vn init lmodule |> 
+        newVariable (id_of_var vn) |> ignore
       else cg_fail "Non-positive array initializer." 
-    | _ -> failwith "Unreachable State."
-and declare_local vllt = function 
-  | (vn, None) -> build_alloca vllt vn lbuilder
+    | _ -> failwith "Unreachable State. (Non-int initializer in array declarator)"
+and declare_local' vllt = function 
+  | (vn, None) -> build_alloca vllt vn lbuilder |>
+    newVariable (id_of_var vn) |> ignore
   | (vn, Some e) -> let vl = codegen_expr e in 
-    build_array_alloca vllt vl vn lbuilder  *) 
+    build_array_alloca vllt vl vn lbuilder |> 
+    newVariable (id_of_var vn) |> ignore
 and codegen_vars vt vs =
   let vllt = lltype_of_vartype vt in 
-  failwith "TODO 5"
-  (* let declare = vllt |> 
-    if (inOuterScope ()) then declare_global
-    else declare_local in 
-    List.iter declare vs*)
+  (* REVISIT: Suspecting that this code initializes an array of pointers in the global case etc. *)
+  let declare = vllt |> 
+    if (inOuterScope ()) then declare_global'
+    else declare_local'
+  in List.iter declare vs
 and codegen_header rt fn ps = 
   let fllt = function_type_of_header rt ps in 
   ignore @@ declare_function fn fllt lmodule
@@ -435,6 +448,7 @@ and codegen_decl dec =
   | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
 
 let codegen t = 
+  initSymbolTable 256;
   List.iter codegen_decl t;
   match Llvm_analysis.verify_module lmodule with 
   | None -> lmodule 
