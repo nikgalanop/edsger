@@ -63,9 +63,12 @@ let no_entry id = {
 
 let currentScope = ref the_outer_scope
 
+let inOuterScope () = 
+  !currentScope.sco_nesting = 0
+
 let tab = ref (H.create 0)
 
-let loop_stack : (label_info list ref) = ref []
+let loop_stack = Stack.create ()
 
 let initSymbolTable size =
   tab := H.create size;
@@ -160,29 +163,19 @@ let forwardFunction e =
     inf.function_isForward <- true
   | _ -> failwith "Cannot make a non-function forward"
 
-let newLabel id step_bb after_bb = 
-  let inf = {
-    stepbb = step_bb;
-    afterbb = after_bb;
-  } in 
+let newLabel id stepbb afterbb = 
+  let inf = {stepbb; afterbb} in 
   newEntry id (ENTRY_label inf)
 
-let pushLoop step_bb after_bb = 
-  let inf = {
-    stepbb = step_bb;
-    afterbb = after_bb;
-  } in
-  loop_stack := inf :: !loop_stack
+let pushLoop stepbb afterbb = 
+  let inf = {stepbb; afterbb} in
+  Stack.push inf loop_stack
 
-let peekLoop () =
-  match !loop_stack with
-  | h::t -> Some h
-  | [] -> None
+let peekLoop () = (* We only use this after a push. *)
+  Stack.top loop_stack
 
 let popLoop () = 
-  match !loop_stack with
-  | h::t -> loop_stack := t
-  | [] -> failwith "cannot pop from empty stack,"
+  ignore @@ Stack.pop_opt loop_stack
 
 let endFunctionHeader e typ =
   match e.entry_info with

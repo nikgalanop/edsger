@@ -44,6 +44,7 @@ and entry = {
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
 val currentScope : scope ref              (* Τρέχουσα Εμβέλεια *)
+val inOuterScope : unit -> bool
 
 val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
@@ -58,5 +59,5 @@ val endFunctionHeader    : entry -> Types.typ -> unit
 val lookupEntry          : Identifier.id -> lookup_type -> bool -> entry
 
 val pushLoop  : Llvm.llbasicblock -> Llvm.llbasicblock -> unit
-val peekLoop  : unit -> label_info option
+val peekLoop  : unit -> label_info
 val popLoop   : unit -> unit
