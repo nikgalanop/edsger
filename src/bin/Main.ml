@@ -51,8 +51,8 @@ let () =
     let t = Parser.program Lexer.lexer lb in 
     Ast.print_ast t;
     Semantic.sem_analysis t;
-    (* let lmodule = Codegen.codegen t in
-    if (opt_flag) then Optimizer.optimize lmodule;
+    let lmodule = Codegen.codegen t in
+    if (!opt_flag) then Optimizer.optimize lmodule;
     if (from_file) then begin
       let n = Filename.remove_extension !fn in 
       let irfn = Printf.sprintf "%s.ll" n in 
@@ -64,13 +64,13 @@ let () =
       (* TODO: Produce executable via Clang *)
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
     end
-    else if (ir_flag) then 
-      print_string @@ Llvm.string_of_llmodule lmodule; 
+    else if (!ir_flag) then 
+      print_string @@ Llvm.string_of_llmodule lmodule
     else begin 
       let llccmd = Printf.sprintf "echo \"%s\" > llc -march=\"x86-64\"" 
         (Llvm.string_of_llmodule lmodule) in 
       ignore @@ Sys.command llccmd
-    end; *)
+    end;
     exit 0
   with 
     | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg) -> 

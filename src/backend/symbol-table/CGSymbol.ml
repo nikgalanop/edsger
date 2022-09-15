@@ -26,7 +26,7 @@ and function_info = {
  }
 and parameter_info = {
   parameter_type : Types.typ;
-  parameter_mode : pass_mode;
+  parameter_mode : pass_mode
 }
 
 and label_info = { 

@@ -12,7 +12,7 @@ let lmodule = create_module lcontext "edsger-program"
 let lbuilder = builder lcontext
 let int_type = i16_type lcontext
 and char_type = i8_type lcontext
-and bool_type = i8_type lcontext 
+and bool_type = i1_type lcontext 
 and double_type = double_type lcontext
 let const_int = const_int int_type 
 and const_char = const_int char_type
@@ -112,7 +112,7 @@ let compute_const_binop v1 v2 = function
   | O_minus ->  begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 - i2)
       | C_double d1, C_double d2 -> C_double (d1 -. d2)
-      | _ -> failwith "Unreachable state. \ 
+      | _ -> failwith "Unreachable state. \
             (Bad subtraction in array initialization)"
     end
   | _ -> cg_fail "Bad operation in array initializer"
@@ -158,7 +158,7 @@ and codegen_uop e op =
   let vl = codegen_expr e in 
   match op with
   | O_ref -> vl
-  | O_dref -> build_load vl "dreftmp" lbuilder 
+  | O_dref -> build_load vl "dreftmp" lbuilder (* Revisit this & the array access. *)
     (* Revisit. Do we need to check for a null pointer,
       or we automatically cannot load from a null ptr? *)
   | O_psgn -> to_rval e vl
@@ -226,8 +226,8 @@ and codegen_binop' vl1 vl2 = function
       | double_type -> build_fcmp Fcmp.Oge vl1 vl2
       | _ -> build_icmp Icmp.Sge vl1 vl2
     in greaterequal "getmp" lbuilder
-  | O_eq -> let equal = match type_of vl1 with 
-      | double_type -> build_fcmp Fcmp.Oeq
+  | O_eq -> let equal = match classify_type @@ type_of vl1 with 
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.Oeq
       | _ -> build_icmp Icmp.Eq
     in equal vl1 vl2 "eqtmp" lbuilder
   | O_neq -> let inequal = match type_of vl1 with
@@ -250,22 +250,25 @@ and codegen_uasgn ~pre e op =
   if (pre) then rhs else vl
 and codegen_basgn e1 e2 op = 
   let lhs = codegen_expr e1 in 
-  let vl1 = to_rval e1 lhs in 
   let vl2 = compute_rval e2 in
-  let rhs = match op with 
-    | O_asgn -> vl2
-    | O_mulasgn -> codegen_binop' vl1 vl2 O_times
-    | O_divasgn -> codegen_binop' vl1 vl2 O_div
-    | O_modasgn -> codegen_binop' vl1 vl2 O_mod
-    | O_plasgn -> codegen_binop' vl1 vl2 O_plus
-    | O_minasgn -> codegen_binop' vl1 vl2 O_minus
+  let rhs = if (op = O_asgn) then vl2 
+    else let vl1 = to_rval e1 lhs 
+    in match op with 
+      | O_asgn -> failwith "Taken care of."
+      | O_mulasgn -> codegen_binop' vl1 vl2 O_times
+      | O_divasgn -> codegen_binop' vl1 vl2 O_div
+      | O_modasgn -> codegen_binop' vl1 vl2 O_mod
+      | O_plasgn -> codegen_binop' vl1 vl2 O_plus
+      | O_minasgn -> codegen_binop' vl1 vl2 O_minus
   in ignore @@ build_store rhs lhs lbuilder; 
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> failwith "TODO 1"
-    (* let entr = find variable .... in 
-      .... *) 
+  | E_var v -> let ent = lookupEntry (id_of_var v) LOOKUP_ALL_SCOPES true in 
+    begin match ent.entry_info with 
+      | ENTRY_variable inf -> inf.llval
+      | _ -> failwith "Zoinks Scoob."
+    end
   | E_int d -> const_int d  
   | E_char c -> const_char (Char.code c)
   | E_double f -> const_double f
@@ -301,7 +304,7 @@ and codegen_expr exp =
       position_at_end afterbb lbuilder;
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
-  | E_new (vt, e) -> let vl = compute_rval e in 
+  | E_new (vt, e) -> let vl = compute_rval e in (* REVISIT: *) 
     let t = lltype_of_vartype vt in 
     (* Revisit. Should check that vl is positive. 
       Is the following code enough/correct? *)
@@ -315,7 +318,7 @@ and codegen_expr exp =
       build_call f args name lbuilder *)  
   | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
     let ofst = compute_rval e2 in
-    build_gep arr [|const_int 0; ofst|] "aractmp" lbuilder
+    build_gep arr [|const_int 0; ofst|] "aractmp" lbuilder (* Needs a load maybe :) *)
   | E_brack e -> codegen_expr e
 and codegen_stmt stm = 
   match stm.stmt with 
@@ -358,7 +361,8 @@ and codegen_stmt stm =
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
           match lo with 
-          | Some l -> ignore @@ newLabel (id_of_label l) stepbb afterbb;
+          | Some l -> ignore @@ 
+            newLabel (id_of_label l) stepbb afterbb;
           | None -> ();
           pushLoop stepbb afterbb;
           let vl = compute_rval e2 in 
@@ -404,6 +408,7 @@ and codegen_stmt stm =
     end
 and codegen_body b = 
   let F_body (decs, stms) = b in 
+  List.iter codegen_decl decs;
   List.iter codegen_stmt stms
 and declare_global' vllt = function 
   | (vn, None) -> declare_global vllt vn lmodule |> 
@@ -417,16 +422,17 @@ and declare_global' vllt = function
         define_global vn init lmodule |> 
         newVariable (id_of_var vn) |> ignore
       else cg_fail "Non-positive array initializer." 
-    | _ -> failwith "Unreachable State. (Non-int initializer in array declarator)"
+    | _ -> failwith "Unreachable State. \
+          (Non-int initializer in array declarator)"
 and declare_local' vllt = function 
-  | (vn, None) -> build_alloca vllt vn lbuilder |>
+  | (vn, None) -> 
+    build_alloca vllt vn lbuilder |>
     newVariable (id_of_var vn) |> ignore
-  | (vn, Some e) -> let vl = codegen_expr e in 
+  | (vn, Some e) ->let vl = codegen_expr e in 
     build_array_alloca vllt vl vn lbuilder |> 
     newVariable (id_of_var vn) |> ignore
 and codegen_vars vt vs =
   let vllt = lltype_of_vartype vt in 
-  (* REVISIT: Suspecting that this code initializes an array of pointers in the global case etc. *)
   let declare = vllt |> 
     if (inOuterScope ()) then declare_global'
     else declare_local'
@@ -444,13 +450,21 @@ and codegen_fdef rt fn ps b =
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
-  | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps 
-  | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
-
+  | D_fun (rt, fn, ps) -> () (* codegen_fdecl rt fn ps *)
+  | D_fdef (rt, fn, ps, b) -> 
+    let ft = function_type (void_type lcontext) [||] in
+    let f = define_function "main" ft lmodule in 
+    let entrybb = entry_block f in
+    position_at_end entrybb lbuilder;
+    openScope ();
+    codegen_body b;
+    closeScope ();
+    if (can_add_terminator ()) then 
+      ignore @@ build_ret_void lbuilder
+    (* codegen_fdef rt fn ps b *)
 let codegen t = 
   initSymbolTable 256;
   List.iter codegen_decl t;
   match Llvm_analysis.verify_module lmodule with 
   | None -> lmodule 
   | Some s -> cg_fail s
-
