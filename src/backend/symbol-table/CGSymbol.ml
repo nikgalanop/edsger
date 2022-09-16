@@ -120,10 +120,8 @@ let lookupEntry id how err =
       raise Exit
   else lookup ()
 
-let newVariable id llv = 
-  let inf = {
-    llval = llv;
-  } in 
+let newVariable id llval =  
+  let inf = {llval} in 
   newEntry id (ENTRY_variable inf)
 
 let newFunction id llv = 
