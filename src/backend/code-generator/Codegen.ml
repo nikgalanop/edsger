@@ -19,6 +19,11 @@ and const_char = const_int char_type
 and const_bool = const_int bool_type
 and const_double = const_float double_type
 
+let classify_type' vl = 
+  classify_type @@ type_of vl
+let classify_element_type ptr = 
+  classify_type @@ element_type @@ type_of ptr
+
 let lltype_of_primitive = function 
   | INT -> int_type
   | CHAR -> char_type
@@ -154,11 +159,20 @@ let rec to_rval e vl =
 and compute_rval e =
   let vl = codegen_expr e in
   to_rval e vl
+and prepare_value vl e = 
+  let t = classify_element_type vl in
+  let t1 = element_type @@ element_type @@ type_of vl in 
+  match t with 
+  | Llvm.TypeKind.Pointer -> 
+    build_load vl "loadtmp" lbuilder
+  | Llvm.TypeKind.Array -> 
+    build_bitcast vl (pointer_type t1) "strptr" lbuilder
+  | _ -> to_rval e vl
 and codegen_uop e op = 
   let vl = codegen_expr e in 
   match op with
   | O_ref -> vl
-  | O_dref -> build_load vl "dreftmp" lbuilder (* Revisit this & the array access. *)
+  | O_dref -> vl (* Revisit this & the array access. *)
     (* Revisit. Do we need to check for a null pointer,
       or we automatically cannot load from a null ptr? *)
   | O_psgn -> to_rval e vl
@@ -185,81 +199,80 @@ and codegen_sc_binop e1 e2 op =
   ignore @@ build_br afterbb lbuilder;
   position_at_end afterbb lbuilder;
   build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
-and codegen_binop e1 e2 = 
-  let vl1 = compute_rval e1 in 
-  let vl2 = compute_rval e2 in 
-  codegen_binop' vl1 vl2
-and codegen_binop' vl1 vl2 = function  
-  | O_times -> let multiply = match type_of vl1 with
-      | int_type -> build_mul
+and codegen_binop e1 e2 op = 
+  let vl1 = prepare_value (codegen_expr e1) e1 in 
+  let vl2 = prepare_value (codegen_expr e2) e2 in
+  match op with
+  | O_times -> let multiply = match classify_type' vl1 with
+      | Llvm.TypeKind.Integer -> build_mul
       | _ -> build_fmul 
     in multiply vl1 vl2 "multmp" lbuilder 
-  | O_div -> let divide = match type_of vl1 with
-      | int_type -> build_sdiv
+  | O_div -> let divide = match classify_type' vl1 with
+      | Llvm.TypeKind.Integer -> build_sdiv
       | _ -> build_fdiv
     in divide vl1 vl2 "divtmp" lbuilder
   | O_mod -> build_srem vl1 vl2 "modtmp" lbuilder
-  | O_plus -> let add = match type_of vl1 with 
-      | int_type -> build_add vl1 vl2 
-      | double_type -> build_fadd vl1 vl2 
-      | _ -> build_gep vl1 [|const_int 0; vl2|]
+  | O_plus -> let add = match classify_type' vl1 with 
+      | Llvm.TypeKind.Integer -> build_add vl1 vl2
+      | Llvm.TypeKind.Double -> build_fadd vl1 vl2
+      | _ -> build_gep vl1 [|vl2|]
     in add "addtmp" lbuilder      
-  | O_minus -> let subtract = match type_of vl1 with 
-      | int_type -> build_sub vl1 vl2 
-      | double_type -> build_fsub vl1 vl2
-      | _ -> let negvl2 = build_neg vl2 "negtmp" lbuilder in 
-        build_gep vl1 [|const_int 0; negvl2|]
+  | O_minus -> let subtract = match classify_type' vl1 with 
+      | Llvm.TypeKind.Integer -> build_sub vl1 vl2 
+      | Llvm.TypeKind.Double -> build_fsub vl1 vl2
+      | _ -> 
+        let negvl2 = build_neg vl2 "negtmp" lbuilder in 
+        build_gep vl1 [|negvl2|]
     in subtract "subtmp" lbuilder
-  | O_lt -> let lessthan = match type_of vl1 with 
-      | double_type -> build_fcmp Fcmp.Olt
+  | O_lt -> let lessthan = match classify_type' vl1 with 
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.Olt
       | _ -> build_icmp Icmp.Slt
     in lessthan vl1 vl2 "lttmp" lbuilder
-  | O_gt -> let greaterthan = match type_of vl1 with 
-      | double_type -> build_fcmp Fcmp.Ogt
+  | O_gt -> let greaterthan = match classify_type' vl1 with 
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.Ogt
       | _ -> build_icmp Icmp.Sgt
     in greaterthan vl1 vl2 "gttmp" lbuilder
-  | O_le -> let lessequal = match type_of vl1 with 
-      | double_type -> build_fcmp Fcmp.Ole
+  | O_le -> let lessequal = match classify_type' vl1 with 
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.Ole
       | _ -> build_icmp Icmp.Sle
     in lessequal vl1 vl2 "letmp" lbuilder
-  | O_ge -> let greaterequal = match type_of vl1 with 
-      | double_type -> build_fcmp Fcmp.Oge vl1 vl2
+  | O_ge -> let greaterequal = match classify_type' vl1 with 
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.Oge vl1 vl2
       | _ -> build_icmp Icmp.Sge vl1 vl2
     in greaterequal "getmp" lbuilder
-  | O_eq -> let equal = match classify_type @@ type_of vl1 with 
+  | O_eq -> let equal = match classify_type' vl1 with 
       | Llvm.TypeKind.Double -> build_fcmp Fcmp.Oeq
       | _ -> build_icmp Icmp.Eq
     in equal vl1 vl2 "eqtmp" lbuilder
-  | O_neq -> let inequal = match type_of vl1 with
-      | double_type -> build_fcmp Fcmp.One 
+  | O_neq -> let inequal = match classify_type' vl1 with
+      | Llvm.TypeKind.Double -> build_fcmp Fcmp.One 
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
   | _ -> cg_fail "Invalid binary operator."
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
-  let vl = to_rval e lhs in 
-  let const = match type_of vl with 
-    | double_type -> const_double 1.
-    | _ -> const_int 1 
+  let const = match classify_element_type lhs with 
+    | Llvm.TypeKind.Double -> {expr = E_double 1.0;
+      meta = Lexing.dummy_pos}
+    | _ -> {expr = E_int 1;
+      meta = Lexing.dummy_pos}
   in let op' = match op with 
     | O_plpl -> O_plus
     | O_mimi -> O_minus
-  in let rhs = codegen_binop' vl const op' in
+  in let rhs = codegen_binop e const op' in
   ignore @@ build_store rhs lhs lbuilder;
-  if (pre) then rhs else vl
+  if (pre) then rhs else (to_rval e lhs)
 and codegen_basgn e1 e2 op = 
   let lhs = codegen_expr e1 in 
-  let vl2 = compute_rval e2 in
-  let rhs = if (op = O_asgn) then vl2 
-    else let vl1 = to_rval e1 lhs 
-    in match op with 
+  let rhs = if (op = O_asgn) then (compute_rval e2)
+  else match op with 
       | O_asgn -> failwith "Taken care of."
-      | O_mulasgn -> codegen_binop' vl1 vl2 O_times
-      | O_divasgn -> codegen_binop' vl1 vl2 O_div
-      | O_modasgn -> codegen_binop' vl1 vl2 O_mod
-      | O_plasgn -> codegen_binop' vl1 vl2 O_plus
-      | O_minasgn -> codegen_binop' vl1 vl2 O_minus
+      | O_mulasgn -> codegen_binop e1 e2 O_times
+      | O_divasgn -> codegen_binop e1 e2 O_div
+      | O_modasgn -> codegen_binop e1 e2 O_mod
+      | O_plasgn -> codegen_binop e1 e2 O_plus
+      | O_minasgn -> codegen_binop e1 e2 O_minus
   in ignore @@ build_store rhs lhs lbuilder; 
   rhs
 and codegen_expr exp = 
@@ -274,7 +287,7 @@ and codegen_expr exp =
   | E_double f -> const_double f
   | E_str s -> build_global_stringptr s "strtmp" lbuilder
   | E_bool b -> const_bool (if b then 1 else 0)
-  | E_NULL -> const_pointer_null (pointer_type int_type)
+  | E_NULL -> const_pointer_null @@ pointer_type int_type
   | E_uop (op, e) -> codegen_uop e op
   | E_binop (e1, op, e2) -> begin match op with 
       | O_and | O_or -> codegen_sc_binop e1 e2 op
@@ -304,7 +317,7 @@ and codegen_expr exp =
       position_at_end afterbb lbuilder;
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
-  | E_new (vt, e) -> let vl = compute_rval e in (* REVISIT: *) 
+  | E_new (vt, e) -> let vl = compute_rval e in 
     let t = lltype_of_vartype vt in 
     (* Revisit. Should check that vl is positive. 
       Is the following code enough/correct? *)
@@ -316,9 +329,10 @@ and codegen_expr exp =
       let name = if (is_void f) then "" else "calltmp" in
       let args = args_of_parameter_list es in
       build_call f args name lbuilder *)  
-  | E_arracc (e1, e2) -> let arr = codegen_expr e1 in 
+  | E_arracc (e1, e2) -> 
+    let ptr = prepare_value (codegen_expr e1) e1 in 
     let ofst = compute_rval e2 in
-    build_gep arr [|const_int 0; ofst|] "aractmp" lbuilder (* Needs a load maybe :) *)
+    build_gep ptr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
 and codegen_stmt stm = 
   match stm.stmt with 
@@ -339,9 +353,10 @@ and codegen_stmt stm =
       if (can_add_terminator ()) then 
         ignore @@ build_br afterbb lbuilder;
       position_at_end elsebb lbuilder;
-      match o with
-      | Some s2 -> codegen_stmt s2;
-      | None -> ();
+      begin match o with
+      | Some s2 -> codegen_stmt s2
+      | None -> ()
+      end;
       if (can_add_terminator ()) then
         ignore @@ build_br afterbb lbuilder;
       position_at_end afterbb lbuilder; 
@@ -349,9 +364,10 @@ and codegen_stmt stm =
   | S_for (o1, o2, o3, s, lo) -> begin 
       match o2 with 
       | Some e2 -> begin
-          match o1 with 
-          | Some e1 -> ignore @@ codegen_expr e1;
-          | None -> ();
+          begin match o1 with 
+          | Some e1 -> ignore @@ codegen_expr e1
+          | None -> ()
+          end;
           let prevbb = insertion_block lbuilder in 
           let f = block_parent @@ prevbb in 
           let loopbb = append_block lcontext "loop" f in
@@ -360,10 +376,11 @@ and codegen_stmt stm =
           let afterbb = append_block lcontext "endfor" f in
           ignore @@ build_br loopbb lbuilder;
           position_at_end loopbb lbuilder;
-          match lo with 
+          begin match lo with 
           | Some l -> ignore @@ 
-            newLabel (id_of_label l) stepbb afterbb;
-          | None -> ();
+            newLabel (id_of_label l) stepbb afterbb
+          | None -> ()
+          end;
           pushLoop stepbb afterbb;
           let vl = compute_rval e2 in 
           let cond = build_icmp Icmp.Eq vl (const_bool 1) 
@@ -374,9 +391,10 @@ and codegen_stmt stm =
           if (can_add_terminator ()) then
             ignore @@ build_br stepbb lbuilder; 
           position_at_end stepbb lbuilder;
-          match o3 with 
-          | Some e3 -> ignore @@ codegen_expr e2; 
-          | None -> ();
+          begin match o3 with 
+          | Some e3 -> ignore @@ codegen_expr e2
+          | None -> ()
+          end;
           ignore @@ build_br loopbb lbuilder;                     
           position_at_end afterbb lbuilder; 
           popLoop ()
@@ -419,7 +437,7 @@ and declare_global' vllt = function
         let invl = if (vllt = double_type) then 
           const_double 0.0 else const_int 0 in
         let init = const_array vllt @@ Array.make i invl in
-        define_global vn init lmodule |> 
+        define_global vn init lmodule |>
         newVariable (id_of_var vn) |> ignore
       else cg_fail "Non-positive array initializer." 
     | _ -> failwith "Unreachable State. \
@@ -428,9 +446,15 @@ and declare_local' vllt = function
   | (vn, None) -> 
     build_alloca vllt vn lbuilder |>
     newVariable (id_of_var vn) |> ignore
-  | (vn, Some e) ->let vl = codegen_expr e in 
-    build_array_alloca vllt vl vn lbuilder |> 
-    newVariable (id_of_var vn) |> ignore
+  | (vn, Some e) -> let v = compute_const e in 
+    match v with 
+    | C_int i -> if (i > 0) then 
+        let arrt = array_type vllt i in 
+        build_alloca arrt vn lbuilder |>
+        newVariable (id_of_var vn) |> ignore
+      else cg_fail "Non-positive array initializer." 
+    | _ -> failwith "Unreachable State. \
+          (Non-int initializer in array declarator)"
 and codegen_vars vt vs =
   let vllt = lltype_of_vartype vt in 
   let declare = vllt |> 
