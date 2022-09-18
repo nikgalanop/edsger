@@ -431,16 +431,31 @@ and codegen_vars vt vs =
     if (inOuterScope ()) then declare_global'
     else declare_local'
   in List.iter declare vs
-and codegen_header rt fn ps = 
+and codegen_header rt fn ps= 
+  let add_parameters_cg f par =
+    let vtype, varnm, pass_mode = match par with
+    | BYREF (vtype, vname) -> (CGUtils.typ_of_vartype vtype), vname, PASS_BY_REFERENCE
+    | BYVAL (vtype, vname) -> (CGUtils.typ_of_vartype vtype), vname, PASS_BY_VALUE
+    in ignore @@ newParameter (id_of_var varnm) vtype pass_mode f
+  in
   let fllt = function_type_of_header rt ps in 
-  ignore @@ declare_function fn fllt lmodule
+  let pstr = SemUtilities.name_mangling ps in 
+  let fnm = CGUtils.funStr_mangled fn pstr
+  and fid = id_of_func fn pstr in
+  let (entr, found) = declare_function fnm fllt lmodule |> newFunction fid in 
+    (* forwardFunction entr; *)
+    List.iter (add_parameters_cg entr) ps;
+    endFunctionHeader entr (match rt with
+    | VOID -> TYPE_proc
+    | RET vartyp -> CGUtils.typ_of_vartype vartyp)
+  
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
     codegen_header rt fn ps
 and codegen_fdef rt fn ps b = 
-    failwith "TODO 6"
+  failwith "TODO 3"
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
