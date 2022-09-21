@@ -447,15 +447,25 @@ and codegen_header rt fn ps=
     List.iter (add_parameters_cg entr) ps;
     endFunctionHeader entr (match rt with
     | VOID -> TYPE_proc
-    | RET vartyp -> CGUtils.typ_of_vartype vartyp)
+    | RET vartyp -> CGUtils.typ_of_vartype vartyp);
+    entr
   
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
-    codegen_header rt fn ps
+    ignore @@ codegen_header rt fn ps
 and codegen_fdef rt fn ps b = 
-  failwith "TODO 3"
+  let func_entry = codegen_header rt fn ps in
+  let ENTRY_function func = func_entry.entry_info in
+  let bb = append_block lcontext "fun" func.llfun in
+    openScope ();
+    List.iter newvar ps; (* newvar doesn't exist, it should just declare new variables from a parameter *)
+    codegen_body b;
+    closeScope ()
+    (*missing return 
+    build_ret return_value lbuilder*)
+
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
