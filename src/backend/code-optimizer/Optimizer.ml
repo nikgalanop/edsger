@@ -8,4 +8,4 @@ let optimize m =
     add_aggressive_dce; add_cfg_simplification; 
     add_gvn] in
   List.iter (( |> ) fpm) opts;
-  ignore @@ PassManager.run_module m
+  ignore @@ PassManager.run_module m fpm
