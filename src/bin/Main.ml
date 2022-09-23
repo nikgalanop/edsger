@@ -61,7 +61,8 @@ let () =
       Out_channel.close f;
       let cmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
       ignore @@ Sys.command cmd;
-      (* TODO: Produce executable via Clang *)
+      let cmd = Printf.sprintf "clang -o %s %s.s edsgerlib.a -lm" n n in 
+      ignore @@ Sys.command cmd;
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
     end
     else if (!ir_flag) then 
@@ -76,9 +77,10 @@ let () =
     end;
     exit 0
   with 
-    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg) -> 
+    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg)
+    | Codegen.CGFailure (pos, msg) -> 
       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-    | Failure msg | Codegen.CGFailure msg -> 
+    | Failure msg -> 
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
     | Parser.Error -> let pos = lb.Lexing.lex_curr_p in
       Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
