@@ -3,9 +3,9 @@ open Identifier
 open CGSymbol
 open Llvm
 
-exception CGFailure of string
-let cg_fail msg = 
-  raise (CGFailure msg)
+exception CGFailure of Lexing.position * string
+let cg_fail pos msg = 
+  raise (CGFailure (pos, msg))
 
 let lcontext = global_context ()
 let lmodule = create_module lcontext "edsger-program"
@@ -14,10 +14,10 @@ let int_type = i16_type lcontext
 and char_type = i8_type lcontext
 and bool_type = i1_type lcontext 
 and double_type = double_type lcontext
-let const_int = const_int int_type 
-and const_char = const_int char_type
-and const_bool = const_int bool_type
-and const_double = const_float double_type
+let const_int' = const_int int_type 
+and const_char' = const_int char_type
+and const_bool' = const_int bool_type
+and const_double' = const_float double_type
 
 let classify_type' vl = 
   classify_type @@ type_of vl
@@ -55,38 +55,39 @@ let function_type_of_header rt ps =
   function_type llrt prms
 let build_edsger_cast vl tto = 
   let tfrom = type_of vl in 
-  if (tfrom = tto) then vl 
-  else begin match tto with 
-    | int_type -> begin match tfrom with 
-        | char_type -> build_zext vl tto "casttmp" lbuilder
-        | bool_type -> build_zext vl tto "casttmp" lbuilder
-        | double_type -> build_fptosi vl tto "casttmp" lbuilder
-        | _ -> build_pointercast vl tto "casttmp" lbuilder  
+  begin match classify_type tto with 
+  | Llvm.TypeKind.Integer -> 
+      if (tto = int_type) then 
+        begin match classify_type tfrom with 
+        | Llvm.TypeKind.Integer -> build_zext vl tto "casttmp" lbuilder
+        | Llvm.TypeKind.Double -> build_fptosi vl tto "casttmp" lbuilder
+        | _ -> build_bitcast vl tto "casttmp" lbuilder  
+        end
+      else if (tto = char_type) then 
+        begin match classify_type tfrom with 
+        | Llvm.TypeKind.Integer -> if (tfrom = int_type) then
+              build_trunc vl tto "casttmp" lbuilder 
+            else
+              build_zext vl tto "casttmp" lbuilder 
+        | Llvm.TypeKind.Double -> build_fptoui vl tto "casttmp" lbuilder
+       end
+      else begin match classify_type tfrom with (* bool_type *)
+        | Llvm.TypeKind.Integer -> 
+          build_icmp Icmp.Ne vl (const_int tfrom 0) "casttmp" lbuilder
+        | Llvm.TypeKind.Double -> 
+          build_fcmp Fcmp.One vl (const_double' 0.0) "casttmp" lbuilder
       end
-    | char_type -> begin match tfrom with 
-        | int_type -> build_trunc vl tto "casttmp" lbuilder 
-        | bool_type -> vl (* Revisit. I think that we do not 
-          need to do a cast here. (Same sized types) *)
-        | double_type -> build_fptoui vl tto "casttmp" lbuilder
-        | _ -> build_pointercast vl tto "casttmp" lbuilder  
-      end
-    | bool_type -> begin match tfrom with 
-        | int_type -> build_icmp Icmp.Ne vl (const_int 0) "casttmp" lbuilder
-        | char_type -> build_icmp Icmp.Ne vl (const_char 0) "casttmp" lbuilder
-        | double_type -> build_fcmp Fcmp.One vl (const_double 0.0) "casttmp" lbuilder
-        | _ -> build_pointercast vl tto "casttmp" lbuilder  
-      end
-    | double_type -> begin match tfrom with
-        | int_type -> build_sitofp vl double_type "casttmp" lbuilder
-        | char_type -> build_uitofp vl double_type "casttmp" lbuilder
-        | bool_type -> build_uitofp vl double_type "casttmp" lbuilder
-        | _ -> build_pointercast vl tto "casttmp" lbuilder  
-      end
-    | _ -> vl (* Revisit: Pointer conversion 
-      We do not actually need to cast the pointer value 
-      unless not all pointers have the same size in asm, 
-      something that we definitely do not want according
-      to the edsger language specification.  *)
+  | Llvm.TypeKind.Double -> 
+      if (tfrom = int_type) then 
+        build_sitofp vl double_type "casttmp" lbuilder
+      else 
+        build_uitofp vl double_type "casttmp" lbuilder
+  | _ -> build_bitcast vl tto "casttmp" lbuilder
+    (* Revisit: Pointer conversion 
+    We do not actually need to cast the pointer value 
+    unless not all pointers have the same size in asm, 
+    something that we definitely do not want according
+    to the edsger language specification.  *)
   end
 
 type const = | C_int of int | C_double of float
@@ -120,19 +121,19 @@ let compute_const_binop v1 v2 = function
       | _ -> failwith "Unreachable state. \
             (Bad subtraction in array initialization)"
     end
-  | _ -> cg_fail "Bad operation in array initializer"
+  | _ -> failwith "Bad operation in array initializer" (* FIX *)
 
 let const_cast tto v = 
   match v with
   | C_int i -> begin match tto with 
       | PTR(INT, 0) -> v
       | PTR(DOUBLE, 0) -> C_double (float_of_int i)
-      | _ -> cg_fail "Bad casting in array initializer" 
+      | _ -> failwith "Bad casting in array initializer" (* FIX *)
     end
   | C_double d -> begin match tto with 
       | PTR(INT, 0) -> C_int (int_of_float d)
       | PTR(DOUBLE, 0) -> v
-      | _ -> cg_fail "Bad casting in array initializer" 
+      | _ -> failwith "Bad casting in array initializer" (* FIX *)
     end
 let rec compute_const exp =
   match exp.expr with 
@@ -150,7 +151,7 @@ let rec compute_const exp =
   | E_tcast (vt, e) -> let v = compute_const e in
     const_cast vt v
   | E_brack e -> compute_const e
-  | _ -> cg_fail "Bad array initializer."
+  | _ -> cg_fail exp.meta "Bad array initializer."
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -159,33 +160,33 @@ let rec to_rval e vl =
 and compute_rval e =
   let vl = codegen_expr e in
   to_rval e vl
-and prepare_value vl e = 
+and prepare_value e = 
+  let vl = codegen_expr e in 
   let t = classify_element_type vl in
-  let t1 = element_type @@ element_type @@ type_of vl in 
   match t with 
   | Llvm.TypeKind.Pointer -> 
     build_load vl "loadtmp" lbuilder
   | Llvm.TypeKind.Array -> 
-    build_bitcast vl (pointer_type t1) "strptr" lbuilder
+    let t1 =  element_type @@ element_type @@ type_of vl in 
+    build_bitcast vl (pointer_type t1) "arrptr" lbuilder (* Is this okay? *)
   | _ -> to_rval e vl
 and codegen_uop e op = 
-  let vl = codegen_expr e in 
   match op with
-  | O_ref -> vl
-  | O_dref -> vl (* Revisit this & the array access. *)
+  | O_ref -> codegen_expr e
+  | O_dref -> prepare_value e
     (* Revisit. Do we need to check for a null pointer,
       or we automatically cannot load from a null ptr? *)
-  | O_psgn -> to_rval e vl
-  | O_nsgn -> let rvl = to_rval e vl in
+  | O_psgn -> compute_rval e
+  | O_nsgn -> let rvl = compute_rval e in
       let invert_sign = match type_of rvl with 
       | int_type -> build_neg 
       | _ -> build_fneg 
     in invert_sign rvl "invtmp" lbuilder
-  | O_neg -> let rvl = to_rval e vl in
+  | O_neg -> let rvl = compute_rval e in
     build_not rvl "nottmp" lbuilder 
 and codegen_sc_binop e1 e2 op = 
   let vl1 = compute_rval e1 in 
-  let scconst = const_bool @@ match op with 
+  let scconst = const_bool' @@ match op with 
   | O_and -> 0 | O_or -> 1 
   in let cond = build_icmp Icmp.Eq vl1 scconst
     "sccond" lbuilder in
@@ -200,8 +201,8 @@ and codegen_sc_binop e1 e2 op =
   position_at_end afterbb lbuilder;
   build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
 and codegen_binop e1 e2 op = 
-  let vl1 = prepare_value (codegen_expr e1) e1 in 
-  let vl2 = prepare_value (codegen_expr e2) e2 in
+  let vl1 = prepare_value e1 in 
+  let vl2 = prepare_value e2 in
   match op with
   | O_times -> let multiply = match classify_type' vl1 with
       | Llvm.TypeKind.Integer -> build_mul
@@ -220,8 +221,7 @@ and codegen_binop e1 e2 op =
   | O_minus -> let subtract = match classify_type' vl1 with 
       | Llvm.TypeKind.Integer -> build_sub vl1 vl2 
       | Llvm.TypeKind.Double -> build_fsub vl1 vl2
-      | _ -> 
-        let negvl2 = build_neg vl2 "negtmp" lbuilder in 
+      | _ -> let negvl2 = build_neg vl2 "negtmp" lbuilder in 
         build_gep vl1 [|negvl2|]
     in subtract "subtmp" lbuilder
   | O_lt -> let lessthan = match classify_type' vl1 with 
@@ -249,7 +249,7 @@ and codegen_binop e1 e2 op =
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
-  | _ -> cg_fail "Invalid binary operator."
+  | _ -> cg_fail e1.meta "Invalid binary operator."
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let const = match classify_element_type lhs with 
@@ -262,7 +262,7 @@ and codegen_uasgn ~pre e op =
     | O_mimi -> O_minus
   in let rhs = codegen_binop e const op' in
   ignore @@ build_store rhs lhs lbuilder;
-  if (pre) then rhs else (to_rval e lhs)
+  if (pre) then rhs else lhs
 and codegen_basgn e1 e2 op = 
   let lhs = codegen_expr e1 in 
   let rhs = if (op = O_asgn) then (compute_rval e2)
@@ -282,11 +282,11 @@ and codegen_expr exp =
       | ENTRY_variable inf -> inf.llval
       | _ -> failwith "Zoinks Scoob."
     end
-  | E_int d -> const_int d  
-  | E_char c -> const_char (Char.code c)
-  | E_double f -> const_double f
+  | E_int d -> const_int' d  
+  | E_char c -> const_char' (Char.code c)
+  | E_double f -> const_double' f
   | E_str s -> build_global_stringptr s "strtmp" lbuilder
-  | E_bool b -> const_bool (if b then 1 else 0)
+  | E_bool b -> const_bool' (if b then 1 else 0)
   | E_NULL -> const_pointer_null @@ pointer_type int_type
   | E_uop (op, e) -> codegen_uop e op
   | E_binop (e1, op, e2) -> begin match op with 
@@ -301,7 +301,7 @@ and codegen_expr exp =
     build_edsger_cast vl tto
   | E_ternary (e1, e2, e3) -> begin
       let vl1 = compute_rval e1 in 
-      let cond = build_icmp Icmp.Eq vl1 (const_bool 1)
+      let cond = build_icmp Icmp.Eq vl1 (const_bool' 1)
         "trncond" lbuilder in
       let f = block_parent @@ insertion_block lbuilder in
       let trntbb = append_block lcontext "trntrue" f in
@@ -324,13 +324,25 @@ and codegen_expr exp =
     build_array_malloc t vl "newtmp" lbuilder
   | E_delete e -> let vl = compute_rval e in 
     build_free vl lbuilder
-  | E_fcall (fn, es) -> failwith "TODO 2"
+  | E_fcall (fn, es) -> 
+    let callee = 
+      match lookup_function fn lmodule with 
+      | Some f -> f 
+      | None -> failwith "Unknown function."
+    in 
+    let args = Array.of_list es |> 
+      Array.map prepare_value in 
+    let ft = element_type @@ type_of callee in
+    let name = if (return_type ft = void_type lcontext) 
+      then "" else "calltmp" in
+    build_call callee args name lbuilder
+    (* failwith "TODO 2" *)
     (* let f = find function ...... in
       let name = if (is_void f) then "" else "calltmp" in
       let args = args_of_parameter_list es in
       build_call f args name lbuilder *)  
   | E_arracc (e1, e2) -> 
-    let ptr = prepare_value (codegen_expr e1) e1 in 
+    let ptr = prepare_value e1 in 
     let ofst = compute_rval e2 in
     build_gep ptr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
@@ -341,7 +353,7 @@ and codegen_stmt stm =
   | S_block b -> List.iter codegen_stmt b;
   | S_if (e, s1, o) -> begin  
       let vl = compute_rval e in 
-      let cond = build_icmp Icmp.Ne vl (const_bool 0) 
+      let cond = build_icmp Icmp.Ne vl (const_bool' 0) 
         "ifcond" lbuilder in
       let f = block_parent @@ insertion_block lbuilder in
       let thenbb = append_block lcontext "then" f in
@@ -383,7 +395,7 @@ and codegen_stmt stm =
           end;
           pushLoop stepbb afterbb;
           let vl = compute_rval e2 in 
-          let cond = build_icmp Icmp.Eq vl (const_bool 1) 
+          let cond = build_icmp Icmp.Eq vl (const_bool' 1) 
             "forcond" lbuilder in
           ignore @@ build_cond_br cond bodybb afterbb lbuilder; 
           position_at_end bodybb lbuilder;
@@ -392,7 +404,7 @@ and codegen_stmt stm =
             ignore @@ build_br stepbb lbuilder; 
           position_at_end stepbb lbuilder;
           begin match o3 with 
-          | Some e3 -> ignore @@ codegen_expr e2
+          | Some e3 -> ignore @@ codegen_expr e3
           | None -> ()
           end;
           ignore @@ build_br loopbb lbuilder;                     
@@ -435,11 +447,11 @@ and declare_global' vllt = function
     match v with 
     | C_int i -> if (i > 0) then 
         let invl = if (vllt = double_type) then 
-          const_double 0.0 else const_int 0 in
+          const_double' 0.0 else const_int' 0 in
         let init = const_array vllt @@ Array.make i invl in
         define_global vn init lmodule |>
         newVariable (id_of_var vn) |> ignore
-      else cg_fail "Non-positive array initializer." 
+      else failwith "Non-positive array initializer." (* FIX *)
     | _ -> failwith "Unreachable State. \
           (Non-int initializer in array declarator)"
 and declare_local' vllt = function 
@@ -452,43 +464,40 @@ and declare_local' vllt = function
         let arrt = array_type vllt i in 
         build_alloca arrt vn lbuilder |>
         newVariable (id_of_var vn) |> ignore
-      else cg_fail "Non-positive array initializer." 
+      else failwith "Non-positive array initializer." (* FIX *)
     | _ -> failwith "Unreachable State. \
           (Non-int initializer in array declarator)"
 and codegen_vars vt vs =
   let vllt = lltype_of_vartype vt in 
   let declare = vllt |> 
     if (inOuterScope ()) then declare_global'
-    else declare_local'
+    else declare_local' 
   in List.iter declare vs
 and codegen_header rt fn ps = 
   let fllt = function_type_of_header rt ps in 
-  ignore @@ declare_function fn fllt lmodule
+  declare_function fn fllt lmodule
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
-    codegen_header rt fn ps
+    ignore @@ codegen_header rt fn ps
 and codegen_fdef rt fn ps b = 
-    failwith "TODO 6"
+  let f = codegen_header rt fn ps in 
+  let entrybb = append_block lcontext "entry" f in
+  position_at_end entrybb lbuilder;
+  openScope ();
+  codegen_body b;  
+  closeScope ();
+  if (can_add_terminator ()) then            
+    ignore @@ build_ret_void lbuilder    
 and codegen_decl dec = 
   match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs
-  | D_fun (rt, fn, ps) -> () (* codegen_fdecl rt fn ps *)
-  | D_fdef (rt, fn, ps, b) -> 
-    let ft = function_type (void_type lcontext) [||] in
-    let f = define_function "main" ft lmodule in 
-    let entrybb = entry_block f in
-    position_at_end entrybb lbuilder;
-    openScope ();
-    codegen_body b;
-    closeScope ();
-    if (can_add_terminator ()) then 
-      ignore @@ build_ret_void lbuilder
-    (* codegen_fdef rt fn ps b *)
+  | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps
+  | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
 let codegen t = 
   initSymbolTable 256;
   List.iter codegen_decl t;
   match Llvm_analysis.verify_module lmodule with 
   | None -> lmodule 
-  | Some s -> cg_fail s
+  | Some s -> failwith s (* FIX *)
