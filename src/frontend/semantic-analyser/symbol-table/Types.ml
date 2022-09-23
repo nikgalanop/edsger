@@ -20,10 +20,12 @@ let typ_of_primitive = function
   | Ast.CHAR -> TYPE_char
   | Ast.BOOL -> TYPE_bool 
   | Ast.DOUBLE -> TYPE_double
-
+  
 let valid_cast tfrom tto = 
   match tfrom, tto with 
-  | TYPE_pointer _, _ -> true 
+  | TYPE_pointer _, TYPE_pointer _
+  | TYPE_pointer _, TYPE_int -> true
+  | TYPE_pointer _, _ -> false
   | _, TYPE_pointer _ -> false 
   | _ -> true 
 
