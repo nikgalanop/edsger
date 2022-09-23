@@ -2,6 +2,12 @@
 *.eds
 *.h
 
+# Ignore LLVM Files
+*.ll
+
+# Ignore Assembly Files
+*.s
+
 *.annot
 *.cmo
 *.cma
