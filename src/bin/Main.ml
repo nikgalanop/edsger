@@ -18,6 +18,11 @@ let cli_error msg =
   Utilities.print_diagnostic ~p:None msg Utilities.Error;
   exit 1
 
+let execute_cmd cmd msg = 
+  if (Sys.command cmd <> 0) then begin
+    prerr_newline (); failwith msg
+  end
+
 let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
@@ -60,9 +65,11 @@ let () =
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
       let cmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
-      ignore @@ Sys.command cmd;
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details";
       let cmd = Printf.sprintf "clang -o %s %s.s edsgerlib.a -lm" n n in 
-      ignore @@ Sys.command cmd;
+      execute_cmd cmd "Clang produced an error during the linking phase. \
+        Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
     end
     else if (!ir_flag) then 
@@ -73,7 +80,8 @@ let () =
       Out_channel.close f;
       let n = Filename.remove_extension nm in 
       let cmd = Printf.sprintf "llc -march=\"x86-64\" < %s" nm in 
-      ignore @@ Sys.command cmd;
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details"
     end;
     exit 0
   with 
