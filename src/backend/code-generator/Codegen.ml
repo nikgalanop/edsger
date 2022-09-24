@@ -93,7 +93,7 @@ let build_edsger_cast vl tto =
   end
 
 type const = | C_int of int | C_double of float
-let compute_const_binop v1 v2 = function
+let compute_const_binop v1 v2 pos = function
   | O_times -> begin match v1, v2 with
       | C_int i1, C_int i2 -> C_int (i1 * i2)
       | C_double d1, C_double d2 -> C_double (d1 *. d2)
@@ -123,19 +123,19 @@ let compute_const_binop v1 v2 = function
       | _ -> failwith "Unreachable state. \
             (Bad subtraction in array initialization)"
     end
-  | _ -> failwith "Bad operation in array initializer" (* FIX *)
+  | _ -> cg_fail pos "Bad operation in array initializer" 
 
-let const_cast tto v = 
+let const_cast tto v pos = 
   match v with
   | C_int i -> begin match tto with 
       | PTR(INT, 0) -> v
       | PTR(DOUBLE, 0) -> C_double (float_of_int i)
-      | _ -> failwith "Bad casting in array initializer" (* FIX *)
+      | _ -> cg_fail pos "Bad casting in array initializer" 
     end
   | C_double d -> begin match tto with 
       | PTR(INT, 0) -> C_int (int_of_float d)
       | PTR(DOUBLE, 0) -> v
-      | _ -> failwith "Bad casting in array initializer" (* FIX *)
+      | _ -> cg_fail pos "Bad casting in array initializer" 
     end
 let rec compute_const exp =
   match exp.expr with 
@@ -149,11 +149,11 @@ let rec compute_const exp =
     end
   | E_binop (e1, op, e2) -> let v1 = compute_const e1 in 
     let v2 = compute_const e2 in 
-    compute_const_binop v1 v2 op
+    compute_const_binop v1 v2 exp.meta op
   | E_tcast (vt, e) -> let v = compute_const e in
-    const_cast vt v
+    const_cast vt v e.meta
   | E_brack e -> compute_const e
-  | _ -> cg_fail exp.meta "Bad array initializer."
+  | _ -> cg_fail exp.meta "Bad array initializer"
 
 let rec to_rval e vl = 
   match Types.is_lval e with 
@@ -177,8 +177,8 @@ and codegen_uop e op =
       or we automatically cannot load from a null ptr? *)
   | O_psgn -> prepare_value e
   | O_nsgn -> let rvl = prepare_value e in
-      let invert_sign = match type_of rvl with 
-      | int_type -> build_neg 
+      let invert_sign = match classify_type' rvl with 
+      | Llvm.TypeKind.Integer -> build_neg  
       | _ -> build_fneg 
     in invert_sign rvl "invtmp" lbuilder
   | O_neg -> let rvl = prepare_value e in
@@ -255,7 +255,7 @@ and codegen_binop e1 e2 op =
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
-  | _ -> cg_fail e1.meta "Invalid binary operator."
+  | _ -> cg_fail e1.meta "Invalid binary operator"
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let const = match classify_element_type lhs with 
@@ -279,7 +279,7 @@ and codegen_basgn e1 e2 op =
     else tmp 
   end
   else match op with 
-      | O_asgn -> failwith "Taken care of."
+      | O_asgn -> failwith "Taken care of"
       | O_mulasgn -> codegen_binop e1 e2 O_times
       | O_divasgn -> codegen_binop e1 e2 O_div
       | O_modasgn -> codegen_binop e1 e2 O_mod
@@ -292,7 +292,7 @@ and codegen_expr exp =
   | E_var v -> let ent = lookupEntry (id_of_var v) LOOKUP_ALL_SCOPES true in 
     begin match ent.entry_info with 
       | ENTRY_variable inf -> inf.llval
-      | _ -> failwith "Zoinks Scoob."
+      | _ -> failwith "Zoinks Scoob"
     end
   | E_int d -> const_int' d  
   | E_char c -> const_char' (Char.code c)
@@ -340,7 +340,7 @@ and codegen_expr exp =
     let callee = 
       match lookup_function fn lmodule with 
       | Some f -> f 
-      | None -> failwith "Unknown function."
+      | None -> failwith "Unknown function"
     in 
     let args = Array.of_list es |> 
       Array.map prepare_value in 
@@ -422,14 +422,14 @@ and codegen_stmt stm =
           position_at_end afterbb lbuilder; 
           popLoop ()
         end
-      | _ -> failwith "Unreachable state. (No for-loop condition)" 
+      | _ -> failwith "Unreachable state (No for-loop condition)" 
     end
   | S_cont o -> let jl = match o with
     | Some l -> let id = id_of_label l in
       let ent = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
       begin match ent.entry_info with 
         | ENTRY_label inf -> inf 
-        | _ -> failwith "Found a non label with the id of a label."
+        | _ -> failwith "Found a non label with the id of a label"
       end
     | None -> peekLoop ()
     in ignore @@ build_br jl.stepbb lbuilder
@@ -438,7 +438,7 @@ and codegen_stmt stm =
       let ent = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
       begin match ent.entry_info with 
         | ENTRY_label inf -> inf 
-        | _ -> failwith "Found a non label with the id of a label."
+        | _ -> failwith "Found a non label with the id of a label"
       end
     | None -> peekLoop ()
     in ignore @@ build_br jl.afterbb lbuilder
@@ -451,21 +451,23 @@ and codegen_body b =
   let F_body (decs, stms) = b in 
   List.iter codegen_decl decs;
   List.iter codegen_stmt stms
-and declare_global' vllt = function 
-  | (vn, None) -> declare_global vllt vn lmodule |> 
+and declare_global' vllt pos = function 
+  | (vn, None) -> let init = const_null vllt in
+    define_global vn init lmodule |> 
     newVariable (id_of_var vn) |> ignore
   | (vn, Some e) -> let v = compute_const e in
     match v with 
     | C_int i -> if (i > 0) then 
-        let invl = if (vllt = double_type) then 
-          const_double' 0.0 else const_int' 0 in
+        let invl = match classify_type vllt with 
+          | Llvm.TypeKind.Double -> const_double' 0.0
+          | _ -> const_int' 0 in
         let init = const_array vllt @@ Array.make i invl in
         define_global vn init lmodule |>
         newVariable (id_of_var vn) |> ignore
-      else failwith "Non-positive array initializer." (* FIX *)
-    | _ -> failwith "Unreachable State. \
+      else failwith "Non-positive array initializer" 
+    | _ -> cg_fail pos "Unreachable State. \
           (Non-int initializer in array declarator)"
-and declare_local' vllt = function 
+and declare_local' vllt pos = function 
   | (vn, None) -> 
     build_alloca vllt vn lbuilder |>
     newVariable (id_of_var vn) |> ignore
@@ -475,15 +477,15 @@ and declare_local' vllt = function
         let arrt = array_type vllt i in 
         build_alloca arrt vn lbuilder |>
         newVariable (id_of_var vn) |> ignore
-      else failwith "Non-positive array initializer." (* FIX *)
+      else cg_fail pos "Non-positive array initializer" 
     | _ -> failwith "Unreachable State. \
           (Non-int initializer in array declarator)"
-and codegen_vars vt vs =
+and codegen_vars vt vs pos =
   let vllt = lltype_of_vartype vt in 
   let declare = vllt |> 
     if (inOuterScope ()) then declare_global'
     else declare_local' 
-  in List.iter declare vs
+  in List.iter (declare pos) vs
 and codegen_header rt fn ps = 
   let fllt = function_type_of_header rt ps in 
   declare_function fn fllt lmodule
@@ -503,7 +505,7 @@ and codegen_fdef rt fn ps b =
     ignore @@ build_ret_void lbuilder    
 and codegen_decl dec = 
   match dec.decl with 
-  | D_var (vt, vs) -> codegen_vars vt vs
+  | D_var (vt, vs) -> codegen_vars vt vs dec.meta
   | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps
   | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
 let codegen t = 
@@ -511,4 +513,4 @@ let codegen t =
   List.iter codegen_decl t;
   match Llvm_analysis.verify_module lmodule with 
   | None -> lmodule 
-  | Some s -> failwith s (* FIX *)
+  | Some s -> failwith s
