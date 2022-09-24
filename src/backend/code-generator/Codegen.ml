@@ -73,7 +73,7 @@ let build_edsger_cast vl tto =
               build_zext vl tto "casttmp" lbuilder 
         | Llvm.TypeKind.Double -> build_fptoui vl tto "casttmp" lbuilder
        end
-      else begin match classify_type tfrom with (* bool_type *)
+      else begin match classify_type tfrom with
         | Llvm.TypeKind.Integer -> 
           build_icmp Icmp.Ne vl (const_int tfrom 0) "casttmp" lbuilder
         | Llvm.TypeKind.Double -> 
