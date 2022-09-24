@@ -9,8 +9,9 @@ type typ = TYPE_none
 
 let rec equalType t1 t2 =
    match t1, t2 with
-   | TYPE_pointer {typ = et1; dim = _; mut = _},
-     TYPE_pointer {typ = et2; dim = _; mut = _} -> equalType et1 et2 
+   | TYPE_pointer {typ = et1; dim = d1; mut = _},
+     TYPE_pointer {typ = et2; dim = d2; mut = _} -> 
+      d1 = d2 && equalType et1 et2 
    | TYPE_pointer r, TYPE_null | TYPE_null, TYPE_pointer r -> 
       r.mut 
    | _                                            -> t1 = t2
