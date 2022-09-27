@@ -279,7 +279,7 @@ and sem_expr exp =
           match with the provided values" r.fn in sem_fail pos msg
       else match e.entry_info with 
         | ENTRY_function inf -> let scp = inf.function_number in 
-          r.mangl <- funCall_mangled r.fn p_str scp;
+          r.mangl <- id_name fid;
           inf.function_result
         | _ -> failwith "Should not reach this state" 
     with Exit -> let msg = Printf.sprintf "Called a non-existing \

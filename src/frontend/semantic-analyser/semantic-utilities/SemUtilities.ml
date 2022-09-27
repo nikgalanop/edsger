@@ -75,11 +75,6 @@ let name_mangling ps =
       str_of_type ~short:true ~ptr_format:false (typ_of_primitive ptyp) ^ dim_str
   in
     List.fold_right ( ^ ) (List.map aux ps) ""  
-
-let funCall_mangled fnstr pstr num = 
-  let num' = string_of_int @@ num in 
-  let name = fnstr ^ "_" ^ pstr ^ "_" ^ num' in 
-  if (name = "main__0") then "main" else name
     
 let exists_main () = 
   let id = Identifier.id_of_func "main" "" in

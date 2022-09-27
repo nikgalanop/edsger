@@ -335,13 +335,18 @@ and codegen_expr exp =
   | E_delete e -> let vl = prepare_value e in 
     build_free vl lbuilder
   | E_fcall r -> 
-    let callee = 
-      match lookup_function r.mangl lmodule with 
-      | Some f -> f 
-      | _ -> failwith ("Unknown function: " ^ r.mangl)
-    in
-    let args = Array.of_list r.exprs |> 
-      Array.map prepare_value in 
+    let fid = id_make r.mangl in
+    let entr = lookupEntry fid LOOKUP_ALL_SCOPES true in
+    let inf = match entr.entry_info with 
+    | ENTRY_function inf -> inf
+    | _ -> failwith ("Unknown function: " ^ r.mangl)
+    in let callee = inf.llfun in 
+    let ps = inf.function_paramlist in
+    let exprs = Array.of_list @@ List.combine r.exprs ps in 
+    let prepare = function 
+    | e, PASS_BY_REFERENCE -> codegen_expr e 
+    | e, PASS_BY_VALUE -> prepare_value e 
+    in let args = Array.map prepare exprs in 
     let ft = element_type @@ type_of callee in
     let name = if (return_type ft = void_type lcontext) 
       then "" else "calltmp" in
