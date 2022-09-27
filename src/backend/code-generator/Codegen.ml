@@ -335,16 +335,10 @@ and codegen_expr exp =
   | E_delete e -> let vl = prepare_value e in 
     build_free vl lbuilder
   | E_fcall r -> 
-    (* We actually have to recompute the es types to extract the mangled 
-      string... *)
-    (* Maybe change the ast node for E_fcall? *)
     let callee = 
       match lookup_function r.mangl lmodule with 
       | Some f -> f 
       | _ -> failwith ("Unknown function: " ^ r.mangl)
-      (* match lookupEntry (id_of_func) lmodule with 
-      | ENTRY_function inf -> f 
-      | _ -> failwith "Unknown function" *)
     in
     let args = Array.of_list r.exprs |> 
       Array.map prepare_value in 
@@ -551,7 +545,8 @@ and codegen_fdef rt fn ps b =
   if (can_add_terminator ()) then            
     match rt with 
     | VOID -> ignore @@ build_ret_void lbuilder;
-    | _ -> let llrt = return_type @@ type_of f in 
+    | _ -> let ft = element_type @@ type_of f in
+      let llrt = return_type ft  in 
       let zero = const_null llrt in
       ignore @@ build_ret zero lbuilder;
 and codegen_decl dec = 
