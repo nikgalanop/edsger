@@ -58,7 +58,9 @@ and expr =
   | E_ternary of ast_expr * ast_expr * ast_expr
   | E_new of vartype * ast_expr
   | E_delete of ast_expr
-  | E_fcall of fname * ast_expr list  
+  | E_fcall of { fn : fname; 
+        exprs : ast_expr list; 
+        mutable mangl : fname } 
   | E_arracc of ast_expr * ast_expr
   | E_brack of ast_expr
 
@@ -146,9 +148,9 @@ let rec print_expr e =
     printf ", "; print_expr e; printf ")"
   | E_delete e -> printf "E_delete(";
     print_expr e; printf ")"
-  | E_fcall (f, l) -> printf "E_fcall(%s, " f;
+  | E_fcall r -> printf "E_fcall(%s, " r.fn;
     List.iter (fun s -> print_expr s; 
-    printf " ," ) l; printf ")\n"
+    printf " ," ) r.exprs; printf ")\n"
   | E_arracc (e1, e2) -> printf "E_arracc(";
     print_expr e1; printf ", "; 
     print_expr e2; printf ")"

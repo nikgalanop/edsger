@@ -240,7 +240,7 @@ and sem_expr exp =
     let t2 = vartype_sem v None in
     if (valid_cast t1 t2) then t2 
     else let msg = Printf.sprintf "Invalid type conversion from %s to %s" 
-      (str_of_type ~ptr_format:true t1) (str_of_type ~ptr_format:true t2)
+      (str_of_type ~short:false ~ptr_format:true t1) (str_of_type ~short:false ~ptr_format:true t2)
     in sem_fail pos msg
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
     let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
@@ -263,25 +263,27 @@ and sem_expr exp =
         TYPE_pointer r
       | _ -> sem_fail pos "Tried to deallocate a statically allocated array"
     else sem_fail pos "Tried to deallocate memory using a non-pointer"
-  | E_fcall (f, l) -> let p_types = List.map sem_expr l in
+  | E_fcall r -> let p_types = List.map sem_expr r.exprs in
     let p_str = str_of_fval_types p_types in
-    let fid = id_of_func f p_str in begin
+    let fid = id_of_func r.fn p_str in begin
     try 
       let e = lookupEntry fid LOOKUP_ALL_SCOPES true in 
       let match_func ent =
         match ent.entry_info with 
         | ENTRY_function inf -> let plst = inf.function_paramlist in 
-          accept_parameters plst (List.combine l p_types)
+          accept_parameters plst (List.combine r.exprs p_types)
         | _ -> failwith "Should not find a non-function that has an identifier of a function"
       in 
       if (not @@ match_func e) then
         let msg = Printf.sprintf "No definitions/declarations of `%s` \
-          match with the provided values" f in sem_fail pos msg
+          match with the provided values" r.fn in sem_fail pos msg
       else match e.entry_info with 
-        | ENTRY_function inf -> inf.function_result
+        | ENTRY_function inf -> let scp = inf.function_number in 
+          r.mangl <- funCall_mangled r.fn p_str scp;
+          inf.function_result
         | _ -> failwith "Should not reach this state" 
     with Exit -> let msg = Printf.sprintf "Called a non-existing \
-        function `%s`" (str_of_fcall f p_types) 
+        function `%s`" (str_of_fcall r.fn p_types) 
       in sem_fail pos msg
     end
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in

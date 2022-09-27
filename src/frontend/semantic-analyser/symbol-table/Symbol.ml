@@ -27,6 +27,7 @@ and variable_info = {
 }
 
 and function_info = {
+  function_number            : int;
   mutable function_isForward : bool;
   mutable function_paramlist : entry list;
   mutable function_redeflist : entry list;
@@ -69,6 +70,7 @@ let currentScope = ref the_outer_scope
 let forNest = ref 0
 
 let tab = ref (H.create 0)
+let count = ref (H.create 50)
 
 let initSymbolTable size =
    tab := H.create size;
@@ -146,6 +148,21 @@ let newVariable id typ err =
   } 
   in newEntry id (ENTRY_variable inf) err
 
+let getCounter id = 
+  try  
+    let c = H.find !count id in
+    !c 
+  with Not_found ->
+    failwith "Non-existing function."
+
+let updateCounter id = 
+  try  
+    let c = H.find !count id in
+    c := !c + 1; !c
+  with Not_found ->
+    H.add !count id (ref 0);
+    0
+
 let newFunction id =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
@@ -163,7 +180,9 @@ let newFunction id =
     | _ -> 
         failwith "Duplicate identifier."
   with Not_found ->
+    let num = updateCounter id in
     let inf = {
+      function_number = num;
       function_isForward = false;
       function_paramlist = [];
       function_redeflist = [];

@@ -58,7 +58,9 @@ and expr =
   | E_ternary of ast_expr * ast_expr * ast_expr
   | E_new of vartype * ast_expr
   | E_delete of ast_expr
-  | E_fcall of fname * ast_expr list  
+  | E_fcall of { fn : fname; 
+      exprs : ast_expr list; 
+      mutable mangl : fname } 
   | E_arracc of ast_expr * ast_expr
   | E_brack of ast_expr
 
