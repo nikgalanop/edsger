@@ -22,8 +22,8 @@ and function_info = {
   llfun                      : Llvm.llvalue;
   function_number            : int;
   mutable function_paramlist : pass_mode list;
-  mutable function_result    : Types.typ;
- }
+}
+
 and parameter_info = {
   parameter_mode : pass_mode
 }
@@ -151,7 +151,6 @@ let newFunction id llv =
       llfun = llv;
       function_number = num;
       function_paramlist = [];
-      function_result = Types.TYPE_none;
     } in
     (newEntry id (ENTRY_function inf), false)
 
@@ -176,11 +175,10 @@ let peekLoop () = (* We only use this after a push. *)
 let popLoop () = 
   ignore @@ Stack.pop_opt loop_stack
 
-let endFunctionHeader e typ =
+let endFunctionHeader e =
   match e.entry_info with
   | ENTRY_function inf ->
     begin
-      inf.function_result <- typ;
       inf.function_paramlist <- List.rev inf.function_paramlist
     end;
   | _ -> failwith "Cannot end parameters in a non-function."

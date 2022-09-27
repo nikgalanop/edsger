@@ -16,7 +16,6 @@ and function_info = {                         (******* Συνάρτηση  *****
   llfun                      : Llvm.llvalue;
   function_number            : int;
   mutable function_paramlist : pass_mode list;    (* List Parameters        *)
-  mutable function_result    : Types.typ;     (* Function Result        *)
 }
 
 and parameter_info = {
@@ -56,7 +55,7 @@ val newFunction      : Identifier.id -> Llvm.llvalue -> entry * bool
 val newParameter     : Identifier.id -> pass_mode -> entry -> unit
 val newLabel         : Identifier.id -> Llvm.llbasicblock -> Llvm.llbasicblock -> entry
 
-val endFunctionHeader    : entry -> Types.typ -> unit
+val endFunctionHeader    : entry -> unit
 val lookupEntry          : Identifier.id -> lookup_type -> bool -> entry
 
 val pushLoop  : Llvm.llbasicblock -> Llvm.llbasicblock -> unit

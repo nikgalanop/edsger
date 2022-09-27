@@ -503,9 +503,7 @@ and codegen_header rt fn ps =
     let ps' = Array.of_list ps in 
     name_parameters ps' f
   end;
-  endFunctionHeader entr (match rt with
-    | VOID -> TYPE_proc
-    | RET vartyp -> CGUtils.typ_of_vartype vartyp);
+  endFunctionHeader entr;
   entr
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
