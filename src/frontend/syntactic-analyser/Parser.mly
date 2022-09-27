@@ -198,13 +198,13 @@ expression:
         | T_string                                                                { { expr = E_str $1;
                                                                                       meta = $symbolstartpos } }
         | T_id T_leftpar option(expression) T_rightpar                            { let exp = match $3 with
-                                                                                    | None -> E_fcall ($1, [])
+                                                                                    | None -> E_fcall { fn = $1; exprs = []; mangl = "" }
                                                                                     | Some e -> 
                                                                                         let rec flatten ex acc =
                                                                                             match ex.expr with
                                                                                             | E_binop (x, O_comma, y) -> flatten x (y :: acc)
                                                                                             | _ -> ex :: acc
-                                                                                        in E_fcall ($1, flatten e [])
+                                                                                        in E_fcall { fn = $1; exprs = flatten e []; mangl = "" }
                                                                                     in { expr = exp; meta = $symbolstartpos }
                                                                                   } 
         | expression T_leftsqbr expression T_rightsqbr                            { { expr = E_arracc ($1, $3); 

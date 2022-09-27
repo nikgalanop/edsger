@@ -19,6 +19,9 @@ and const_char' = const_int char_type
 and const_bool' = const_int bool_type
 and const_double' = const_float double_type
 
+
+let get_ast_param_name = function 
+  | BYVAL (_, vn) | BYREF (_, vn) -> vn
 let const_pointer_null' vl = 
   const_null @@ element_type @@ type_of vl
 let classify_type' vl = 
@@ -85,11 +88,6 @@ let build_edsger_cast vl tto =
       else 
         build_uitofp vl double_type "casttmp" lbuilder
   | _ -> build_bitcast vl tto "casttmp" lbuilder
-    (* Revisit: Pointer conversion 
-    We do not actually need to cast the pointer value 
-    unless not all pointers have the same size in asm, 
-    something that we definitely do not want according
-    to the edsger language specification.  *)
   end
 
 type const = | C_int of int | C_double of float
@@ -167,14 +165,12 @@ and prepare_value e =
   match t with 
   | Llvm.TypeKind.Array -> 
     let t1 =  element_type @@ element_type @@ type_of vl in 
-    build_bitcast vl (pointer_type t1) "arrptr" lbuilder (* Is this okay? *)
+    build_bitcast vl (pointer_type t1) "arrptr" lbuilder
   | _ -> to_rval e vl
 and codegen_uop e op = 
   match op with
   | O_ref -> codegen_expr e
   | O_dref -> prepare_value e
-    (* Revisit. Do we need to check for a null pointer,
-      or we automatically cannot load from a null ptr? *)
   | O_psgn -> prepare_value e
   | O_nsgn -> let rvl = prepare_value e in
       let invert_sign = match classify_type' rvl with 
@@ -289,10 +285,14 @@ and codegen_basgn e1 e2 op =
   rhs
 and codegen_expr exp = 
   match exp.expr with 
-  | E_var v -> let ent = lookupEntry (id_of_var v) LOOKUP_ALL_SCOPES true in 
-    begin match ent.entry_info with 
+  | E_var v -> begin try
+      let ent = lookupEntry (id_of_var v) LOOKUP_ALL_SCOPES false in 
+      begin match ent.entry_info with 
       | ENTRY_variable inf -> inf.llval
-      | _ -> failwith "Zoinks Scoob"
+      | _ -> failwith "Found a non-variable entry with the id of a variable"
+      end
+    with | _ -> let msg = Printf.sprintf "Non-existing variable `%s`" v in 
+      cg_fail exp.meta msg
     end
   | E_int d -> const_int' d  
   | E_char c -> const_char' (Char.code c)
@@ -331,18 +331,22 @@ and codegen_expr exp =
     end
   | E_new (vt, e) -> let vl = prepare_value e in 
     let t = lltype_of_vartype vt in 
-    (* Revisit. Should check that vl is positive. 
-      Is the following code enough/correct? *)
     build_array_malloc t vl "newtmp" lbuilder
   | E_delete e -> let vl = prepare_value e in 
     build_free vl lbuilder
-  | E_fcall (fn, es) -> 
+  | E_fcall r -> 
+    (* We actually have to recompute the es types to extract the mangled 
+      string... *)
+    (* Maybe change the ast node for E_fcall? *)
     let callee = 
-      match lookup_function fn lmodule with 
+      match lookup_function r.mangl lmodule with 
       | Some f -> f 
-      | None -> failwith "Unknown function"
-    in 
-    let args = Array.of_list es |> 
+      | _ -> failwith ("Unknown function: " ^ r.mangl)
+      (* match lookupEntry (id_of_func) lmodule with 
+      | ENTRY_function inf -> f 
+      | _ -> failwith "Unknown function" *)
+    in
+    let args = Array.of_list r.exprs |> 
       Array.map prepare_value in 
     let ft = element_type @@ type_of callee in
     let name = if (return_type ft = void_type lcontext) 
@@ -487,27 +491,83 @@ and codegen_vars vt vs pos =
     else declare_local' 
   in List.iter (declare pos) vs
 and codegen_header rt fn ps = 
+  let add_parameters_cg f par =
+    let varnm, pass_mode = match par with
+    | BYREF (_, vname) -> vname, PASS_BY_REFERENCE
+    | BYVAL (_, vname) -> vname, PASS_BY_VALUE
+    in newParameter (id_of_var varnm) pass_mode f
+  in
   let fllt = function_type_of_header rt ps in 
-  declare_function fn fllt lmodule
+  let pstr = SemUtilities.name_mangling ps in 
+  let fid = id_of_func fn pstr in
+  let num = (getCounter fid) + 1 in 
+  let fn' = CGUtils.funStr_mangled fn pstr num in 
+  let f = declare_function fn' fllt lmodule in 
+  let entr, found = newFunction fid f in 
+  if (not found) then begin
+    List.iter (add_parameters_cg entr) ps;
+    let ps' = Array.of_list ps in 
+    name_parameters ps' f
+  end;
+  endFunctionHeader entr (match rt with
+    | VOID -> TYPE_proc
+    | RET vartyp -> CGUtils.typ_of_vartype vartyp);
+  entr
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
     ignore @@ codegen_header rt fn ps
+and name_parameters ps f =  
+  Array.iteri (fun i a -> 
+    let p = ps.(i) in
+    let n = get_ast_param_name p in 
+    set_value_name n a;
+  ) (params f)
+and parameter_allocation ps f = 
+    Array.iteri (fun i ai -> 
+      let p = ps.(i) in 
+      let n = value_name ai in
+      let vl = match p with 
+       | PASS_BY_VALUE -> 
+          let t = type_of ai in  
+          let alc = build_alloca t n lbuilder in 
+          ignore @@ build_store ai alc lbuilder;
+          alc      
+       | _ -> ai in 
+      ignore @@ newVariable (id_of_var n) vl
+    ) (params f)
 and codegen_fdef rt fn ps b = 
-  let f = codegen_header rt fn ps in 
+  let func_entr = codegen_header rt fn ps in 
+  let ENTRY_function inf = func_entr.entry_info in
+  let f = inf.llfun in 
   let entrybb = append_block lcontext "entry" f in
   position_at_end entrybb lbuilder;
   openScope ();
+  let ps' = Array.of_list inf.function_paramlist in
+  parameter_allocation ps' f;
   codegen_body b;  
   closeScope ();
   if (can_add_terminator ()) then            
-    ignore @@ build_ret_void lbuilder    
+    match rt with 
+    | VOID -> ignore @@ build_ret_void lbuilder;
+    | _ -> let llrt = return_type @@ type_of f in 
+      let zero = const_null llrt in
+      ignore @@ build_ret zero lbuilder;
 and codegen_decl dec = 
-  match dec.decl with 
+  let naive_cg dec = 
+    match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs dec.meta
   | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps
   | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
+  in 
+  if (inOuterScope ()) then naive_cg dec 
+  else begin
+    let parent = insertion_block lbuilder in
+    naive_cg dec; 
+    ignore @@ position_at_end parent lbuilder
+  end
+
 let codegen t = 
   initSymbolTable 256;
   List.iter codegen_decl t;

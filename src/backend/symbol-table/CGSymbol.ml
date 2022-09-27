@@ -20,12 +20,11 @@ and variable_info = {
 
 and function_info = {
   llfun                      : Llvm.llvalue;
-  mutable function_isForward : bool;
-  mutable function_paramlist : entry list;
+  function_number            : int;
+  mutable function_paramlist : pass_mode list;
   mutable function_result    : Types.typ;
  }
 and parameter_info = {
-  parameter_type : Types.typ;
   parameter_mode : pass_mode
 }
 
@@ -66,7 +65,11 @@ let currentScope = ref the_outer_scope
 let inOuterScope () = 
   !currentScope.sco_nesting = 0
 
+let nestingLevel () = 
+  !currentScope.sco_nesting
+
 let tab = ref (H.create 0)
+let count = ref (H.create 50)
 
 let loop_stack = Stack.create ()
 
@@ -114,8 +117,6 @@ let lookupEntry id how err =
   if err then
     try lookup ()
     with Not_found -> 
-      (* Printf.printf "Unknown Identifier %s (First Occurrence)"
-        (id_name id); *)
       H.add !tab id (no_entry id);
       raise Exit
   else lookup ()
@@ -124,42 +125,42 @@ let newVariable id llval =
   let inf = {llval} in 
   newEntry id (ENTRY_variable inf)
 
+let getCounter id = 
+  try 
+    let c = H.find !count id in
+    !c
+  with Not_found -> -1
+   
+let updateCounter id = 
+  try  
+    let c = H.find !count id in
+    c := !c + 1; !c
+  with Not_found ->
+    H.add !count id (ref 0);
+    0
+
 let newFunction id llv = 
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
-    | ENTRY_function inf when inf.function_isForward ->
-      inf.function_isForward <- false;
-      (e, true)
     | ENTRY_function inf -> (e, true)
     | _ -> failwith "Duplicate Identifier."
   with Not_found -> 
+    let num = updateCounter id in
     let inf = {
       llfun = llv;
-      function_isForward = false;
+      function_number = num;
       function_paramlist = [];
       function_result = Types.TYPE_none;
     } in
     (newEntry id (ENTRY_function inf), false)
 
-let newParameter id typ mode f = 
+let newParameter id mode f = 
   match f.entry_info with
-  | ENTRY_function inf -> begin
-    let inf_p = {
-      parameter_type = typ;
-      parameter_mode = mode;
-    } in
-    let e = newEntry id (ENTRY_parameter inf_p) in 
-      inf.function_paramlist <- e :: inf.function_paramlist;
-      e
+  | ENTRY_function inf -> begin 
+      inf.function_paramlist <- mode :: inf.function_paramlist;
     end
   | _ -> failwith "Cannot add a parameter to a non-function"
-
-let forwardFunction e = 
-  match e.entry_info with
-  | ENTRY_function inf -> 
-    inf.function_isForward <- true
-  | _ -> failwith "Cannot make a non-function forward"
 
 let newLabel id stepbb afterbb = 
   let inf = {stepbb; afterbb} in 

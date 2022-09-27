@@ -14,13 +14,12 @@ and variable_info = {                         (******* Μεταβλητή ******
 
 and function_info = {                         (******* Συνάρτηση  *******)
   llfun                      : Llvm.llvalue;
-  mutable function_isForward : bool;          (* Forward Function       *)
-  mutable function_paramlist : entry list;    (* List Parameters        *)
+  function_number            : int;
+  mutable function_paramlist : pass_mode list;    (* List Parameters        *)
   mutable function_result    : Types.typ;     (* Function Result        *)
 }
 
 and parameter_info = {
-  parameter_type : Types.typ;
   parameter_mode : pass_mode;
 }
 
@@ -46,15 +45,17 @@ type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 val currentScope : scope ref              (* Τρέχουσα Εμβέλεια *)
 val inOuterScope : unit -> bool
 
+val nestingLevel : unit -> int 
+
 val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
 val closeScope       : unit -> unit
 val newVariable      : Identifier.id -> Llvm.llvalue -> entry
+val getCounter       : Identifier.id -> int
 val newFunction      : Identifier.id -> Llvm.llvalue -> entry * bool
-val newParameter     : Identifier.id -> Types.typ -> pass_mode -> entry -> entry
+val newParameter     : Identifier.id -> pass_mode -> entry -> unit
 val newLabel         : Identifier.id -> Llvm.llbasicblock -> Llvm.llbasicblock -> entry
 
-val forwardFunction      : entry -> unit
 val endFunctionHeader    : entry -> Types.typ -> unit
 val lookupEntry          : Identifier.id -> lookup_type -> bool -> entry
 
