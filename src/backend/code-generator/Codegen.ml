@@ -490,12 +490,12 @@ and codegen_vars vt vs pos =
     if (inOuterScope ()) then declare_global'
     else declare_local' 
   in List.iter (declare pos) vs
-and codegen_header rt fn ps = 
+and codegen_header ~def rt fn ps = 
   let add_parameters_cg f par =
-    let varnm, pass_mode = match par with
-    | BYREF (_, vname) -> vname, PASS_BY_REFERENCE
-    | BYVAL (_, vname) -> vname, PASS_BY_VALUE
-    in newParameter (id_of_var varnm) pass_mode f
+    let pass_mode = match par with
+    | BYREF _ -> PASS_BY_REFERENCE
+    | BYVAL _ -> PASS_BY_VALUE
+    in newParameter pass_mode f
   in
   let fllt = function_type_of_header rt ps in 
   let pstr = SemUtilities.name_mangling ps in 
@@ -506,16 +506,20 @@ and codegen_header rt fn ps =
   let entr, found = newFunction fid f in 
   if (not found) then begin
     List.iter (add_parameters_cg entr) ps;
-    let ps' = Array.of_list ps in 
-    name_parameters ps' f
+    endFunctionHeader entr
   end;
-  endFunctionHeader entr;
+  if (def) then begin match entr.entry_info with 
+    | ENTRY_function inf -> 
+      let ps' = Array.of_list ps in 
+      name_parameters ps' inf.llfun
+    | _ -> failwith "Unreachable state"
+  end;
   entr
 and codegen_fdecl rt fn ps = 
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
-    ignore @@ codegen_header rt fn ps
+    ignore @@ codegen_header ~def:false rt fn ps
 and name_parameters ps f =  
   Array.iteri (fun i a -> 
     let p = ps.(i) in
@@ -536,7 +540,7 @@ and parameter_allocation ps f =
       ignore @@ newVariable (id_of_var n) vl
     ) (params f)
 and codegen_fdef rt fn ps b = 
-  let func_entr = codegen_header rt fn ps in 
+  let func_entr = codegen_header ~def:true rt fn ps in 
   let ENTRY_function inf = func_entr.entry_info in
   let f = inf.llfun in 
   let entrybb = append_block lcontext "entry" f in
