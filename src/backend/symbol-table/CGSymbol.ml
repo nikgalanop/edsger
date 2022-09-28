@@ -154,7 +154,7 @@ let newFunction id llv =
     } in
     (newEntry id (ENTRY_function inf), false)
 
-let newParameter id mode f = 
+let newParameter mode f = 
   match f.entry_info with
   | ENTRY_function inf -> begin 
       inf.function_paramlist <- mode :: inf.function_paramlist;
