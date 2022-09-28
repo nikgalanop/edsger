@@ -264,7 +264,8 @@ and codegen_uasgn ~pre e op =
     | O_mimi -> O_minus
   in let rhs = codegen_binop e const op' in
   ignore @@ build_store rhs lhs lbuilder;
-  if (pre) then rhs else lhs
+  if (pre) then rhs else
+    build_load lhs "loadtmp" lbuilder 
 and codegen_basgn e1 e2 op = 
   let lhs = codegen_expr e1 in 
   let rhs = if (op = O_asgn) then begin
