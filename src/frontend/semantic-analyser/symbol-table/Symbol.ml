@@ -218,8 +218,6 @@ let newParameter id typ mode f err =
                     failwith "Parameter type mismatch"
                   else if inf.parameter_mode != mode then
                     failwith "Parameter passing mode mismatch"
-                  else if p.entry_id != id then
-                    failwith "Parameter name mismatch"
                   else
                     newEntry id p.entry_info err
               | _ ->
