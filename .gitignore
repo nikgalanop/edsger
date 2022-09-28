@@ -8,6 +8,9 @@
 # Ignore Assembly Files
 *.s
 
+# Ignore Compiler Executables
+*.out
+
 *.annot
 *.cmo
 *.cma
