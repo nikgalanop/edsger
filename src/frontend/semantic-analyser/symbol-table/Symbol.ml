@@ -115,7 +115,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    let msg = Printf.sprintf "Duplicate identifier %s" (ent_name_of_id id) in
+    let msg = Printf.sprintf "Duplicate identifier %s" (ent_name_of_id id) in  
     failwith msg
 
 let lookupEntry id how err =
@@ -126,7 +126,7 @@ let lookupEntry id how err =
       let e = H.find !tab id in
       if e.entry_scope.sco_nesting = scc.sco_nesting then
         e
-      else
+      else  
         raise Not_found
   | LOOKUP_ALL_SCOPES ->
       H.find !tab id 
@@ -206,7 +206,7 @@ let newParameter id typ mode f err =
               inf.function_paramlist <- e :: inf.function_paramlist;
               e
             with _ -> 
-              failwith "Named more than one parameters of the same function with the same name."
+              failwith "Named more than one parameters of the same function with the same name"
           end 
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
@@ -218,9 +218,10 @@ let newParameter id typ mode f err =
                     failwith "Parameter type mismatch"
                   else if inf.parameter_mode != mode then
                     failwith "Parameter passing mode mismatch"
+                  else if p.entry_id != id then
+                    failwith "Parameter name mismatch"
                   else
-                    H.add !tab id p;
-                  p
+                    newEntry id p.entry_info err
               | _ ->
                   failwith "Found a parameter that is not a parameter!"
             end
