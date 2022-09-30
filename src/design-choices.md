@@ -33,3 +33,11 @@ expression is a constant expression of type int, defined as stated below:
     > between two constant doubles, casted to an int.
 - Global arrays are initialized to contain zeros. This is not guaranteed
 when declaring a local static array.
+
+## Library Functions
+- `readChar ()` does not "read" whitespaces. It is implemented by calling 
+`scanf(" %c", &ref)`.
+- `readString (int size, char * s)` reads at most `size - 1` characters from 
+`stdin` and null-terminates the string properly. The function reads from 
+`stdin` as long as it has not reached `EOF` or it not read the newline char 
+`'\n'`. The `'\n'` is not included in the returned string.

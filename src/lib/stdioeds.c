@@ -31,8 +31,8 @@ extern int16_t readInteger__0 (){
 
 extern char readChar__0 (){
 	char tmp;
-	scanf("%c", &tmp);
-	return tmp;
+	scanf(" %c", &tmp); // The space before %c "eats"
+	return tmp; 		// whitespaces and special characters
 };
 
 extern char readBoolean__0 (){
