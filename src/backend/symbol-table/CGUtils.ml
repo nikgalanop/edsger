@@ -6,7 +6,10 @@ let get_ast_param_name = function
 let funStr_mangled fnstr pstr num = 
   let num' = string_of_int num in 
   let name = fnstr ^ "_" ^ pstr ^ "_" ^ num' in 
-  if (name = "main__0") then "main" else name
+  let cond1 = CGSymbol.inOuterScope () in
+  let cond2 = fnstr = "main" in 
+  let cond3 = pstr = "" in
+  if (cond1 && cond2 && cond3) then "main" else name
 
 let filter_env ps env = 
   let set = ref StringSet.empty in 
