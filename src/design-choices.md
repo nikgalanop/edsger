@@ -38,7 +38,7 @@ when declaring a local static array.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling 
 `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from 
-`stdin` and null-terminates the string properly. (Placing a null byte as the 
-`size`-th character in the provided buffer. The function reads from `stdin` 
-as long as it has not reached `EOF` or it not read the newline char `'\n'`. 
-The `'\n'` is not included in the returned string.
+`stdin` and null-terminates the string properly, by placing a null byte as 
+the `size`-th character in the provided buffer. The function reads from `stdin` 
+as long as it has not reached `EOF` or it not read the newline char `'\n'`. The 
+`'\n'` is not included in the returned string.
