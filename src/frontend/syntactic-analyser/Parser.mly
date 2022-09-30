@@ -139,8 +139,8 @@ parameter:
 ;
 
 function_definition: 
-        | function_header function_body   { let (r, f, p) = $1 in 
-                                            { decl = D_fdef (r, f, p, $2);
+        | function_header function_body   { let (rt, fn, p) = $1 in 
+                                            { decl = D_fdef {rt; fn; p; b = $2; env = []};
                                               meta = $symbolstartpos } }
 ;
 

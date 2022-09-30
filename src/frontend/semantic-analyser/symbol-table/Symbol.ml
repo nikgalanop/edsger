@@ -54,6 +54,8 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
+type env = entry list ref
+
 let the_outer_scope = {
   sco_parent = None;
   sco_nesting = 0;
@@ -67,10 +69,16 @@ let no_entry id = {
 }
 
 let currentScope = ref the_outer_scope
-let forNest = ref 0
-
 let tab = ref (H.create 0)
+
+let forNest = ref 0
 let count = ref (H.create 50)
+let envStack = Stack.create ()
+
+let shouldLift e = 
+  let nest = e.entry_scope.sco_nesting in 
+  nest <> the_outer_scope.sco_nesting && 
+  nest <> !currentScope.sco_nesting
 
 let initSymbolTable size =
    tab := H.create size;
@@ -259,7 +267,29 @@ let closeForScope = function
 
 let insideFor () = 
   !forNest > 0
+  
+let openEnv () =
+  Stack.push (ref (H.create 10)) envStack
 
+let add_once set id e =
+  if not @@ H.mem !set id then
+    H.add !set id e
+
+let pushToCurrentEnv e = 
+  let top = Stack.top envStack in 
+  add_once top e.entry_id e
+
+let closeEnv () = 
+  let (>>=) = Option.bind in 
+  let f env = 
+    Stack.top_opt envStack >>= 
+    (fun top -> 
+      H.iter (add_once top) !env;
+      let env_list = List.of_seq @@ 
+        H.to_seq_values !env in
+      Some env_list) 
+  in Stack.pop_opt envStack >>= f
+  
 let endFunctionHeader e typ =
   match e.entry_info with
   | ENTRY_function inf ->

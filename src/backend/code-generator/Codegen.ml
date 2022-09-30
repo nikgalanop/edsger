@@ -19,9 +19,6 @@ and const_char' = const_int char_type
 and const_bool' = const_int bool_type
 and const_double' = const_float double_type
 
-
-let get_ast_param_name = function 
-  | BYVAL (_, vn) | BYREF (_, vn) -> vn
 let const_pointer_null' vl = 
   const_null @@ element_type @@ type_of vl
 let classify_type' vl = 
@@ -343,7 +340,16 @@ and codegen_expr exp =
     | _ -> failwith ("Unknown function: " ^ r.mangl)
     in let callee = inf.llfun in 
     let ps = inf.function_paramlist in
-    let exprs = Array.of_list @@ List.combine r.exprs ps in 
+    let envpars = inf.function_env in
+    let rec combine_fcall acc i = function
+    | _, [] -> List.rev acc
+    | h1 :: t1, h2 :: t2 -> 
+      combine_fcall ((h1, h2) :: acc) (i) (t1, t2)
+    | [], h :: t -> let name = envpars.(i) in 
+      let expr = {expr = E_var name; meta = Lexing.dummy_pos} in 
+      combine_fcall ((expr, h) :: acc) (i+1) ([], t) 
+    in let exprs = Array.of_list @@ 
+      combine_fcall [] 0 (r.exprs, ps) in 
     let prepare = function 
     | e, PASS_BY_REFERENCE -> codegen_expr e 
     | e, PASS_BY_VALUE -> prepare_value e 
@@ -352,10 +358,6 @@ and codegen_expr exp =
     let name = if (return_type ft = void_type lcontext) 
       then "" else "calltmp" in
     build_call callee args name lbuilder
-    (* let f = find function ...... in
-      let name = if (is_void f) then "" else "calltmp" in
-      let args = args_of_parameter_list es in
-      build_call f args name lbuilder *)  
   | E_arracc (e1, e2) -> 
     let ptr = prepare_value e1 in 
     let ofst = prepare_value e2 in
@@ -470,7 +472,7 @@ and declare_global' vllt pos = function
         newVariable (id_of_var vn) |> ignore
       else failwith "Non-positive array initializer" 
     | _ -> cg_fail pos "Unreachable State. \
-          (Non-int initializer in array declarator)"
+        (Non-int initializer in array declarator)"
 and declare_local' vllt pos = function 
   | (vn, None) -> 
     build_alloca vllt vn lbuilder |>
@@ -483,35 +485,55 @@ and declare_local' vllt pos = function
         newVariable (id_of_var vn) |> ignore
       else cg_fail pos "Non-positive array initializer" 
     | _ -> failwith "Unreachable State. \
-          (Non-int initializer in array declarator)"
+        (Non-int initializer in array declarator)"
 and codegen_vars vt vs pos =
   let vllt = lltype_of_vartype vt in 
   let declare = vllt |> 
     if (inOuterScope ()) then declare_global'
     else declare_local' 
   in List.iter (declare pos) vs
-and codegen_header ~def rt fn ps = 
+and codegen_header ~def rt fn ps env_opt = 
   let add_parameters_cg f par =
     let pass_mode = match par with
     | BYREF _ -> PASS_BY_REFERENCE
     | BYVAL _ -> PASS_BY_VALUE
     in newParameter pass_mode f
   in
-  let fllt = function_type_of_header rt ps in 
+  let env_opt = Option.bind env_opt 
+    (CGUtils.filter_env ps) in 
+  let ps' = match env_opt with 
+    | None -> ps 
+    | Some env -> ps @ env
+  in 
+  let fllt = function_type_of_header rt ps' in 
   let pstr = SemUtilities.name_mangling ps in 
+  (* Careful! We need the "old" ps when creating the id. *)
   let fid = id_of_func fn pstr in
   let num = (getCounter fid) + 1 in 
-  let fn' = CGUtils.funStr_mangled fn pstr num in 
+  let fn' = CGUtils.funStr_mangled fn pstr num in
+  begin match lookup_function fn' lmodule with 
+  | Some f -> delete_function f
+  | None -> ()  
+  end; 
+  (* We know the env ONLY for definitions. 
+    If two functions have the same llvm name, they are the same.
+    But one might have the env parameters (the definition), 
+    the declaration might not, so we have to get rid of the extra declaration. *)
   let f = declare_function fn' fllt lmodule in 
   let entr, found = newFunction fid f in 
   if (not found) then begin
-    List.iter (add_parameters_cg entr) ps;
+    List.iter (add_parameters_cg entr) ps';
     endFunctionHeader entr
   end;
   if (def) then begin match entr.entry_info with 
-    | ENTRY_function inf -> 
-      let ps' = Array.of_list ps in 
-      name_parameters ps' inf.llfun
+    | ENTRY_function inf ->  
+      name_parameters (Array.of_list ps') inf.llfun;
+      begin match env_opt with
+      | None -> ()
+      | Some env -> env |> 
+        List.map CGUtils.get_ast_param_name |>
+        setEnv entr
+      end;
     | _ -> failwith "Unreachable state"
   end;
   entr
@@ -519,11 +541,14 @@ and codegen_fdecl rt fn ps =
   (* We only care to declare global scope functions, since some of 
     these will be the ones that we will have to link with later on. *)
   if (inOuterScope ()) then
-    ignore @@ codegen_header ~def:false rt fn ps
+    ignore @@ codegen_header ~def:false
+      rt fn ps None
 and name_parameters ps f =  
+  let fname = value_name f in 
   Array.iteri (fun i a -> 
     let p = ps.(i) in
-    let n = get_ast_param_name p in 
+    let n = CGUtils.get_ast_param_name p in
+    (* print_endline ("Inside " ^ fname ^ " naming " ^ n); *)
     set_value_name n a;
   ) (params f)
 and parameter_allocation ps f = 
@@ -539,8 +564,9 @@ and parameter_allocation ps f =
        | _ -> ai in 
       ignore @@ newVariable (id_of_var n) vl
     ) (params f)
-and codegen_fdef rt fn ps b = 
-  let func_entr = codegen_header ~def:true rt fn ps in 
+and codegen_fdef rt fn ps b env = 
+  let func_entr = codegen_header ~def:true 
+    rt fn ps (Some env) in 
   let ENTRY_function inf = func_entr.entry_info in
   let f = inf.llfun in 
   let entrybb = append_block lcontext "entry" f in
@@ -562,7 +588,7 @@ and codegen_decl dec =
     match dec.decl with 
   | D_var (vt, vs) -> codegen_vars vt vs dec.meta
   | D_fun (rt, fn, ps) -> codegen_fdecl rt fn ps
-  | D_fdef (rt, fn, ps, b) -> codegen_fdef rt fn ps b
+  | D_fdef {rt; fn; p; b; env} -> codegen_fdef rt fn p b env
   in 
   if (inOuterScope ()) then naive_cg dec 
   else begin

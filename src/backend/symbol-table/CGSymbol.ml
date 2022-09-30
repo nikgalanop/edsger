@@ -21,6 +21,7 @@ and variable_info = {
 and function_info = {
   llfun                      : Llvm.llvalue;
   function_number            : int;
+  mutable function_env       : string array;
   mutable function_paramlist : pass_mode list;
 }
 
@@ -150,6 +151,7 @@ let newFunction id llv =
     let inf = {
       llfun = llv;
       function_number = num;
+      function_env = [||];
       function_paramlist = [];
     } in
     (newEntry id (ENTRY_function inf), false)
@@ -174,6 +176,12 @@ let peekLoop () = (* We only use this after a push. *)
 
 let popLoop () = 
   ignore @@ Stack.pop_opt loop_stack
+
+let setEnv f env = 
+  match f.entry_info with 
+  | ENTRY_function inf -> 
+    inf.function_env <- Array.of_list env
+  | _ -> failwith "Cannot set env of non-function."
 
 let endFunctionHeader e =
   match e.entry_info with

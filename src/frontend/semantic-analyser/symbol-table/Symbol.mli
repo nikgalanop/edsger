@@ -47,6 +47,7 @@ and entry = {
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
 val currentScope : scope ref              (* Τρέχουσα Εμβέλεια *)
+val shouldLift   : entry -> bool
 
 val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
@@ -61,6 +62,10 @@ val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
 val newLabel         : Identifier.id -> bool -> entry
 
 val forwardFunction      : entry -> unit
+val openEnv              : unit -> unit
+val pushToCurrentEnv     : entry -> unit 
+val closeEnv             : unit -> entry list option 
+
 val endFunctionHeader    : entry -> Types.typ -> unit
 val lookupEntry          : Identifier.id -> lookup_type -> bool -> entry
 val insideFor            : unit -> bool

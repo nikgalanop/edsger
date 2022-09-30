@@ -23,10 +23,13 @@ and parameter =
   | BYVAL of vartype * var
 
 type ast_decl = { decl : decl; meta : Lexing.position } 
+and fdef_info = {rt : rettype; fn : fname; 
+  p : parameter list; b : ast_body;
+  mutable env : parameter list}
 and decl =
   | D_var of vartype * (var * ast_expr option) list
   | D_fun of rettype * fname * parameter list  
-  | D_fdef of rettype * fname * parameter list * ast_body
+  | D_fdef of fdef_info
 and ast_body = 
   | F_body of ast_decl list * ast_stmt list
 and ast_stmt = { stmt : stmt; meta : Lexing.position } 
@@ -41,6 +44,8 @@ and stmt =
   | S_break of label option
   | S_ret of ast_expr option
 and ast_expr = { expr : expr; meta : Lexing.position }
+and fcall_info = { fn : fname;  exprs : ast_expr list; 
+  mutable mangl : fname } 
 and expr = 
   | E_var of var
   | E_int of int 
@@ -58,9 +63,7 @@ and expr =
   | E_ternary of ast_expr * ast_expr * ast_expr
   | E_new of vartype * ast_expr
   | E_delete of ast_expr
-  | E_fcall of { fn : fname; 
-        exprs : ast_expr list; 
-        mutable mangl : fname } 
+  | E_fcall of fcall_info
   | E_arracc of ast_expr * ast_expr
   | E_brack of ast_expr
 
@@ -205,9 +208,9 @@ and print_decl d =
     (vartype_str v) (List.length l)
   | D_fun (r, n, p) -> printf "D_fun(%s, %s, %n)  "
     (rettype_str r) n (List.length p)  
-  | D_fdef (r, n, p, b) -> printf "D_fdef(%s, %s, %d, " 
-    (rettype_str r) n (List.length p); 
-    print_body b; printf ") "
+  | D_fdef r -> printf "D_fdef(%s, %s, %d, " 
+    (rettype_str r.rt) r.fn (List.length r.p); 
+    print_body r.b; printf ") "
 
 let print_ast t = 
   Printf.printf "\027[1;36mAST:\027[0m \n";

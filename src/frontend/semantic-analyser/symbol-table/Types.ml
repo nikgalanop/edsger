@@ -16,6 +16,19 @@ let rec equalType t1 t2 =
       r.mut 
    | _                                            -> t1 = t2
 
+let primitive_of_typ = function 
+  | TYPE_int -> Ast.INT
+  | TYPE_char -> Ast.CHAR 
+  | TYPE_bool -> Ast.BOOL 
+  | TYPE_double -> Ast.DOUBLE
+
+let ast_vartype_of_typ = function 
+  | TYPE_pointer r ->
+    Ast.PTR (primitive_of_typ r.typ, r.dim)
+  | TYPE_none | TYPE_none | TYPE_null -> 
+    failwith "No equivalent vartype."
+  | t -> Ast.PTR (primitive_of_typ t, 0)
+
 let typ_of_primitive = function 
   | Ast.INT -> TYPE_int 
   | Ast.CHAR -> TYPE_char

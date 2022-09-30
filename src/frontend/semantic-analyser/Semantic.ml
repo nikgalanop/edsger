@@ -156,13 +156,13 @@ and add_declaration pos r n p =
       end
     | _ -> 
       failwith "Should not find an entry that is not a function, with a label of a function"  
-and add_definition pos r n p b = 
-  let p_str = name_mangling p in
-  let f_id = id_of_func n p_str in
+and add_definition pos r =
+  let p_str = name_mangling r.p in
+  let f_id = id_of_func r.fn p_str in
   let f, found = newFunction f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
-      let ft = (ftype_sem r) in
+      let ft = (ftype_sem r.rt) in
       let ps = inf.function_paramlist in
       if (found) then begin
         let def = inf.function_pstatus = PARDEF_COMPLETE in
@@ -170,20 +170,37 @@ and add_definition pos r n p b =
         if (not @@ equalType frt ft) then begin
           let msg = Printf.sprintf "Cannot overload the function `%s` with a function \
             of a different return type, but same type parameters, `%s`" 
-            (header_of_symbolf frt n ps) (header_of_astf ft n p) in 
+            (header_of_symbolf frt r.fn ps) (header_of_astf ft r.fn r.p) in 
           sem_fail pos msg
         end;
         if (def) then begin
           let msg = Printf.sprintf "Cannot define the function `%s` in the same scope with `%s`"
-          (header_of_astf ft n p) (header_of_symbolf ft n ps) in
+          (header_of_astf ft r.fn r.p) (header_of_symbolf ft r.fn ps) in
           sem_fail pos msg
         end; 
       end;
       begin 
         openScope ();
-        add_parameters pos f p;  
+        openEnv ();
+        add_parameters pos f r.p;  
         endFunctionHeader f ft;
-        sem_body ft b;  
+        sem_body ft r.b;
+        let store_env env' = 
+          let entry_to_param e = 
+            let name = ent_name_of_id e.entry_id in 
+            match e.entry_info with   
+            | ENTRY_variable inf ->
+              let type' = ast_vartype_of_typ inf.variable_type in
+              BYREF(type', name)
+            | ENTRY_parameter inf -> 
+              let type' = ast_vartype_of_typ inf.parameter_type in
+              BYREF(type', name)
+            | _ -> failwith "Stored an invalid entry as an env. variable."
+          in r.env <- List.map entry_to_param env';
+        in begin match closeEnv () with 
+        | None -> ()
+        | Some env -> store_env env
+        end;
         closeScope ();
       end
     end
@@ -208,12 +225,13 @@ and sem_expr exp =
   let pos = exp.meta in
   match exp.expr with 
   | E_var s -> begin try 
-      let entry = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
-      match entry.entry_info with 
+      let entr = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
+      let res = match entr.entry_info with 
       | ENTRY_variable i -> i.variable_type
       | ENTRY_parameter i -> i.parameter_type
       | _ -> let msg = Printf.sprintf "`%s` is not a variable" s in 
           sem_fail pos msg
+      in if (shouldLift entr) then pushToCurrentEnv entr; res
     with Not_found -> let msg = Printf.sprintf "Variable `%s` does \
       not exist" s in sem_fail pos msg
     end
@@ -357,8 +375,8 @@ and sem_decl (dec : ast_decl) =
   let pos = dec.meta in 
   match dec.decl with
   | D_var (v, l) -> add_variables pos v l 
-  | D_fun (r, n, p) -> add_declaration pos r n p 
-  | D_fdef (r, n, p, b) -> add_definition pos r n p b 
+  | D_fun (rt, fn, ps) -> add_declaration pos rt fn ps 
+  | D_fdef r -> add_definition pos r
 
 let sem_analysis t = 
   initSymbolTable 256;
