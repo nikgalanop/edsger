@@ -185,18 +185,16 @@ and add_definition pos r =
         add_parameters pos f r.p;  
         endFunctionHeader f ft;
         sem_body ft r.b;
-        let store_env env' = 
+        let store_env entryenv = 
           let entry_to_param e = 
             let name = ent_name_of_id e.entry_id in 
+            let type' = ast_vartype_of_typ @@ 
             match e.entry_info with   
-            | ENTRY_variable inf ->
-              let type' = ast_vartype_of_typ inf.variable_type in
-              BYREF(type', name)
-            | ENTRY_parameter inf -> 
-              let type' = ast_vartype_of_typ inf.parameter_type in
-              BYREF(type', name)
+            | ENTRY_variable inf  -> inf.variable_type 
+            | ENTRY_parameter inf -> inf.parameter_type 
             | _ -> failwith "Stored an invalid entry as an env. variable."
-          in r.env <- List.map entry_to_param env';
+            in BYREF(type', name)
+          in r.env <- List.map entry_to_param entryenv;
         in begin match closeEnv () with 
         | None -> ()
         | Some env -> store_env env

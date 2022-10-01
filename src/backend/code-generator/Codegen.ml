@@ -340,20 +340,18 @@ and codegen_expr exp =
     | _ -> failwith ("Unknown function: " ^ r.mangl)
     in let callee = inf.llfun in 
     let ps = inf.function_paramlist in
-    let envpars = inf.function_env in
-    let rec combine_fcall acc i = function
-    | _, [] -> List.rev acc
-    | h1 :: t1, h2 :: t2 -> 
-      combine_fcall ((h1, h2) :: acc) (i) (t1, t2)
-    | [], h :: t -> let name = envpars.(i) in 
-      let expr = {expr = E_var name; meta = Lexing.dummy_pos} in 
-      combine_fcall ((expr, h) :: acc) (i+1) ([], t) 
-    in let exprs = Array.of_list @@ 
-      combine_fcall [] 0 (r.exprs, ps) in 
+    let envpars = inf.function_envlist in
+    let expr_of_env = function
+    | name, mode -> print_endline name;
+      {expr = E_var name; meta = Lexing.dummy_pos}, mode
+    in 
+    let exprs = List.map expr_of_env envpars |> 
+      List.append (List.combine r.exprs ps) in 
     let prepare = function 
     | e, PASS_BY_REFERENCE -> codegen_expr e 
     | e, PASS_BY_VALUE -> prepare_value e 
-    in let args = Array.map prepare exprs in 
+    in let args = Array.of_list @@ 
+      List.map prepare exprs in 
     let ft = element_type @@ type_of callee in
     let name = if (return_type ft = void_type lcontext) 
       then "" else "calltmp" in
@@ -498,21 +496,25 @@ and codegen_vars vt vs pos =
     else declare_local' 
   in List.iter (declare pos) vs
 and codegen_header ~def rt fn ps env_opt = 
-  let add_parameters_cg f par =
-    let pass_mode = match par with
-    | BYREF _ -> PASS_BY_REFERENCE
-    | BYVAL _ -> PASS_BY_VALUE
-    in newParameter pass_mode f
+  let add_parameters_cg ~env f par =
+    let pass_mode, name = match par with
+    | BYREF (_, vn) -> PASS_BY_REFERENCE, vn
+    | BYVAL (_, vn) -> PASS_BY_VALUE, vn
+    in 
+    if env then newEnvParameter name pass_mode f
+    else newParameter pass_mode f
   in
   let env_opt = Option.bind env_opt 
     (CGUtils.filter_env ps) in 
-  let ps' = match env_opt with 
+  (*llps are the ast-parameters that should be included 
+    in the llvm representation of the function*)
+  let llps = match env_opt with 
     | None -> ps 
     | Some env -> ps @ env
   in 
-  let fllt = function_type_of_header rt ps' in 
+  let fllt = function_type_of_header rt llps in
+  (* Careful! We need the "old" ps when creating the id. *) 
   let pstr = SemUtilities.name_mangling ps in 
-  (* Careful! We need the "old" ps when creating the id. *)
   let fid = id_of_func fn pstr in
   let num = (getCounter fid) + 1 in 
   let fn' = CGUtils.funStr_mangled fn pstr num in
@@ -526,20 +528,19 @@ and codegen_header ~def rt fn ps env_opt =
     the declaration might not, so we have to get rid of the extra declaration. *)
   let f = declare_function fn' fllt lmodule in 
   let entr, found = newFunction fid f in 
-  if (not found) then begin
-    List.iter (add_parameters_cg entr) ps';
-    endFunctionHeader entr
-  end;
   if (def) then begin match entr.entry_info with 
     | ENTRY_function inf ->  
-      name_parameters (Array.of_list ps') inf.llfun;
+      name_parameters (Array.of_list llps) inf.llfun;
       begin match env_opt with
       | None -> ()
-      | Some env -> env |> 
-        List.map CGUtils.get_ast_param_name |>
-        setEnv entr
+      | Some env ->
+        List.iter (add_parameters_cg ~env:true entr) env;
       end;
     | _ -> failwith "Unreachable state"
+  end;
+  if (not found) then begin
+    List.iter (add_parameters_cg ~env:false entr) ps;
+    endFunctionHeader entr
   end;
   entr
 and codegen_fdecl rt fn ps = 
