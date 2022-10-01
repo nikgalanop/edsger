@@ -64,12 +64,12 @@ let () =
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
-      let cmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
+      let cmd = Printf.sprintf "llc-15 -march=\"x86-64\" %s" irfn in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details";
-      let clang_flags = "-fPIC -lm" in
-      let cmd = Printf.sprintf "clang -o %s.out %s.s edsgerlib.a %s" 
-        n n clang_flags in 
+      let clang_flags = "-lm -o" in
+      let cmd = Printf.sprintf "clang %s %s.out %s.s edsgerlib.a " 
+        clang_flags n n in 
       execute_cmd cmd "Clang produced an error during the linking phase. \
         Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
@@ -81,7 +81,7 @@ let () =
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
       let n = Filename.remove_extension nm in 
-      let cmd = Printf.sprintf "llc -march=\"x86-64\" < %s" nm in 
+      let cmd = Printf.sprintf "llc-15 -march=\"x86-64\" < %s" nm in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details"
     end;
