@@ -269,7 +269,7 @@ let insideFor () =
   !forNest > 0
   
 let openEnv () =
-  Stack.push (ref (H.create 10)) envStack
+  Stack.push (ref @@ H.create 10) envStack
 
 let add_once set id e =
   if not @@ H.mem !set id then

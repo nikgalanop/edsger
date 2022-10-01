@@ -15,7 +15,7 @@ and variable_info = {                         (******* Μεταβλητή ******
 and function_info = {                         (******* Συνάρτηση  *******)
   llfun                      : Llvm.llvalue;
   function_number            : int;
-  mutable function_env               : string array;
+  mutable function_envlist   : (string * pass_mode) list;
   mutable function_paramlist : pass_mode list;    (* List Parameters        *)
 }
 
@@ -53,7 +53,7 @@ val closeScope       : unit -> unit
 val newVariable      : Identifier.id -> Llvm.llvalue -> entry
 val getCounter       : Identifier.id -> int
 val newFunction      : Identifier.id -> Llvm.llvalue -> entry * bool
-val setEnv           : entry -> string list -> unit 
+val newEnvParameter  : string -> pass_mode -> entry -> unit 
 val newParameter     : pass_mode -> entry -> unit
 val newLabel         : Identifier.id -> Llvm.llbasicblock -> Llvm.llbasicblock -> entry
 
