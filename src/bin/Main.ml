@@ -67,7 +67,9 @@ let () =
       let cmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details";
-      let cmd = Printf.sprintf "clang -o %s.out %s.s edsgerlib.a -lm" n n in 
+      let clang_flags = "-fPIC -lm" in
+      let cmd = Printf.sprintf "clang -o %s.out %s.s edsgerlib.a %s" 
+        n n clang_flags in 
       execute_cmd cmd "Clang produced an error during the linking phase. \
         Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
