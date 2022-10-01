@@ -363,11 +363,16 @@ and codegen_expr exp =
     let ofst = prepare_value e2 in
     build_gep ptr [|ofst|] "aractmp" lbuilder
   | E_brack e -> codegen_expr e
+and iter_stmts = function 
+  | [] -> ()
+  | h :: t when can_add_terminator () ->
+    codegen_stmt h; iter_stmts t
+  | h :: t -> ()
 and codegen_stmt stm = 
   match stm.stmt with 
   | S_NOP -> ()
   | S_expr e -> ignore @@ codegen_expr e;
-  | S_block b -> List.iter codegen_stmt b;
+  | S_block b -> iter_stmts b;
   | S_if (e, s1, o) -> begin  
       let vl = prepare_value e in 
       let cond = build_icmp Icmp.Ne vl (const_bool' 0) 
@@ -456,7 +461,7 @@ and codegen_stmt stm =
 and codegen_body b = 
   let F_body (decs, stms) = b in 
   List.iter codegen_decl decs;
-  List.iter codegen_stmt stms
+  iter_stmts stms
 and declare_global' vllt pos = function 
   | (vn, None) -> let init = const_null vllt in
     define_global vn init lmodule |> 
