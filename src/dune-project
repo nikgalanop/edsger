@@ -17,8 +17,8 @@
 
 (package
  (name edsger)
- (synopsis "A compiler for the Edsger language.")
- (description "A compiler for the Edsger language.")
+ (synopsis "A compiler for the Edsger programming language.")
+ (description "A compiler for the Edsger programming language.")
  (depends ocaml dune menhir llvm)
  (tags
   (ocaml llvm menhir dune compiler edsger)))

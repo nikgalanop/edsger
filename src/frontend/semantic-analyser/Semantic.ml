@@ -156,13 +156,13 @@ and add_declaration pos r n p =
       end
     | _ -> 
       failwith "Should not find an entry that is not a function, with a label of a function"  
-and add_definition pos r n p b = 
-  let p_str = name_mangling p in
-  let f_id = id_of_func n p_str in
+and add_definition pos r =
+  let p_str = name_mangling r.p in
+  let f_id = id_of_func r.fn p_str in
   let f, found = newFunction f_id in
   match f.entry_info with 
   | ENTRY_function inf -> begin 
-      let ft = (ftype_sem r) in
+      let ft = (ftype_sem r.rt) in
       let ps = inf.function_paramlist in
       if (found) then begin
         let def = inf.function_pstatus = PARDEF_COMPLETE in
@@ -170,20 +170,35 @@ and add_definition pos r n p b =
         if (not @@ equalType frt ft) then begin
           let msg = Printf.sprintf "Cannot overload the function `%s` with a function \
             of a different return type, but same type parameters, `%s`" 
-            (header_of_symbolf frt n ps) (header_of_astf ft n p) in 
+            (header_of_symbolf frt r.fn ps) (header_of_astf ft r.fn r.p) in 
           sem_fail pos msg
         end;
         if (def) then begin
           let msg = Printf.sprintf "Cannot define the function `%s` in the same scope with `%s`"
-          (header_of_astf ft n p) (header_of_symbolf ft n ps) in
+          (header_of_astf ft r.fn r.p) (header_of_symbolf ft r.fn ps) in
           sem_fail pos msg
         end; 
       end;
       begin 
         openScope ();
-        add_parameters pos f p;  
+        openEnv ();
+        add_parameters pos f r.p;  
         endFunctionHeader f ft;
-        sem_body ft b;  
+        sem_body ft r.b;
+        let store_env entryenv = 
+          let entry_to_param e = 
+            let name = ent_name_of_id e.entry_id in 
+            let type' = ast_vartype_of_typ @@ 
+            match e.entry_info with   
+            | ENTRY_variable inf  -> inf.variable_type 
+            | ENTRY_parameter inf -> inf.parameter_type 
+            | _ -> failwith "Stored an invalid entry as an env. variable."
+            in BYREF(type', name)
+          in r.env <- List.map entry_to_param entryenv;
+        in begin match closeEnv () with 
+        | None -> ()
+        | Some env -> store_env env
+        end;
         closeScope ();
       end
     end
@@ -208,12 +223,13 @@ and sem_expr exp =
   let pos = exp.meta in
   match exp.expr with 
   | E_var s -> begin try 
-      let entry = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
-      match entry.entry_info with 
+      let entr = lookupEntry (id_of_var s) LOOKUP_ALL_SCOPES false in
+      let res = match entr.entry_info with 
       | ENTRY_variable i -> i.variable_type
       | ENTRY_parameter i -> i.parameter_type
       | _ -> let msg = Printf.sprintf "`%s` is not a variable" s in 
           sem_fail pos msg
+      in if (shouldLift entr) then pushToCurrentEnv entr; res
     with Not_found -> let msg = Printf.sprintf "Variable `%s` does \
       not exist" s in sem_fail pos msg
     end
@@ -240,7 +256,7 @@ and sem_expr exp =
     let t2 = vartype_sem v None in
     if (valid_cast t1 t2) then t2 
     else let msg = Printf.sprintf "Invalid type conversion from %s to %s" 
-      (str_of_type ~ptr_format:true t1) (str_of_type ~ptr_format:true t2)
+      (str_of_type ~short:false ~ptr_format:true t1) (str_of_type ~short:false ~ptr_format:true t2)
     in sem_fail pos msg
   | E_ternary (e1, e2, e3) -> let t1 = sem_expr e1 in 
     let t2 = sem_expr e2 in let t3 = sem_expr e3 in 
@@ -263,25 +279,27 @@ and sem_expr exp =
         TYPE_pointer r
       | _ -> sem_fail pos "Tried to deallocate a statically allocated array"
     else sem_fail pos "Tried to deallocate memory using a non-pointer"
-  | E_fcall (f, l) -> let p_types = List.map sem_expr l in
+  | E_fcall r -> let p_types = List.map sem_expr r.exprs in
     let p_str = str_of_fval_types p_types in
-    let fid = id_of_func f p_str in begin
+    let fid = id_of_func r.fn p_str in begin
     try 
       let e = lookupEntry fid LOOKUP_ALL_SCOPES true in 
       let match_func ent =
         match ent.entry_info with 
         | ENTRY_function inf -> let plst = inf.function_paramlist in 
-          accept_parameters plst (List.combine l p_types)
+          accept_parameters plst (List.combine r.exprs p_types)
         | _ -> failwith "Should not find a non-function that has an identifier of a function"
       in 
       if (not @@ match_func e) then
         let msg = Printf.sprintf "No definitions/declarations of `%s` \
-          match with the provided values" f in sem_fail pos msg
+          match with the provided values" r.fn in sem_fail pos msg
       else match e.entry_info with 
-        | ENTRY_function inf -> inf.function_result
+        | ENTRY_function inf -> let scp = inf.function_number in 
+          r.mangl <- id_name fid;
+          inf.function_result
         | _ -> failwith "Should not reach this state" 
     with Exit -> let msg = Printf.sprintf "Called a non-existing \
-        function `%s`" (str_of_fcall f p_types) 
+        function `%s`" (str_of_fcall r.fn p_types) 
       in sem_fail pos msg
     end
   | E_arracc (e1, e2) -> let t1 = sem_expr e1 in
@@ -355,8 +373,8 @@ and sem_decl (dec : ast_decl) =
   let pos = dec.meta in 
   match dec.decl with
   | D_var (v, l) -> add_variables pos v l 
-  | D_fun (r, n, p) -> add_declaration pos r n p 
-  | D_fdef (r, n, p, b) -> add_definition pos r n p b 
+  | D_fun (rt, fn, ps) -> add_declaration pos rt fn ps 
+  | D_fdef r -> add_definition pos r
 
 let sem_analysis t = 
   initSymbolTable 256;

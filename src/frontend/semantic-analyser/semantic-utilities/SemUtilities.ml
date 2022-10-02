@@ -2,22 +2,29 @@ open Identifier
 open Symbol
 open Types 
  
-let rec str_of_type ~ptr_format = function 
-  | TYPE_none -> "none"
-  | TYPE_int -> "int"
-  | TYPE_bool -> "bool"
-  | TYPE_char -> "char"
-  | TYPE_double -> "double"
+let rec str_of_type ~short ~ptr_format = function 
+  | TYPE_none -> 
+    if short then "n" else "none"
+  | TYPE_int ->
+    if short then "i" else "int"
+  | TYPE_bool -> 
+    if short then "b" else "bool"
+  | TYPE_char -> 
+    if short then "c" else "char"
+  | TYPE_double -> 
+    if short then "d" else "double"
   | TYPE_pointer { typ = t; 
     dim = d; mut = m } -> 
     let dim_str = if (ptr_format) then 
       String.make d '*' else string_of_int d 
-    in (str_of_type ~ptr_format:false t) ^ dim_str       
-  | TYPE_null -> "null"
-  | TYPE_proc -> "void"
+    in (str_of_type ~short:short ~ptr_format:false t) ^ dim_str       
+  | TYPE_null -> 
+    if short then "n" else "null"
+  | TYPE_proc -> 
+    if short then "v" else "void"
 
 let str_of_func ft n pstr = 
-  (str_of_type ~ptr_format:true ft) ^ " " ^ n 
+  (str_of_type ~short:false ~ptr_format:true ft) ^ " " ^ n 
     ^ " (" ^ pstr ^ ")"
 
 let rec sep_but_last f = function 
@@ -26,12 +33,12 @@ let rec sep_but_last f = function
   | h :: t -> f h ^ ", " ^ sep_but_last f t
 
 let str_of_fcall n vtyps = 
-  n ^ " (" ^ (sep_but_last (str_of_type ~ptr_format:false) vtyps) ^ ")" 
+  n ^ " (" ^ (sep_but_last (str_of_type ~short:false ~ptr_format:true) vtyps) ^ ")" 
 
 let header_of_astf ft n ps = 
   let ptr_str vt = 
     let Ast.PTR (ptyp, dim) = vt in 
-    str_of_type ~ptr_format:true 
+    str_of_type ~short:false ~ptr_format:true 
     (typ_of_primitive ptyp) ^ (String.make dim '*')
   in let aux = function 
     | Ast.BYREF (vt, _) -> "byref" ^ ptr_str vt
@@ -41,7 +48,7 @@ let header_of_astf ft n ps =
 
 let header_of_symbolf ft n ps = 
   let str_of_param p =
-    let t = str_of_type ~ptr_format:true p.parameter_type in
+    let t = str_of_type ~short:false ~ptr_format:true p.parameter_type in
     match p.parameter_mode with
     | PASS_BY_VALUE -> t
     | PASS_BY_REFERENCE -> "byref " ^ t
@@ -53,7 +60,7 @@ let header_of_symbolf ft n ps =
   str_of_func ft n pstr
 
 let str_of_fval_types vtyps =
-  List.fold_right ( ^ ) (List.map (str_of_type ~ptr_format:false) vtyps) ""
+  List.fold_right ( ^ ) (List.map (str_of_type ~short:true ~ptr_format:false) vtyps) ""
 
 (* Name Mangling: https://en.wikipedia.org/wiki/Name_mangling *)
 (* We do not allow overloading cases like the following:
@@ -65,10 +72,10 @@ let name_mangling ps =
     | Ast.BYREF (vt, _) | Ast.BYVAL (vt, _) -> 
       let Ast.PTR (ptyp, dim) = vt in 
       let dim_str = if (dim > 0) then string_of_int dim else "" in
-      str_of_type ~ptr_format:false (typ_of_primitive ptyp) ^ dim_str
+      str_of_type ~short:true ~ptr_format:false (typ_of_primitive ptyp) ^ dim_str
   in
     List.fold_right ( ^ ) (List.map aux ps) ""  
-
+    
 let exists_main () = 
   let id = Identifier.id_of_func "main" "" in
   try

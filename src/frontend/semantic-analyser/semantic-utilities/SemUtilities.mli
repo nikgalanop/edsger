@@ -1,4 +1,5 @@
-val str_of_type : ptr_format : bool -> Types.typ -> string 
+val str_of_type : short : bool -> ptr_format : bool -> 
+                Types.typ -> string 
 val header_of_astf : Types.typ -> Ast.fname ->
                     Ast.parameter list -> string 
 val header_of_symbolf : Types.typ -> Ast.fname -> 

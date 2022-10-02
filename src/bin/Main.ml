@@ -18,6 +18,14 @@ let cli_error msg =
   Utilities.print_diagnostic ~p:None msg Utilities.Error;
   exit 1
 
+let execute_cmd cmd msg = 
+  if (Sys.command cmd <> 0) then begin
+    prerr_newline (); failwith msg
+  end
+
+let clang_flags = "-lm -o"
+let llc_flags = "-march=\"x86-64\""
+
 let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
@@ -49,33 +57,42 @@ let () =
     if (from_file) then !fn else "stdin" 
   in begin try
     let t = Parser.program Lexer.lexer lb in 
-    Ast.print_ast t;
+    (* Ast.print_ast t; *)
     Semantic.sem_analysis t;
-    (* let lmodule = Codegen.codegen t in
-    if (opt_flag) then Optimizer.optimize lmodule;
+    let lmodule = Codegen.codegen t in
+    if (!opt_flag) then Optimizer.optimize lmodule;
     if (from_file) then begin
       let n = Filename.remove_extension !fn in 
       let irfn = Printf.sprintf "%s.ll" n in 
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
-      let llccmd = Printf.sprintf "llc -march=\"x86-64\" %s" irfn in 
-      ignore @@ Sys.command llccmd;
-      (* TODO: Produce executable via Clang *)
+      let cmd = Printf.sprintf "llc %s %s" llc_flags irfn in 
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details";
+      let cmd = Printf.sprintf "clang %s %s.out %s.s edsgerlib.a " 
+        clang_flags n n in 
+      execute_cmd cmd "Clang produced an error during the linking phase. \
+        Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
     end
-    else if (ir_flag) then 
-      print_string @@ Llvm.string_of_llmodule lmodule; 
+    else if (!ir_flag) then 
+      print_string @@ Llvm.string_of_llmodule lmodule
     else begin 
-      let llccmd = Printf.sprintf "echo \"%s\" > llc -march=\"x86-64\"" 
-        (Llvm.string_of_llmodule lmodule) in 
-      ignore @@ Sys.command llccmd
-    end; *)
+      let nm, f = Filename.open_temp_file ~perms:438 "__temp__" ".ll" in 
+      Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
+      Out_channel.close f;
+      let n = Filename.remove_extension nm in 
+      let cmd = Printf.sprintf "llc %s < %s" llc_flags nm in 
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details"
+    end;
     exit 0
   with 
-    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg) -> 
+    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg)
+    | Codegen.CGFailure (pos, msg) -> 
       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
-    | Failure msg | Codegen.CGFailure msg -> 
+    | Failure msg -> 
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
     | Parser.Error -> let pos = lb.Lexing.lex_curr_p in
       Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;

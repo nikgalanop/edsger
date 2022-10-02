@@ -3,4 +3,6 @@
 (library
  (name lib_back)
  (wrapped false)
- (libraries lib_front llvm llvm.analysis llvm.scalar_opts))
+ (libraries lib_front 
+  llvm llvm.analysis 
+  llvm.scalar_opts llvm.passmgr_builder))

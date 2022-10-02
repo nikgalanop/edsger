@@ -148,17 +148,33 @@ rule lexer = parse
 
   (* Rest *)
   | identifier  { T_id (Lexing.lexeme lexbuf)}        
-  | integer     { T_constint (int_of_string @@ Lexing.lexeme lexbuf)} 
-  | double      { T_constreal (float_of_string @@ Lexing.lexeme lexbuf)} 
+  | integer     { try
+                    let num = int_of_string @@ Lexing.lexeme lexbuf in 
+                    if (num > 0x7fff) then raise Exit else
+                    T_constint num 
+                  with | _ -> let pos = lexbuf.Lexing.lex_start_p in
+                  lex_fail pos "Provided a big integer constant" } 
+  | double      { try  
+                    let num = float_of_string @@ Lexing.lexeme lexbuf in 
+                    T_constreal num 
+                  with | _ -> let pos = lexbuf.Lexing.lex_start_p in
+                  lex_fail pos "Provided an invalid double representation" } 
   | char        { match c with 
                   | "\\0" -> T_constchar (Char.chr 0)
-                  | _ -> T_constchar (Scanf.unescaped c).[0] } 
-  | string      { let r = Str.regexp {|\\0|} in
-                  let templ = String.make 1 (Char.chr 0) in
-                  let str = s |> 
-                  Str.global_replace r templ |>
-                  Scanf.unescaped in
-                  T_string str } 
+                  | _ -> try 
+                      let un = Scanf.unescaped c in 
+                      T_constchar (un).[0]
+                    with | _ -> let pos = lexbuf.Lexing.lex_start_p in
+                    lex_fail pos "Provided an improperly escaped character" } 
+  | string      { try  
+                    let r = Str.regexp {|\\0|} in
+                    let templ = String.make 1 (Char.chr 0) in
+                    let str = s |> 
+                    Str.global_replace r templ |>
+                    Scanf.unescaped in
+                    T_string str 
+                  with | _ -> let pos = lexbuf.Lexing.lex_start_p in
+                  lex_fail pos "Provided an improperly escaped string" } 
   | one_liner   { Lexing.new_line lexbuf; lexer lexbuf } 
   | "/*"        { multi_comment lexbuf }
   | '\n'        { Lexing.new_line lexbuf; lexer lexbuf }

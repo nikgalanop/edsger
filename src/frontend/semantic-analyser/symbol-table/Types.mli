@@ -9,7 +9,8 @@ type typ = TYPE_none
 
 val equalType : typ -> typ -> bool
 
-val typ_of_primitive: Ast.primitive -> typ
+val ast_vartype_of_typ : typ -> Ast.vartype
+val typ_of_primitive : Ast.primitive -> typ
 
 val valid_cast : typ -> typ -> bool
 
