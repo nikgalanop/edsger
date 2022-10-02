@@ -1,8 +1,8 @@
 CC=clang
-CCFLAGS=-Wall -Werror -c
+CFLAGS=-Wall -Werror -c
 LIB=edsgerlib.a
 default:
 	$(RM) $(LIB)
-	$(CC) $(CCFLAGS) *.c
+	$(CC) $(CFLAGS) *.c
 	$(AR) $(ARFLAGS) $(LIB) *.o
 	$(RM) *.o
