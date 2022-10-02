@@ -72,7 +72,7 @@ let currentScope = ref the_outer_scope
 let tab = ref (H.create 0)
 
 let forNest = ref 0
-let count = ref (H.create 50)
+let count = H.create 50
 let envStack = Stack.create ()
 
 let shouldLift e = 
@@ -158,17 +158,17 @@ let newVariable id typ err =
 
 let getCounter id = 
   try  
-    let c = H.find !count id in
+    let c = H.find count id in
     !c 
   with Not_found ->
     failwith "Non-existing function."
 
 let updateCounter id = 
   try  
-    let c = H.find !count id in
+    let c = H.find count id in
     c := !c + 1; !c
   with Not_found ->
-    H.add !count id (ref 0);
+    H.add count id (ref 0);
     0
 
 let newFunction id =
@@ -269,11 +269,11 @@ let insideFor () =
   !forNest > 0
   
 let openEnv () =
-  Stack.push (ref @@ H.create 10) envStack
+  Stack.push (H.create 10) envStack
 
 let add_once set id e =
-  if not @@ H.mem !set id then
-    H.add !set id e
+  if not @@ H.mem set id then
+    H.add set id e
 
 let pushToCurrentEnv e = 
   let top = Stack.top envStack in 
@@ -284,9 +284,9 @@ let closeEnv () =
   let f env = 
     Stack.top_opt envStack >>= 
     (fun top -> 
-      H.iter (add_once top) !env;
+      H.iter (add_once top) env;
       let env_list = List.of_seq @@ 
-        H.to_seq_values !env in
+        H.to_seq_values env in
       Some env_list) 
   in Stack.pop_opt envStack >>= f
   
