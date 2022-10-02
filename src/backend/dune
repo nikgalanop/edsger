@@ -5,4 +5,4 @@
  (wrapped false)
  (libraries lib_front 
   llvm llvm.analysis 
-  llvm.scalar_opts))
+  llvm.scalar_opts llvm.passmgr_builder))
