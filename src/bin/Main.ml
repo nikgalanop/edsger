@@ -23,6 +23,9 @@ let execute_cmd cmd msg =
     prerr_newline (); failwith msg
   end
 
+let clang_flags = "-lm -o"
+let llc_flags = "-march=\"x86-64\""
+
 let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
@@ -64,10 +67,9 @@ let () =
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
-      let cmd = Printf.sprintf "llc-15 -march=\"x86-64\" %s" irfn in 
+      let cmd = Printf.sprintf "llc %s %s" llc_flags irfn in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details";
-      let clang_flags = "-lm -o" in
       let cmd = Printf.sprintf "clang %s %s.out %s.s edsgerlib.a " 
         clang_flags n n in 
       execute_cmd cmd "Clang produced an error during the linking phase. \
@@ -81,7 +83,7 @@ let () =
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
       let n = Filename.remove_extension nm in 
-      let cmd = Printf.sprintf "llc-15 -march=\"x86-64\" < %s" nm in 
+      let cmd = Printf.sprintf "llc %s < %s" llc_flags nm in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details"
     end;
