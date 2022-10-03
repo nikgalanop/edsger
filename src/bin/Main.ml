@@ -23,8 +23,10 @@ let execute_cmd cmd msg =
     prerr_newline (); failwith msg
   end
 
+let llc = "llc"
+let llc_flags = "--relocation-model=pic -march=\"x86-64\""
+let clang = "clang"
 let clang_flags = "-lm -o"
-let llc_flags = "-march=\"x86-64\""
 
 let () =
   Arg.parse speclist anon_fun usage_msg;
@@ -67,11 +69,11 @@ let () =
       let f = Out_channel.open_text irfn in 
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
-      let cmd = Printf.sprintf "llc %s %s" llc_flags irfn in 
+      let cmd = Printf.sprintf "%s %s %s" llc llc_flags irfn in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details";
-      let cmd = Printf.sprintf "clang %s %s.out %s.s edsgerlib.a " 
-        clang_flags n n in 
+      let cmd = Printf.sprintf "%s %s.s edsgerlib.a %s %s.out" 
+        clang n clang_flags n in 
       execute_cmd cmd "Clang produced an error during the linking phase. \
         Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
@@ -83,7 +85,7 @@ let () =
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
       let n = Filename.remove_extension nm in 
-      let cmd = Printf.sprintf "llc %s < %s" llc_flags nm in 
+      let cmd = Printf.sprintf "%s %s < %s" llc llc_flags nm in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details"
     end;
