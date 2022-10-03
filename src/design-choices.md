@@ -8,6 +8,35 @@
 name and equivalent parameter lists. Two parameters are equivalent
 if they have the same type. (We do not care about the pass method)
 Two parameter lists are equivalent if their contents are equivalent.
+- We use name mangling in both the symbol tables (Semantic analysis 
+and IR Generation) and in the LLVM IR representation.
+For the LLVM IR representation, the name mangling convention is the
+following:
+
+```
+<mangled> ::= <original_name>_<parameters_str>_counter
+<parameters_str> ::= <parameter_str>* 
+```
+
+The original name is the name of the function in the provided `.eds` 
+file (as well as the included `.eds` or `.h` files).
+The parameter string is created only from the explicit parameters of 
+the function (meaning that we do not care about any parameters that
+it accesses outside of its scope, that are not global, when the 
+function is nested). We traverse the explicit parameters in order
+and create a string for each parameter with the following correspondance:
+
+```
+<parameter_str> ::= <primitive_str> <pointer_str>
+<primitive_str> ::= 'i' | 'd' | 'c' | 'b' // Corresponds to the types 'int', 'double', 'char', 'bool'
+<pointer_str> ::= ([1-9][0-9]* | ε) // Corresponds to the "dimension" of the pointer. 
+```
+
+We also use a counter in case that two functions have the same name and 
+explicit parameters. This can happen in the case of function shadowing
+(a nested function shadows a function with the same name and parameters
+from an outer scope), or when two functions have the same name and parameters 
+but are also nested inside different functions.
 
 ### Type Casting:
 - We allow every possible type casting between arithmetic types.
