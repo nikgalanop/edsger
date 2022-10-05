@@ -11,8 +11,10 @@ let anon_fun filename =
 
 let speclist = 
   [("-O", Arg.Set opt_flag, "Enables LLVM IR optimization");
-   ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the assembly in stdout");
-   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")]
+   ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the assembly in stdout, \
+    omits any output file");
+   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout, \
+    omits any output file")]
 
 let cli_error msg = 
   Utilities.print_diagnostic ~p:None msg Utilities.Error;
@@ -85,7 +87,7 @@ let () =
       Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
       Out_channel.close f;
       let n = Filename.remove_extension nm in 
-      let cmd = Printf.sprintf "%s %s < %s" llc llc_flags nm in 
+      let cmd = Printf.sprintf "%s %s -o - %s" llc llc_flags nm in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details"
     end;
