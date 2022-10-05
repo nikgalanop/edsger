@@ -9,6 +9,20 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 - It calls llc and clang to convert the produced LLVM IR to assembly or executable form.
 - We use ar and clang to create the prepackaged static library.
 
+### Compiler Behaviour And Options
+- The standard usage of the compiler (no flags), reads from an input file 'name.eds' and produces three files 'name.ll', 'name.s', 
+'name.out'. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
+- There are four options that can be passed to the compiler:
+  1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
+      `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE` 
+  2. `-i`: when provided, the compiler reads from `stdin` and outputs the produced LLVM IR to `stdout`. No input file should 
+       be provided. No output file is produced.
+  3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
+       be provided. No output file is produced.
+  4. `-help' / '--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
+- This simple CLI is implemented with the usage of the `Arg` module.
+
+
 ### Filenames:
 - The input file to the compiler, must have the extension `.eds`.
 - An "included" file must have either the extension `.eds` or `.h`.
@@ -87,3 +101,8 @@ integer expression is a constant expression of type int, defined as stated below
     > 4. the result of the operations '+', '-', '*', '/', '%'
     > between two constant doubles, casted to an int.
 - Global arrays are initialized to contain zeros. This is not guaranteed when declaring a local static array.
+
+### Local Variable Declarations 
+- It is not guaranteed that local variables are initialized to zero. 
+- It is not allowed to declare a variable that has the same name as a parameter or another variable inside a function.
+The same principle applies to parameter declaration.
