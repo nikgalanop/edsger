@@ -1,0 +1,20 @@
+#include "stdio.h"
+
+bool fn1() {
+  writeString("called1\n");
+  return false;
+}
+
+bool fn2() {
+  writeString("called2\n");
+  return true;
+}
+
+
+void main() {
+  if(fn1() && fn2()) writeString("didn't work\n");
+  else writeString("works!\n");
+  
+  if(fn2() || fn2()) writeString("works!\n");
+  else writeString("didn't work\n");
+}

@@ -69,13 +69,14 @@
 %type <uassign> unary_assignment
 %type <bassign> binary_assignment
 
-%% /* Grammar rules and actions follow */
-
+%% 
+(* Grammar Rules & Semantic Actions *)
 program: 
-        | nonempty_list(line) T_eof { List.flatten $1 } // Maybe find a more efficient way of writing?
+        | nonempty_list(line) T_eof { List.flatten $1 } 
+;
 
 line:
-        | declaration { [$1] } // Don't quite like that
+        | declaration { [$1] } 
         | T_include   { $1 }
 ;
 
@@ -87,7 +88,7 @@ declaration:
 
 variable_declaration: 
         | data_type separated_nonempty_list(T_comma, declarator) T_semicolon   { { decl = D_var ($1, $2); 
-                                                                                   meta = Lexing.dummy_pos } }
+                                                                                   meta = $symbolstartpos } }
 ;
 
 pointer:
@@ -138,8 +139,8 @@ parameter:
 ;
 
 function_definition: 
-        | function_header function_body   { let (r, f, p) = $1 in 
-                                            { decl = D_fdef (r, f, p, $2);
+        | function_header function_body   { let (rt, fn, p) = $1 in 
+                                            { decl = D_fdef {rt; fn; p; b = $2; env = []};
                                               meta = $symbolstartpos } }
 ;
 
@@ -181,7 +182,7 @@ expression:
         | T_id                                                                    { { expr = E_var $1;
                                                                                       meta = $symbolstartpos } }
         | T_leftpar expression T_rightpar                                         { { expr = E_brack $2;
-                                                                                      meta = $symbolstartpos } } // Bracketed expression
+                                                                                      meta = $symbolstartpos } }
         | T_true                                                                  { { expr = E_bool true;
                                                                                       meta = $symbolstartpos } }
         | T_false                                                                 { { expr = E_bool false; 
@@ -197,15 +198,15 @@ expression:
         | T_string                                                                { { expr = E_str $1;
                                                                                       meta = $symbolstartpos } }
         | T_id T_leftpar option(expression) T_rightpar                            { let exp = match $3 with
-                                                                                    | None -> E_fcall ($1, [])
+                                                                                    | None -> E_fcall { fn = $1; exprs = []; mangl = "" }
                                                                                     | Some e -> 
                                                                                         let rec flatten ex acc =
                                                                                             match ex.expr with
                                                                                             | E_binop (x, O_comma, y) -> flatten x (y :: acc)
                                                                                             | _ -> ex :: acc
-                                                                                        in E_fcall ($1, flatten e [])
+                                                                                        in E_fcall { fn = $1; exprs = flatten e []; mangl = "" }
                                                                                     in { expr = exp; meta = $symbolstartpos }
-                                                                                  } // Comma is left associative.
+                                                                                  } 
         | expression T_leftsqbr expression T_rightsqbr                            { { expr = E_arracc ($1, $3); 
                                                                                       meta = $symbolstartpos } } 
         | unary_operator expression                             %prec TUOP        { { expr = E_uop ($1, $2); 

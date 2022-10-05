@@ -1,0 +1,21 @@
+#include "stdio.h"
+
+int ff(byref int* a, int i) {
+  writeChar('i');
+  writeInteger(++i - 1);
+  writeChar('a');
+  writeInteger(a++[0]);
+  return a[0];
+}
+
+void main() {
+  int i, a[3+(int)(3.7-1.3)]; 
+  int* p;
+  for(i=0;i<5;i++) {a[i]=i;}
+  i = 24;
+  p = a;
+  i = ff(p, i);
+  
+  writeBoolean(a+1 == p);
+  writeInteger(i);  
+}

@@ -1,0 +1,71 @@
+#include "stdio.h"
+
+void main() {
+	int a;
+	int *A;
+	char c;
+	char *C;
+	bool b;
+	bool *B;
+	double d;
+	double *D;
+	
+	a = 80;
+	A = &a;
+	c = 'f';
+	C = &c;
+	b = false;
+	B = &b;
+	d = 3.14159;
+	D = &d;
+	
+	writeString("all to int\n");
+	writeInteger(a);
+	writeChar('\n');
+	writeInteger((int)A);
+	writeChar('\n');
+	writeInteger((int)c);
+	writeChar('\n');
+	writeInteger((int)C);
+	writeChar('\n');
+	writeInteger((int)b);
+	writeChar('\n');
+	writeInteger((int)B);
+	writeChar('\n');
+	writeInteger((int)d);
+	writeChar('\n');
+	writeInteger((int)D);
+	writeChar('\n');
+	
+	writeString("all to double\n");
+	writeReal((double)a);
+	writeChar('\n');
+	writeReal((double)b);
+	writeChar('\n');
+	writeReal((double)c);
+	writeChar('\n');
+	writeReal((double)d);
+	writeChar('\n');
+	
+	writeString("all to bool\n");
+	writeBoolean((bool)a);
+	writeChar('\n');
+	writeBoolean(b);
+	writeChar('\n');
+	writeBoolean((bool)c);
+	writeChar('\n');
+	writeBoolean((bool)d);
+	writeChar('\n');
+//	writeBoolan((bool) 0);
+//	writeChar('\n');
+	
+	writeString("all to char\n");
+	writeChar((char)a);
+	writeChar('\n');
+	writeChar((char)b);
+	writeChar('\n');
+	writeChar(c);
+	writeChar('\n');
+	writeChar((char) d);
+	writeChar('\n');
+}

@@ -1,3 +1,5 @@
+#include "stdio.h"
+
 int f_int() {
     return 5;
 }
@@ -20,6 +22,11 @@ void f() {
     c = f_char();
     b = f_bool();
     d = f_double();
+    writeInteger(i);
+    writeChar(c);
+    writeBoolean(b);
+    writeReal(d);
+    writeChar('\n');
 }
 
 void main() {

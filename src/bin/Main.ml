@@ -10,20 +10,29 @@ let anon_fun filename =
   fn := filename
 
 let speclist = 
-  [("-O", Arg.Set opt_flag, "Enables code optimization");
+  [("-O", Arg.Set opt_flag, "Enables LLVM IR optimization");
    ("-f", Arg.Set asm_flag, "Accepts an Edsger program via stdin and dumps the assembly in stdout");
-   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")
-  ]
+   ("-i", Arg.Set ir_flag, "Accepts an Edsger program via stdin and dumps the LLVM IR in stdout")]
 
 let cli_error msg = 
   Utilities.print_diagnostic ~p:None msg Utilities.Error;
   exit 1
 
+let execute_cmd cmd msg = 
+  if (Sys.command cmd <> 0) then begin
+    prerr_newline (); failwith msg
+  end
+
+let llc = "llc"
+let llc_flags = "--relocation-model=pic -march=\"x86-64\""
+let clang = "clang"
+let clang_flags = "-lm -o"
+
 let () =
   Arg.parse speclist anon_fun usage_msg;
   if (!asm_flag && !ir_flag) then begin
-    let msg = "Cannot print both the assembly and the LLVM IR at the same time." in
-    cli_error msg
+    let msg = "Cannot print both the assembly and the LLVM IR at the same time" in
+    cli_error msg;
   end;
   let from_file = not (!asm_flag || !ir_flag) in
   if (from_file) then begin
@@ -46,27 +55,44 @@ let () =
         See: ./edsger -help" in 
       cli_error msg 
   end;
-  let lb = if (from_file) then Lexer.add_file !fn 
-    else Lexer.add_stdin () 
+  let lb = Lexer.add_file @@ 
+    if (from_file) then !fn else "stdin" 
   in begin try
     let t = Parser.program Lexer.lexer lb in 
-    Ast.print_ast t;
+    (* Ast.print_ast t; *)
     Semantic.sem_analysis t;
-    (* Codegen.codegen t;
-      (* Optimize LLVM IR before printing. *)
-      let ir = Llvm.string_of_llmodule Codegen.lmodule in
-      if (from_file) then 
-        (* Create <file>.ll and dump LLVM IR, do not exit yet. *)
-      else if (ir_flag) then begin 
-        print_string ir; exit 0 
-      end;
-      let llc_flag = TODO (* https://llvm.org/docs/CommandGuide/llc.html *) 
-      (* Produce assembly from IR and act based on asm_flag. *) 
-    *)
-    Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n";
+    let lmodule = Codegen.codegen t in
+    if (!opt_flag) then Optimizer.optimize lmodule;
+    if (from_file) then begin
+      let n = Filename.remove_extension !fn in 
+      let irfn = Printf.sprintf "%s.ll" n in 
+      let f = Out_channel.open_text irfn in 
+      Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
+      Out_channel.close f;
+      let cmd = Printf.sprintf "%s %s %s" llc llc_flags irfn in 
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details";
+      let cmd = Printf.sprintf "%s %s.s edsgerlib.a %s %s.out" 
+        clang n clang_flags n in 
+      execute_cmd cmd "Clang produced an error during the linking phase. \
+        Check above for more details";
+      Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
+    end
+    else if (!ir_flag) then 
+      print_string @@ Llvm.string_of_llmodule lmodule
+    else begin 
+      let nm, f = Filename.open_temp_file ~perms:438 "__temp__" ".ll" in 
+      Out_channel.output_string f (Llvm.string_of_llmodule lmodule);
+      Out_channel.close f;
+      let n = Filename.remove_extension nm in 
+      let cmd = Printf.sprintf "%s %s < %s" llc llc_flags nm in 
+      execute_cmd cmd "LLC produced an error during the compilation phase. \
+        Check above for more details"
+    end;
     exit 0
   with 
-    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg) -> 
+    | Lexer.LexFailure (pos, msg) | Semantic.SemFailure (pos, msg)
+    | Codegen.CGFailure (pos, msg) -> 
       Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Error;
     | Failure msg -> 
       Utilities.print_diagnostic ~p:None msg Utilities.Error;
@@ -74,4 +100,4 @@ let () =
       Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error;
   end;
   Printf.eprintf "• Compiled Successfully: \027[1;31m✗\027[0m\n";
-  exit 0;
+  exit 1;

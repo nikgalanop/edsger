@@ -1,0 +1,51 @@
+#include "stdio.h"
+
+void main() {
+	int i, j;
+	
+	int fun1(int i) {
+		int k, l;
+		
+		void nl() {
+			writeChar('\n');
+		}
+		
+		int fun2() {
+			int j;
+			
+			int fun3() {
+				writeString("called fun3\n");
+				k = j;
+				writeInteger(k);
+				nl();
+				return k+1;
+			}
+			
+			int fun4() {
+				writeString("called fun4\n");
+				i = l;
+				writeInteger(j);
+				nl();
+				return j-1;
+			}
+			
+			writeString("called fun2\n");
+			
+			j = 4;
+			j = fun3();
+			j = fun4();
+		}
+		
+		writeString("called fun1\n");
+		k = i*j;
+		l = i/j;
+		fun2();
+		writeInteger(i);
+		writeInteger(j);
+		return i+j;
+	}
+	
+	i = 10;
+	j = 20;
+	fun1(j);
+}

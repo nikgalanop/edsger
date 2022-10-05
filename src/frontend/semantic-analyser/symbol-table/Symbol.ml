@@ -27,6 +27,7 @@ and variable_info = {
 }
 
 and function_info = {
+  function_number            : int;
   mutable function_isForward : bool;
   mutable function_paramlist : entry list;
   mutable function_redeflist : entry list;
@@ -53,6 +54,8 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
+type env = entry list ref
+
 let the_outer_scope = {
   sco_parent = None;
   sco_nesting = 0;
@@ -66,9 +69,16 @@ let no_entry id = {
 }
 
 let currentScope = ref the_outer_scope
-let forNest = ref 0
-
 let tab = ref (H.create 0)
+
+let forNest = ref 0
+let count = H.create 50
+let envStack = Stack.create ()
+
+let shouldLift e = 
+  let nest = e.entry_scope.sco_nesting in 
+  nest <> !currentScope.sco_nesting &&
+  nest <> the_outer_scope.sco_nesting
 
 let initSymbolTable size =
    tab := H.create size;
@@ -113,7 +123,7 @@ let newEntry id inf err =
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
     e
   with Failure_NewEntry e ->
-    let msg = Printf.sprintf "Duplicate Identifier %s" (id_name id) in
+    let msg = Printf.sprintf "Duplicate identifier %s" (ent_name_of_id id) in  
     failwith msg
 
 let lookupEntry id how err =
@@ -124,7 +134,7 @@ let lookupEntry id how err =
       let e = H.find !tab id in
       if e.entry_scope.sco_nesting = scc.sco_nesting then
         e
-      else
+      else  
         raise Not_found
   | LOOKUP_ALL_SCOPES ->
       H.find !tab id 
@@ -146,6 +156,21 @@ let newVariable id typ err =
   } 
   in newEntry id (ENTRY_variable inf) err
 
+let getCounter id = 
+  try  
+    let c = H.find count id in
+    !c 
+  with Not_found ->
+    failwith "Non-existing function."
+
+let updateCounter id = 
+  try  
+    let c = H.find count id in
+    c := !c + 1; !c
+  with Not_found ->
+    H.add count id (ref 0);
+    0
+
 let newFunction id =
   try
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in 
@@ -161,9 +186,11 @@ let newFunction id =
       when inf.function_pstatus = PARDEF_COMPLETE ->
         (e, true)
     | _ -> 
-        failwith "Duplicate Identifier."
+        failwith "Duplicate identifier."
   with Not_found ->
+    let num = updateCounter id in
     let inf = {
+      function_number = num;
       function_isForward = false;
       function_paramlist = [];
       function_redeflist = [];
@@ -187,7 +214,7 @@ let newParameter id typ mode f err =
               inf.function_paramlist <- e :: inf.function_paramlist;
               e
             with _ -> 
-              failwith "Named more than one parameters of the same function with the same name."
+              failwith "Named more than one parameters of the same function with the same name"
           end 
       | PARDEF_CHECK -> begin
           match inf.function_redeflist with
@@ -200,8 +227,7 @@ let newParameter id typ mode f err =
                   else if inf.parameter_mode != mode then
                     failwith "Parameter passing mode mismatch"
                   else
-                    H.add !tab id p;
-                  p
+                    newEntry id p.entry_info err
               | _ ->
                   failwith "Found a parameter that is not a parameter!"
             end
@@ -230,18 +256,40 @@ let openForScope () =
 let closeForScope = function
   | None -> forNest := !forNest - 1
   | Some id -> try 
-        let e = lookupEntry id LOOKUP_ALL_SCOPES true in 
-        begin
+      let e = lookupEntry id LOOKUP_CURRENT_SCOPE true in 
+      begin
         match e.entry_info with 
-          | ENTRY_label b -> b := false; forNest := !forNest - 1
-          | _ -> Printf.eprintf "Should not find an entry of type label with an id of a label." 
-        end
-      with Exit -> 
-          Printf.eprintf "Cannot close scope of non-existing label"
+        | ENTRY_label b -> b := false; forNest := !forNest - 1
+        | _ -> Printf.eprintf "Should not find an entry of non - label type with an id of a label." 
+      end
+    with Exit -> 
+      Printf.eprintf "Cannot close scope of non-existing label"
 
 let insideFor () = 
   !forNest > 0
+  
+let openEnv () =
+  Stack.push (H.create 10) envStack
 
+let add_once set id e =
+  if (not @@ H.mem set id && shouldLift e) then
+    H.add set id e
+
+let pushToCurrentEnv e = 
+  let top = Stack.top envStack in 
+  add_once top e.entry_id e
+
+let closeEnv () = 
+  let (>>=) = Option.bind in 
+  let f env = 
+    Stack.top_opt envStack >>= 
+    (fun top -> 
+      H.iter (add_once top) env;
+      let env_list = List.of_seq @@ 
+        H.to_seq_values env in
+      Some env_list) 
+  in Stack.pop_opt envStack >>= f
+  
 let endFunctionHeader e typ =
   match e.entry_info with
   | ENTRY_function inf ->

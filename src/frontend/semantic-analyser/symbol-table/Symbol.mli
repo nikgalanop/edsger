@@ -18,6 +18,7 @@ and variable_info = {                         (******* Μεταβλητή ******
 }
 
 and function_info = {                         (******* Συνάρτηση  *******)
+  function_number            : int;
   mutable function_isForward : bool;          (* Forward Function       *)
   mutable function_paramlist : entry list;    (* List Parameters        *)
   mutable function_redeflist : entry list;    (* Λίστα Παραμέτρων (2η)  *)
@@ -53,12 +54,17 @@ val closeScope       : unit -> unit
 val openForScope     : unit -> unit
 val closeForScope    : Identifier.id option -> unit
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
+val getCounter       : Identifier.id -> int
 val newFunction      : Identifier.id -> entry * bool
 val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
                                         entry -> bool -> entry
 val newLabel         : Identifier.id -> bool -> entry
 
 val forwardFunction      : entry -> unit
+val openEnv              : unit -> unit
+val pushToCurrentEnv     : entry -> unit 
+val closeEnv             : unit -> entry list option 
+
 val endFunctionHeader    : entry -> Types.typ -> unit
 val lookupEntry          : Identifier.id -> lookup_type -> bool -> entry
 val insideFor            : unit -> bool

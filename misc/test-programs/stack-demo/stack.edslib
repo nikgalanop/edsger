@@ -1,21 +1,4 @@
 /*  
- *  The stack() function assumes that the stack pointer doesn't point to 
- *  a different dynamically allocated point in memory. It acts like a 
- *  constructor function.
- */
-
-void stack (byref int * stack, byref int size, byref int top, int initial_size){
-    size = initial_size;
-    stack = new int[size];
-    top = 0;
-}
-
-void copyStack (int * st_from, int si_from, int top_from, byref int * st_to, byref int si_to, byref int top_to){
-        
-}
-
-
-/*  
  *  A simple "destructor" that ensures that the dynamically allocated memory
  *  for the stack, is deallocated.
  */
@@ -24,9 +7,29 @@ void destroyStack (byref int * stack){
     delete stack;
 }
 
+void stack (byref int * stack, byref int size, byref int top, int initial_size){
+    if (stack != NULL) delete stack;
+    size = initial_size;
+    stack = new int[size];
+    top = 0;
+}
 
+void copyStack (int * st_from, int si_from, int top_from, byref int * st_to, byref int si_to, byref int top_to){
+    int i;
+    if (st_to != NULL) destroyStack(st_to);
+    si_to = si_from;
+    top_to = top_from;
+    st_to = new int[st_from];
+    for (i = 0; i <= top; i++){
+        st_to[i] = st_from[i];
+    }
+}
 
+/* "Clears" contents of stack while preserving its size. */
 void stackReset (byref int * stack, byref int size, byref int top){
-    delete stack;
+    top = 0;
+}
 
+void push (byref int * stack, byref int size, byref int top, int elem){
+    if (top + 1 == size)
 }
