@@ -77,8 +77,8 @@ let envStack = Stack.create ()
 
 let shouldLift e = 
   let nest = e.entry_scope.sco_nesting in 
-  nest <> the_outer_scope.sco_nesting && 
-  nest <> !currentScope.sco_nesting
+  nest <> !currentScope.sco_nesting &&
+  nest <> the_outer_scope.sco_nesting
 
 let initSymbolTable size =
    tab := H.create size;
@@ -272,7 +272,7 @@ let openEnv () =
   Stack.push (H.create 10) envStack
 
 let add_once set id e =
-  if not @@ H.mem set id then
+  if (not @@ H.mem set id && shouldLift e) then
     H.add set id e
 
 let pushToCurrentEnv e = 

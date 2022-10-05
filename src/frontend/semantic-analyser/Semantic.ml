@@ -185,6 +185,7 @@ and add_definition pos r =
         add_parameters pos f r.p;  
         endFunctionHeader f ft;
         sem_body ft r.b;
+        closeScope (); (* This call MUST be before the closeEnv call. *)
         let store_env entryenv = 
           let entry_to_param e = 
             let name = ent_name_of_id e.entry_id in 
@@ -199,7 +200,6 @@ and add_definition pos r =
         | None -> ()
         | Some env -> store_env env
         end;
-        closeScope ();
       end
     end
   | _ -> 
@@ -229,7 +229,7 @@ and sem_expr exp =
       | ENTRY_parameter i -> i.parameter_type
       | _ -> let msg = Printf.sprintf "`%s` is not a variable" s in 
           sem_fail pos msg
-      in if (shouldLift entr) then pushToCurrentEnv entr; res
+      in pushToCurrentEnv entr; res
     with Not_found -> let msg = Printf.sprintf "Variable `%s` does \
       not exist" s in sem_fail pos msg
     end

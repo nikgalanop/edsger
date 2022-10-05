@@ -287,10 +287,12 @@ and codegen_expr exp =
       let ent = lookupEntry (id_of_var v) LOOKUP_ALL_SCOPES false in 
       begin match ent.entry_info with 
       | ENTRY_variable inf -> inf.llval
-      | _ -> failwith "Found a non-variable entry with the id of a variable"
+      | _ -> cg_fail exp.meta "Found a non-variable entry \
+        with the id of a variable"
       end
-    with | _ -> let msg = Printf.sprintf "Non-existing variable `%s`" v in 
-      cg_fail exp.meta msg
+    with | Not_found -> 
+      let msg = Printf.sprintf "Non-existing variable `%s`" v in 
+      failwith msg
     end
   | E_int d -> const_int' d  
   | E_char c -> const_char' (Char.code c)
@@ -342,7 +344,7 @@ and codegen_expr exp =
     let ps = inf.function_paramlist in
     let envpars = inf.function_envlist in
     let expr_of_env = function
-    | name, mode ->
+    | name, mode -> 
       {expr = E_var name; meta = Lexing.dummy_pos}, mode
     in 
     let exprs = List.map expr_of_env envpars |> 
@@ -505,8 +507,6 @@ and codegen_header ~def rt fn ps env_opt =
       newEnvParameter name pass_mode f
     else newParameter pass_mode f
   in
-  let env_opt = Option.bind env_opt 
-    (CGUtils.filter_env ps) in
   (*llps are the ast-parameters that should be included 
     in the llvm representation of the function*)
   let llps = match env_opt with 
@@ -558,14 +558,15 @@ and name_parameters ps f =
     set_value_name n a;
   ) (params f)
 and parameter_allocation ps envs f = 
-    let envs = List.map snd envs in
     let ps = Array.of_list (ps @ envs) in  
     let params = params f in 
+    print_endline ("Function " ^ value_name f);
     Array.iteri (fun i pi -> 
       let vi = params.(i) in 
       let n = value_name vi in (* We can use value name since 
         we are using the parameters of a brand new function thus
         no counter is needed yet. *)
+      print_endline ("Allocating the parameter " ^ n);
       let vl = match pi with 
        | PASS_BY_VALUE -> 
           let t = type_of vi in  
@@ -574,7 +575,8 @@ and parameter_allocation ps envs f =
           alc      
        | _ -> vi in 
       ignore @@ newVariable (id_of_var n) vl;
-    ) (ps)
+    ) (ps);
+    print_endline "-----------------------------"
 and codegen_fdef rt fn ps b env = 
   let func_entr = codegen_header ~def:true 
     rt fn ps (Some env) in 
@@ -584,7 +586,7 @@ and codegen_fdef rt fn ps b env =
   position_at_end entrybb lbuilder;
   openScope ();
   let ps' = inf.function_paramlist in
-  let envs' = inf.function_envlist in 
+  let envs' = List.map snd inf.function_envlist in 
   parameter_allocation ps' envs' f; 
   codegen_body b;  
   closeScope ();
