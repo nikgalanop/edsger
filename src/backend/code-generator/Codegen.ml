@@ -560,13 +560,11 @@ and name_parameters ps f =
 and parameter_allocation ps envs f = 
     let ps = Array.of_list (ps @ envs) in  
     let params = params f in 
-    print_endline ("Function " ^ value_name f);
     Array.iteri (fun i pi -> 
       let vi = params.(i) in 
       let n = value_name vi in (* We can use value name since 
         we are using the parameters of a brand new function thus
         no counter is needed yet. *)
-      print_endline ("Allocating the parameter " ^ n);
       let vl = match pi with 
        | PASS_BY_VALUE -> 
           let t = type_of vi in  
@@ -576,7 +574,6 @@ and parameter_allocation ps envs f =
        | _ -> vi in 
       ignore @@ newVariable (id_of_var n) vl;
     ) (ps);
-    print_endline "-----------------------------"
 and codegen_fdef rt fn ps b env = 
   let func_entr = codegen_header ~def:true 
     rt fn ps (Some env) in 
