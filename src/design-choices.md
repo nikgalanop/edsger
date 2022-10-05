@@ -71,3 +71,8 @@ when declaring a local static array.
 the `size`-th character in the provided buffer. The function reads from `stdin` 
 as long as it has not reached `EOF` or it not read the newline char `'\n'`. The 
 `'\n'` is not included in the returned string.
+
+## Nested Functions
+- In edsger, the programmer can nest functions. The nested functions can 
+access variables from the outer scopes in which they are nested into, as
+expected. This is implemented via lambda lifting.
