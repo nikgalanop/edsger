@@ -1,0 +1,17 @@
+#include "stdio.h"
+
+int i(int i) {
+  return i+i;
+}
+
+void main() {
+  int i;
+  i = 10;
+  writeInteger(i);
+  writeChar('\n');
+  writeInteger(i(i));
+  writeChar('\n');
+  i = i(i);
+  writeInteger(i(i(i)));
+  writeChar('\n');
+}

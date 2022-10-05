@@ -1,0 +1,43 @@
+#include "stdio.h"
+
+void fn(int i) {
+  writeString("arg = ");
+  writeInteger(i);
+  writeChar('\n');
+}
+
+void fn(int i, int j) {
+  writeString("args = ");
+  writeInteger(i);
+  writeInteger(j);
+  writeChar('\n');
+}
+
+void fn(int i, int j, int k) {
+  writeString("args = ");
+  writeInteger(i);
+  writeInteger(j);
+  writeInteger(k);
+  writeChar('\n');
+}
+
+int g(int i) {
+  writeChar('-');
+  writeChar('\n');
+  return -i;
+}
+
+void main() {
+  int i, j, k;
+  
+  i=1; j=2; k=3;
+  
+  writeString("i,j,k "); fn(i, j, k);
+  writeString("((i,j),k) "); fn(((i, j), k));
+  writeString("(i,(j,k)) "); fn((i, (j, k)));
+  writeString("(i,j,k) "); fn((i, j, k));
+  writeString("i,(j,k) "); fn(i, (j, k));
+  writeString("(i,j),k "); fn((i, j), k);
+  
+  writeString("(g(i), (j, g(k)) \n"); fn((g(i), (j, g(k))));
+}

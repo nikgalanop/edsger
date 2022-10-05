@@ -1,0 +1,28 @@
+#include "stdio.h"
+void fn(int i, byref int j, int * a, byref int * b) {
+	writeInteger(i++);
+	writeInteger(j++);
+	writeInteger(a++[i]);
+	writeInteger(b++[j]);
+}
+
+void main() {
+	int i, j, a[5], b[5];
+	int * p;
+	
+	for(i=0; i<5; i++) {
+		a[i] = i*i;
+		b[i] = -a[i];
+	}
+	
+	p = b;
+	i = 0;
+	j = 0;
+	
+	fn(i, j, a, p);
+	writeBoolean(b+1==p);
+	
+	fn(i, j, a, b);
+	writeBoolean(b==p);
+	
+}

@@ -1,0 +1,40 @@
+#include "stdio.h"
+
+int* shrink(int* p, int d, int a) {
+  if(a>d) return NULL;
+  else return p+a;
+}
+
+int* create(int d, int a) {
+  int* p;
+  int i;
+  p = new int[d];
+  for (i=0; i<d; i++) p[i]=a*i;
+  return p;
+}
+
+void printarr(int* p, int n) {
+  int i;
+  for(i=0; i<n; i++) {
+    writeInteger(p[i]);
+  }
+  writeChar('\n');
+}
+
+void main() {
+  int* a;
+  int sz;
+  sz = 10;
+  a = create(sz, 2);
+  printarr(a, sz);
+  
+  if(shrink(a, sz, 8) != NULL){
+    if(shrink(a, sz, 5)[1] > 10)
+      writeInteger(shrink(a,sz,7)[1]);
+    else
+      writeInteger(a[0]);
+  }
+  else
+    writeString("error, can't shrink that much");
+  delete a;
+}

@@ -1,0 +1,16 @@
+int fn(int i) {
+	return i+1;
+}
+
+#include "stdio.h"
+
+int j;
+
+#include "math.h"
+
+int gn(int a) {
+	return (int) sqrt((double)a);
+}
+void main() {
+	writeInteger(fn(gn(4)));
+}

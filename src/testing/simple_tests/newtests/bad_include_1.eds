@@ -1,0 +1,11 @@
+int fn(int i) {
+#include "stdio.h"
+	writeInteger(i);
+	return i+1;
+}
+
+void main() {
+	int i;
+	i = 5;
+	i = fn(i);
+}

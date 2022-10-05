@@ -1,15 +1,21 @@
+#include "stdio.h"
+
 void main() {
     int a, b, c, x, y;
     int func(int i, int j) {
         int k, l;
         
         int func2(int a, int j) {
+            writeInteger(b);
+            writeChar(' ');
+            writeChar('\n');
             return a * i + j * b;
         }
         
         k = a + i;
         l = j - b;
         return k+l-func2(c,a);
+        writeInteger(a);
     }
     
     a = 1; b = 2; c = 3;
