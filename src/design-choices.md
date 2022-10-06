@@ -37,6 +37,8 @@ compiling the rest of the program.
 - The header files for this prepackaged library are provided in `path/to/edsger/misc/test-programs/lib-headers`.
 - When compiling a program, the necessary library headers as well as the archive file of the static library must be present
 in the same directory as the source file.
+- All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
+- `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly,
 by placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has 
