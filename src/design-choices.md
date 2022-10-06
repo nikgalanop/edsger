@@ -1,3 +1,31 @@
+<details> 
+  <summary> Table Of Contents </summary>
+  <details>
+    <summary>Compiler Structure Details</summary>
+    <ul>
+      <li><a href="#tools">Tools</a></li>
+      <li><a href="#installation-and-usage">Installation and Usage</a></li>
+      <li><a href="#compiler-behaviour-and-options">Compiler Behaviour And Options</a></li>
+      <li><a href="#filenames">Filenames</a></li>
+      <li><a href="#macros">Macros</a></li>
+      <li><a href="#library-functions">Library Functions</a></li>
+    </ul>
+  </details>  
+  <details>
+    <summary>Language Feature Implementation Details</summary>
+    <ul>
+      <li><a href="#overloading">Overloading</a></li>
+      <li><a href="#function-declarations">Function Declarations</a></li>
+      <li><a href="#nested-functions">Nested Functions</a></li>
+      <li><a href="#local-variable-declarations">Local Variable Declarations</a></li>
+      <li><a href="#static-array-declarations">Static Array Declarations</a></li>
+      <li><a href="#dynamic-memory-allocation">Dynamic Memory Allocation</a></li>
+      <li><a href="#labels">Labels</a></li>
+      <li><a href="#type-casting">Type Casting</a></li>
+    </ul>
+  </details>
+</details>  
+
 ### Tools:
 - This compiler is written in OCaml.
 - We use both `dune` and `Makefile` as our build system.
