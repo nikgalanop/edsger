@@ -22,6 +22,13 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
   4. `-help' / '--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
 - This simple CLI is implemented with the usage of the `Arg` module.
 
+### Installation and Usage:
+1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
+2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
+`make`. Both the compiler and the static library are made. The static library is located in `path/to/edsger/lib`, the 
+compiler executable is located in `_build/default/bin/Main.ml`. It can either be copied from there and renamed or it can
+be executed via dune as following: `dune exec edsger filename.eds`. To provide compiler options, the user must add two dashes:
+`dune exec -- edsger [options] filename.eds`
 
 ### Filenames:
 - The input file to the compiler, must have the extension `.eds`.
@@ -33,10 +40,13 @@ is provided, then the compiler warns the user about this, omits the macro that c
 compiling the rest of the program.
 
 ### Library Functions
-- The prepackaged static library of edsger, is written in C. (`path/to/edsger/src/lib`)
-- The header files for this prepackaged library are provided in `path/to/edsger/misc/test-programs/lib-headers`.
-- When compiling a program, the necessary library headers as well as the archive file of the static library must be present
-in the same directory as the source file.
+- The prepackaged static library of edsger, is written in C. (`path/to/lib/lib-implementation`)
+- The header files for this prepackaged library are provided in `path/to/lib/lib-headers`.
+- When compiling a program, the necessary library headers as well as the archive file of the static library should be 
+present in the same directory as the source file. If they are, they are used for the compilation. If they are **not**,
+the compiler searches in `$EDS_LIB_PATH/lib-headers` for the headers, and in `$EDS_LIB_PATH/` for the static library.
+Thus the `~/.bashrc` file should be set accordingly (or just the environment if it's a one time execution of the compiler)
+and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly,
 by placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has 
