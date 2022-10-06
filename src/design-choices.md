@@ -51,6 +51,8 @@ present in the same directory as the source file. If they are, they are used for
 the compiler searches in `$EDS_LIB_PATH/lib-headers` for the headers, and in `$EDS_LIB_PATH/` for the static library.
 Thus the `~/.bashrc` file should be set accordingly (or just the environment if it's a one time execution of the compiler)
 and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
+- All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
+- `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly,
 by placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has 
