@@ -1,17 +1,17 @@
 ### Tools:
 - This compiler is written in OCaml.
-- We use both dune and Makefile as our build system.
-- For the lexer, it uses ocamllex.
-- For the parser, it uses Menhir.
+- We use both `dune` and `Makefile` as our build system.
+- For the lexer, it uses `ocamllex`.
+- For the parser, it uses `Menhir`.
 - We used a different symbol table for semantic analysis and IR Generation. Both of these symbol tables are heavily
 inspired by the code that is provided [here](https://courses.softlab.ntua.gr/compilers/2010a/bonus-ocaml-1.0.tgz)
 - We used LLVM and the LLVM bindings for OCaml, to produce LLVM IR from the AST that we generate.
-- It calls llc and clang to convert the produced LLVM IR to assembly or executable form.
-- We use ar and clang to create the prepackaged static library.
+- It calls `llc` and `clang` to convert the produced LLVM IR to assembly or executable form.
+- We use `ar` and `clang` to create the prepackaged static library.
 
 ### Compiler Behaviour And Options
-- The standard usage of the compiler (no flags), reads from an input file 'name.eds' and produces three files 'name.ll', 'name.s', 
-'name.out'. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
+- The standard usage of the compiler (no flags), reads from an input file `name.eds` and produces three files `name.ll`, `name.s`, 
+`name.out`. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
 - There are four options that can be passed to the compiler:
   1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
       `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE` 
@@ -25,10 +25,14 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 ### Installation and Usage:
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
 2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
-`make`. Both the compiler and the static library are made. The static library is located in `path/to/edsger/lib`, the 
-compiler executable is located in `_build/default/bin/Main.ml`. It can either be copied from there and renamed or it can
-be executed via dune as following: `dune exec edsger filename.eds`. To provide compiler options, the user must add two dashes:
-`dune exec -- edsger [options] filename.eds`
+`make`. Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib`, the 
+compiler executable is located in `/path/to/edsger/src_build/default/bin/Main.ml`. It can either be copied from there and 
+renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, 
+the user must add two dashes, when executing the compiler via dune: `dune exec -- edsger [options] filename.eds`
+
+⚠️ In both cases the user must `export EDS_LIB_PATH=/path/to/lib` to their environment, either by adding it in `~/.bashrc` and 
+restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
+current terminal session).
 
 ### Filenames:
 - The input file to the compiler, must have the extension `.eds`.
