@@ -96,8 +96,8 @@ when two functions have the same name and parameters but are also nested inside 
 they are nested into, as expected. This is implemented via lambda lifting.
 
 ### Type Casting:
-- We allow every possible type casting between arithmetic types.
-- We only allow a pointer to be cast to an int.
+- We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
+- We only allow a pointer to be cast to an int and no other arithmetic type.
 - We do not allow any arithmetic value to be cast into a pointer.
 - We allow casting between pointer types freely.
 
