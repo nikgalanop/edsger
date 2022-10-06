@@ -9,19 +9,6 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 - It calls `llc` and `clang` to convert the produced LLVM IR to assembly or executable form.
 - We use `ar` and `clang` to create the prepackaged static library.
 
-### Compiler Behaviour And Options
-- The standard usage of the compiler (no flags), reads from an input file `name.eds` and produces three files `name.ll`, `name.s`, 
-`name.out`. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
-- There are four options that can be passed to the compiler:
-  1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
-      `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE` 
-  2. `-i`: when provided, the compiler reads from `stdin` and outputs the produced LLVM IR to `stdout`. No input file should 
-       be provided. No output file is produced.
-  3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
-       be provided. No output file is produced.
-  4. `-help` / `--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
-- This simple CLI is implemented with the usage of the `Arg` module.
-
 ### Installation and Usage:
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
 2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
@@ -34,6 +21,19 @@ filename.eds`
 ⚠️ In both cases the user must `export EDS_LIB_PATH=/path/to/lib` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
 current terminal session).
+
+### Compiler Behaviour And Options
+- The standard usage of the compiler (no flags), reads from an input file `name.eds` and produces three files `name.ll`, `name.s`, 
+`name.out`. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
+- There are four options that can be passed to the compiler:
+  1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
+      `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE` 
+  2. `-i`: when provided, the compiler reads from `stdin` and outputs the produced LLVM IR to `stdout`. No input file should 
+       be provided. No output file is produced.
+  3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
+       be provided. No output file is produced.
+  4. `-help` / `--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
+- This simple CLI is implemented with the usage of the `Arg` module.
 
 ### Filenames:
 - The input file to the compiler, must have the extension `.eds`.
@@ -96,16 +96,10 @@ when two functions have the same name and parameters but are also nested inside 
 - In edsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
 they are nested into, as expected. This is implemented via lambda lifting.
 
-### Type Casting:
-- We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
-- We only allow a pointer to be cast to an int and no other arithmetic type.
-- We do not allow any arithmetic value to be cast into a pointer.
-- We allow casting between pointer types freely.
-
-### Labels:
-- We do not allow two labels in the same function to have the same name.
-- We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
-destination.
+### Local Variable Declarations 
+- It is not guaranteed that local variables are initialized to zero. 
+- It is not allowed to declare a variable that has the same name as a parameter or another variable inside a function.
+The same principle applies to parameter declaration.
 
 ### Static Array Declarations:
 - When defining an array statically, the size of the array must be a **positive** constant integer expression. A constant 
@@ -119,7 +113,27 @@ integer expression is a constant expression of type int, defined as stated below
     > between two constant doubles, casted to an int.
 - Global arrays are initialized to contain zeros. This is not guaranteed when declaring a local static array.
 
-### Local Variable Declarations 
-- It is not guaranteed that local variables are initialized to zero. 
-- It is not allowed to declare a variable that has the same name as a parameter or another variable inside a function.
-The same principle applies to parameter declaration.
+### Dynamic Memory Allocation:
+- The programmer can dynamically allocate memory via the `new` operator. As it is expected, the length of the allocated 
+memory space is variable. (And is resolved during runtime) The `new` operator is just a call to the `malloc` function.
+The implementation of `malloc` is linked when our compiler is calling the `clang` compiler, to link the produced assembly 
+file with the prepackaged static library. 
+
+⚠️ The `new` operator (or the equivalent `malloc` call) does not fail when the provided size is equal to 0 or a negative 
+number. Special care should be given, if the `new` operator is called with a negative number as its size, since `malloc`
+accepts unsigned integers, thus it will allocate memory with the equivalent unsigned size.
+
+- The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
+of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
+for the implementation of `malloc` and the linking, applies for `free` as well.
+
+### Labels:
+- We do not allow two labels in the same function to have the same name.
+- We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
+destination.
+
+### Type Casting:
+- We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
+- We only allow a pointer to be cast to an int and no other arithmetic type.
+- We do not allow any arithmetic value to be cast into a pointer.
+- We allow casting between pointer types freely.
