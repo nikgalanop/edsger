@@ -1,20 +1,25 @@
+## Edsger Implementation Details
+
+This is a summary of the design choices that we ([1](https://github.com/el18177), [2](https://github.com/nikgalanop))
+reached upon, in this implementation of the edsger language. The specification of the said language can be found 
+[here](https://courses.softlab.ntua.gr/compilers/2022a/edsger2022.pdf).
+
+### Table Of Contents
 <details> 
-  <summary> Table Of Contents </summary>
-  <details>
-    <summary>Compiler Structure Details</summary>
-    <ul>
+  <summary>Compiler Structure Details</summary>
+  <ul>
       <li><a href="#tools">Tools</a></li>
       <li><a href="#installation-and-usage">Installation and Usage</a></li>
       <li><a href="#compiler-behaviour-and-options">Compiler Behaviour And Options</a></li>
       <li><a href="#filenames">Filenames</a></li>
       <li><a href="#macros">Macros</a></li>
       <li><a href="#library-functions">Library Functions</a></li>
-    </ul>
-  </details>  
-  <details>
-    <summary>Language Feature Implementation Details</summary>
-    <ul>
-      <li><a href="#overloading">Overloading</a></li>
+   </ul>
+</details>
+<details>
+  <summary>Language Feature Implementation Details</summary>
+  <ul>
+      <li><a href="#function-overloading">Function Overloading</a></li>
       <li><a href="#function-declarations">Function Declarations</a></li>
       <li><a href="#nested-functions">Nested Functions</a></li>
       <li><a href="#local-variable-declarations">Local Variable Declarations</a></li>
@@ -22,11 +27,11 @@
       <li><a href="#dynamic-memory-allocation">Dynamic Memory Allocation</a></li>
       <li><a href="#labels">Labels</a></li>
       <li><a href="#type-casting">Type Casting</a></li>
-    </ul>
-  </details>
+   </ul>
 </details>  
 
-### Tools:
+## Compiler Structure Details
+### Tools
 - This compiler is written in OCaml.
 - We use both `dune` and `Makefile` as our build system.
 - For the lexer, it uses `ocamllex`.
@@ -37,7 +42,7 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 - It calls `llc` and `clang` to convert the produced LLVM IR to assembly or executable form.
 - We use `ar` and `clang` to create the prepackaged static library.
 
-### Installation and Usage:
+### Installation and Usage
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
 2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
 `make` and executing it in your terminal. Both the compiler and the static library are made. The static library is located 
@@ -63,7 +68,7 @@ current terminal session).
   4. `-help` / `--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
 - This simple CLI is implemented with the usage of the `Arg` module.
 
-### Filenames:
+### Filenames
 - The input file to the compiler, must have the extension `.eds`.
 - An "included" file must have either the extension `.eds` or `.h`.
 
@@ -87,7 +92,8 @@ and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
 by placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has 
 not reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
 
-### Overloading:
+## Language Feature Implementation Details
+### Function Overloading
 - We allow function overloading.
 - We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters 
 are equivalent if they have the same type. (We do not care about the pass method) Two parameter lists are equivalent 
@@ -129,7 +135,7 @@ they are nested into, as expected. This is implemented via lambda lifting.
 - It is not allowed to declare a variable that has the same name as a parameter or another variable inside a function.
 The same principle applies to parameter declaration.
 
-### Static Array Declarations:
+### Static Array Declarations
 - When defining an array statically, the size of the array must be a **positive** constant integer expression. A constant 
 integer expression is a constant expression of type int, defined as stated below:
     > A constant integer expression can be:
@@ -141,7 +147,7 @@ integer expression is a constant expression of type int, defined as stated below
     > between two constant doubles, casted to an int.
 - Global arrays are initialized to contain zeros. This is not guaranteed when declaring a local static array.
 
-### Dynamic Memory Allocation:
+### Dynamic Memory Allocation
 - The programmer can dynamically allocate memory via the `new` operator. As it is expected, the length of the allocated 
 memory space is variable. (And is resolved during runtime) The `new` operator is just a call to the `malloc` function.
 The implementation of `malloc` is linked when our compiler is calling the `clang` compiler, to link the produced assembly 
@@ -155,12 +161,12 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
 
-### Labels:
+### Labels
 - We do not allow two labels in the same function to have the same name.
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
 destination.
 
-### Type Casting:
+### Type Casting
 - We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
 - We only allow a pointer to be cast to an int and no other arithmetic type.
 - We do not allow any arithmetic value to be cast into a pointer.
