@@ -29,6 +29,12 @@ reached upon, in this implementation of the edsger language. The specification o
       <li><a href="#type-casting">Type Casting</a></li>
    </ul>
 </details>  
+<details>
+    <summary>Miscellaneous</summary>
+  <ul>
+      <li><a href="#grammar-conflicts">Grammar Conflicts</a></li>
+   </ul>
+</details>
 
 ## Compiler Structure Details
 ### Tools
@@ -171,3 +177,6 @@ destination.
 - We only allow a pointer to be cast to an int and no other arithmetic type.
 - We do not allow any arithmetic value to be cast into a pointer.
 - We allow casting between pointer types freely.
+
+## Miscellaneous
+### Grammar Conflicts
