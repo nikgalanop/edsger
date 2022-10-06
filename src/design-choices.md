@@ -19,7 +19,7 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
        be provided. No output file is produced.
   3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
        be provided. No output file is produced.
-  4. `-help' / '--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
+  4. `-help` / `--help` : when provided, it outputs a list of the available options, the ones that we are describing above.
 - This simple CLI is implemented with the usage of the `Arg` module.
 
 ### Installation and Usage:
