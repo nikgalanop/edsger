@@ -14,7 +14,7 @@ let print_diagnostic ~(p : Lexing.position option) msg mode =
 
 let get_base_dir () = 
     try 
-        Sys.getenv "EDS_BASE_DIR"
+        Sys.getenv "EDS_LIB_DIR"
     with | _ -> 
         print_diagnostic ~p:None "Base directory not configured." Error;
         exit 1
