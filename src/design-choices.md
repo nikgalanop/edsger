@@ -25,10 +25,11 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 ### Installation and Usage:
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
 2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
-`make`. Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib`, the 
-compiler executable is located in `/path/to/edsger/src_build/default/bin/Main.ml`. It can either be copied from there and 
-renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, 
-the user must add two dashes, when executing the compiler via dune: `dune exec -- edsger [options] filename.eds`
+`make` and executing it in your terminal. Both the compiler and the static library are made. The static library is located 
+in `path/to/edsger/src/lib`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. It can 
+either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order
+to provide compiler options, the user must add two dashes, when executing the compiler via dune: `dune exec -- edsger [options] 
+filename.eds`
 
 ⚠️ In both cases the user must `export EDS_LIB_PATH=/path/to/lib` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
@@ -44,8 +45,8 @@ is provided, then the compiler warns the user about this, omits the macro that c
 compiling the rest of the program.
 
 ### Library Functions
-- The prepackaged static library of edsger, is written in C. (`path/to/lib/lib-implementation`)
-- The header files for this prepackaged library are provided in `path/to/lib/lib-headers`.
+- The prepackaged static library of edsger, is written in C. (`path/to/edsger/src/lib/lib-implementation`)
+- The header files for this prepackaged library are provided in `path/to/edsger/src/lib/lib-headers`.
 - When compiling a program, the necessary library headers as well as the archive file of the static library should be 
 present in the same directory as the source file. If they are, they are used for the compilation. If they are **not**,
 the compiler searches in `$EDS_LIB_PATH/lib-headers` for the headers, and in `$EDS_LIB_PATH/` for the static library.
