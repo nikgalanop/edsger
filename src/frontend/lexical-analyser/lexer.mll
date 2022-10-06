@@ -66,19 +66,23 @@ rule lexer = parse
               let line_pos = pos.pos_cnum - pos.pos_bol in
               if (line_pos <> 0) then
                 lex_fail pos "Directives should be in the beginning of a line";
-              if (not @@ Sys.file_exists filename) then begin
-                let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
-                lex_fail pos msg
+              let fn = ref filename in 
+              if (not @@ Sys.file_exists !fn) then begin
+                fn := Utilities.default_lib_header !fn;
+                if (not @@ Sys.file_exists !fn) then begin
+                  let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
+                  lex_fail pos msg
+                end
               end;
-              let ext = Filename.extension filename in
+              let ext = Filename.extension !fn in
               if (ext <> ".eds" && ext <> ".h") then begin
                 let msg = Printf.sprintf "Can only include files with extension \
                   '.h' or '.eds', not '%s'" ext in
                 lex_fail pos msg
               end;
-              let res = safe_find filename set in
+              let res = safe_find !fn set in
               match res with
-              | None -> let lb = add_file filename in 
+              | None -> let lb = add_file !fn in 
                 begin try  
                   let t = Parser.program lexer lb in
                   T_include t
@@ -86,7 +90,7 @@ rule lexer = parse
                   Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 
                   exit 1 
                 end
-              | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" filename in
+              | _   -> let msg = Printf.sprintf "Tried to include '%s' twice" !fn in
                 Utilities.print_diagnostic ~p:(Some pos) msg Utilities.Warning;
                 T_include [] } 
 

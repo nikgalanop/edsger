@@ -74,8 +74,8 @@ let () =
       let cmd = Printf.sprintf "%s %s %s" llc llc_flags irfn in 
       execute_cmd cmd "LLC produced an error during the compilation phase. \
         Check above for more details";
-      let cmd = Printf.sprintf "%s %s.s edsgerlib.a %s %s.out" 
-        clang n clang_flags n in 
+      let cmd = Printf.sprintf "%s %s.s %s %s %s.out" 
+        clang n (Utilities.static_lib_dir ()) clang_flags n in 
       execute_cmd cmd "Clang produced an error during the linking phase. \
         Check above for more details";
       Printf.eprintf "• Compiled Succesfully: \027[92m✓\027[0m\n"
