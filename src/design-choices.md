@@ -187,7 +187,8 @@ associativity rules. (`%left`, `%right`, `%nonassoc` macros)
 - One of those conflicts was solved via semantic actions. Specifically, there is the following conflict between the argument list
 of a function call and the comma operator.
 
-eg. ``` 
+eg. 
+``` 
 int f (int x){
   // Some code
   // Return some value
