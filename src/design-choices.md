@@ -174,9 +174,41 @@ destination.
 
 ### Type Casting
 - We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
-- We only allow a pointer to be cast to an int and no other arithmetic type.
+- We only allow a pointer to be cast to an `int` and no other arithmetic type.
 - We do not allow any arithmetic value to be cast into a pointer.
 - We allow casting between pointer types freely.
 
 ## Miscellaneous
 ### Grammar Conflicts
+- The grammar of the Edsger language is provided at p. 15, in the specification that we linked at the beggining of this document.
+It is an ambiguous grammar. 
+- Most of the conflicts (binary operators, dangling else) were solved by enforcing precedence and 
+associativity rules. (`%left`, `%right`, `%nonassoc` macros)
+- One of those conflicts was solved via semantic actions. Specifically, there is the following conflict between the argument list
+of a function call and the comma operator.
+
+eg. ``` 
+int f (int x){
+  // Some code
+  // Return some value
+};
+void main (){
+  int x, int y;
+  // some code
+  f(x, y); // This should be interpreted as two arguments? Or should this return y? (Comma operator)
+  // More code
+} 
+```
+
+We decided that when providing an argument list, a comma operator **must** be between parentheses, meaning that the correct function
+call in the above example is `f((x,y))`. In order to achieve that, we produce a function call via this rule: `<I>([<expression>])`.
+Thus, `test(x,y,z)` is at first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. 
+The only thing we have to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
+
+Snippet of the source code that does the described flattening:
+```
+let rec flatten ex acc =
+  match ex.expr with
+    | E_binop (x, O_comma, y) -> flatten x (y :: acc)
+    | _ -> ex :: acc
+```
