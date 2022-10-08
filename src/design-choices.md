@@ -184,7 +184,7 @@ destination.
 It is an ambiguous grammar. 
 - Most of the conflicts (binary operators, dangling else) were solved by enforcing precedence and 
 associativity rules. (`%left`, `%right`, `%nonassoc` macros)
-- One of those conflicts was solved via semantic actions. Specifically, there is a `reduce-reduce` conflict between the argument list
+- One of those conflicts was solved via semantic actions. Specifically, there is a **reduce-reduce** conflict between the argument list
 of a function call and the comma operator.
 
 eg. 
