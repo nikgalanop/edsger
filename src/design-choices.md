@@ -207,10 +207,12 @@ void main (){
 } 
 ```
 
-We decided that when providing an argument list, a comma operator **must** be between parentheses, meaning that the correct function
-call in the above example is `f((x,y))`. In order to achieve that, we produce a function call via this rule: `<I>([<expression>])`.
-Thus, `test(x,y,z)` is at first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. 
-The only thing we have to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
+We decided that when providing an argument list, a comma operator **must** be between parentheses, meaning that if we want to call the 
+first function named `f` we should write `f((x,y))`, while `f(x,y)` is a call corresponding to the second function named `f`. In order
+to achieve that, we changed the production rule for a function call to: `<I>([<expression>])`. Thus, `test(x,y,z)` is at first equivalent 
+to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. The only thing we have to do is to flatten 
+this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a 
+function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
 
 Snippet of the source code that does the described flattening: 
 ```
