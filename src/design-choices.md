@@ -193,6 +193,10 @@ int f (int x){
   // Some code
   // Return some value
 };
+int f (int x, int y){
+  // Some code
+  // Return some value
+};
 void main (){
   int x, int y;
   // some code
