@@ -192,11 +192,13 @@ eg.
 int f (int x){
   // Some code
   // Return some value
-};
+}
+
 int f (int x, int y){
   // Some code
   // Return some value
-};
+}
+
 void main (){
   int x, int y;
   // some code
@@ -210,7 +212,7 @@ call in the above example is `f((x,y))`. In order to achieve that, we produce a 
 Thus, `test(x,y,z)` is at first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. 
 The only thing we have to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
 
-Snippet of the source code that does the described flattening:
+Snippet of the source code that does the described flattening: 
 ```
 let rec flatten ex acc =
   match ex.expr with
