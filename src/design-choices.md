@@ -19,8 +19,8 @@ reached upon, in this implementation of the edsger language. The specification o
 <details>
   <summary>Language Feature Implementation Details</summary>
   <ul>
-      <li><a href="#function-overloading">Function Overloading</a></li>
       <li><a href="#function-declarations">Function Declarations</a></li>
+      <li><a href="#function-overloading">Function Overloading</a></li>
       <li><a href="#nested-functions">Nested Functions</a></li>
       <li><a href="#local-variable-declarations">Local Variable Declarations</a></li>
       <li><a href="#static-array-declarations">Static Array Declarations</a></li>
@@ -99,6 +99,11 @@ placing a null byte as the `size`-th character in the provided buffer. The funct
 reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
 
 ## Language Feature Implementation Details
+### Function Declarations
+- A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
+(C-like function declaration)
+- A declaration of a function cannot be placed after the definition of the same function.
+
 ### Function Overloading
 - We allow function overloading.
 - We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters are equivalent
@@ -126,11 +131,6 @@ We also use a counter in case that two functions have the same name and explicit
 of function shadowing (a nested function shadows a function with the same name and parameters from an outer scope), or 
 when two functions have the same name and parameters but are also nested inside different functions.
 
-### Function Declarations
-- A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
-(C-like function declaration)
-- A declaration of a function cannot be placed after the definition of the same function.
-
 ### Nested Functions
 - In edsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
 they are nested into, as expected. This is implemented via lambda lifting.
@@ -150,6 +150,7 @@ integer expression is a constant expression of type int, defined as stated below
     > 3. a constant double, casted to an int
     > 4. the result of the operations '+', '-', '*', '/', '%'
     > between two constant doubles, casted to an int.
+- These constant integer expressions are computed by the compiler during compile time.
 - Global arrays are initialized to contain zeros. This is not guaranteed when declaring a local static array.
 
 ### Dynamic Memory Allocation
