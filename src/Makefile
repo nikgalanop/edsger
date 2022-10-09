@@ -12,6 +12,9 @@ compiler:
 library:
 	make -C $(LIBPATH);
 
-distclean:
+clean:
+	make -C $(LIBPATH) clean
+
+distclean: clean
 	dune clean;
 	make -C $(LIBPATH) distclean

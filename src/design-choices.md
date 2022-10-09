@@ -50,12 +50,10 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 
 ### Installation and Usage
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
-2. Or build from source. In order to build from source, just execute the Makefile inside `path/to/edsger/src` by writing
-`make` and executing it in your terminal. Both the compiler and the static library are made. The static library is located 
-in `path/to/edsger/src/lib`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. It can 
-either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order
-to provide compiler options, the user must add two dashes, when executing the compiler via dune: `dune exec -- edsger [options] 
-filename.eds`
+2. Or build from [source](https://github.com/nikgalanop/edsger/src). In order to build from source, just execute the Makefile
+inside `path/to/edsger/src` by writing `make` and executing it in your terminal. Both the compiler and the static library are 
+made. The static library is located in `path/to/edsger/src/lib`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
+`dune exec -- edsger [options] filename.eds`
 
 ⚠️ In both cases the user must `export EDS_LIB_PATH=/path/to/lib` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
@@ -79,31 +77,29 @@ current terminal session).
 - An "included" file must have either the extension `.eds` or `.h`.
 
 ### Macros
-- As stated in the specification, the only macro instruction allowed is `#include`. If a 'cyclical' include sequence
-is provided, then the compiler warns the user about this, omits the macro that caused the cycle and proceeds with
-compiling the rest of the program.
+- As stated in the specification, the only macro instruction allowed is `#include`. If a 'cyclical' include sequence is provided,
+then the compiler warns the user about this, omits the macro that caused the cycle and proceeds with compiling the rest of the 
+program.
 
 ### Library Functions
 - The prepackaged static library of edsger, is written in C. (`path/to/edsger/src/lib/lib-implementation`)
 - The header files for this prepackaged library are provided in `path/to/edsger/src/lib/lib-headers`.
-- When compiling a program, the necessary library headers as well as the archive file of the static library should be 
-present in the same directory as the source file. If they are, they are used for the compilation. If they are **not**,
-the compiler searches in `$EDS_LIB_PATH/lib-headers` for the headers, and in `$EDS_LIB_PATH/` for the static library.
-Thus the `~/.bashrc` file should be set accordingly (or just the environment if it's a one time execution of the compiler)
-and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
+- When compiling a program, the necessary library headers as well as the archive file of the static library should be present in 
+the same directory as the source file. If they are, they are used for the compilation. If they are **not**, the compiler searches 
+in `$EDS_LIB_PATH/lib-headers` for the headers, and in `$EDS_LIB_PATH/` for the static library. Thus the `~/.bashrc` file should 
+be set accordingly (or just the environment if it's a one time execution of the compiler) and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
 - All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
 - `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
-- `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly,
-by placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has 
-not reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
+- `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly, by 
+placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has not 
+reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
 
 ## Language Feature Implementation Details
 ### Function Overloading
 - We allow function overloading.
-- We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters 
-are equivalent if they have the same type. (We do not care about the pass method) Two parameter lists are equivalent 
-if their contents are equivalent.
+- We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters are equivalent
+if they have the same type. (We do not care about the pass method) Two parameter lists are equivalent if their contents are equivalent.
 - We use name mangling in both the symbol tables (Semantic analysis and IR Generation) and in the LLVM IR representation.
 For the LLVM IR representation, the name mangling convention is the following:
 
@@ -207,12 +203,11 @@ void main (){
 } 
 ```
 
-We decided that when providing an argument list, a comma operator **must** be between parentheses, meaning that if we want to call the 
-first function named `f` we should write `f((x,y))`, while `f(x,y)` is a call corresponding to the second function named `f`. In order
-to achieve that, we changed the production rule for a function call to: `<I>([<expression>])`. Thus, `test(x,y,z)` is at first equivalent 
-to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. The only thing we have to do is to flatten 
-this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a 
-function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
+We concluded that when providing an argument list, a comma operator **must** be between parentheses, meaning that if we want to call 
+the first function named `f` we should write `f((x, y))`, while `f(x, y)` is a call corresponding to the second function named `f`. 
+In order to achieve that, we changed the production rule for a function call to: `<I>([<expression>])`. Thus, `test(x, y, z)` is at 
+first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. The only thing we have 
+to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
 
 Snippet of the source code that does the described flattening: 
 ```
@@ -221,3 +216,5 @@ let rec flatten ex acc =
     | E_binop (x, O_comma, y) -> flatten x (y :: acc)
     | _ -> ex :: acc
 ```
+
+<ins>Note:</ins> The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
