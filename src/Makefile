@@ -5,14 +5,16 @@ LIBPATH=./lib
 default: compiler library
 
 compiler:
-	dune build;	
+	dune build
 
 library:
-	make -C $(LIBPATH);
+	make -C $(LIBPATH)
 
 clean:
-	make -C $(LIBPATH) clean
+	make -C $(LIBPATH) clean;
+	$(RM) *.{ll, s}
 
 distclean: clean
 	dune clean;
-	make -C $(LIBPATH) distclean
+	make -C $(LIBPATH) distclean;
+	$(RM) *.out
