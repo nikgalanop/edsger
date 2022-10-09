@@ -1,6 +1,4 @@
-BUILDPATH=./_build/default/bin/
 LIBPATH=./lib
-LIB=$(LIBPATH)/edsgerlib.a
 
 .PHONY: compiler library
 
