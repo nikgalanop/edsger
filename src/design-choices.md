@@ -52,7 +52,8 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
 2. Or build from [source](https://github.com/nikgalanop/edsger/src). In order to build from source, just execute the Makefile
 inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. Both the compiler and the static library are 
-made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
+made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. 
+It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
 
 ⚠️ In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
@@ -64,7 +65,9 @@ current terminal session).
 `name.out`. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
 - There are four options that can be passed to the compiler:
   1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
-      `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE` 
+      `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE`.
+      Regardless of the usage of this option, when our compiler calls `llc`, the `llc` optimization level is set to `-O2`, 
+      meaning that the produced assembly code will always be optimized.
   2. `-i`: when provided, the compiler reads from `stdin` and outputs the produced LLVM IR to `stdout`. No input file should 
        be provided. No output file is produced.
   3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
