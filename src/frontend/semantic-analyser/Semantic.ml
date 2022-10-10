@@ -273,7 +273,7 @@ and sem_expr exp =
       | TYPE_pointer r -> sem_fail pos "Cannot allocate memory of type `static array`"
       | t -> TYPE_pointer { typ = t; dim = 1; mut = true }
     else sem_fail pos "Cannot allocate an array of non-integer length" 
-  | E_delete (e) -> let t = sem_expr e in 
+  | E_delete e -> let t = sem_expr e in 
     if (is_ptr t) then match t with 
       | TYPE_pointer r when r.mut -> 
         TYPE_pointer r

@@ -205,8 +205,7 @@ expression:
                                                                                             | E_binop (x, O_comma, y) -> flatten x (y :: acc)
                                                                                             | _ -> ex :: acc
                                                                                         in E_fcall { fn = $1; exprs = flatten e []; mangl = "" }
-                                                                                    in { expr = exp; meta = $symbolstartpos }
-                                                                                  } 
+                                                                                    in { expr = exp; meta = $symbolstartpos } } 
         | expression T_leftsqbr expression T_rightsqbr                            { { expr = E_arracc ($1, $3); 
                                                                                       meta = $symbolstartpos } } 
         | unary_operator expression                             %prec TUOP        { { expr = E_uop ($1, $2); 
