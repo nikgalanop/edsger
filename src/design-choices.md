@@ -54,7 +54,8 @@ Usage: `./edsger [options] filename.eds`
 2. Or build from [source](https://github.com/nikgalanop/edsger/src). In order to build from source, just execute the Makefile
 inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. Both the compiler and the static library are 
 made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. 
-It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
+It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. 
+In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
 
 ⚠️ In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
@@ -88,11 +89,12 @@ program.
 ### Library Functions
 - The prepackaged static library of edsger, is written in C. (`path/to/edsger/src/lib/lib-implementation/`)
 Each function is in its own file so that we can easily avoid function redefinitions during linking. (Not the best solution 🐧)
-- The header files for this prepackaged library are provided in `path/to/edsger/src/lib/lib-headers/`.
+- The header files for this prepackaged library are provided in `path/to/lib/lib-headers/`.
 - When compiling a program, the necessary library headers as well as the archive file of the static library should be present in 
 the same directory as the source file. If they are, they are used for the compilation. If they are **not**, the compiler searches 
 in `$EDS_LIB_DIR/lib-headers/` for the headers, and in `$EDS_LIB_DIR/` for the static library. Thus the `~/.bashrc` file should 
-be set accordingly (or just the environment if it's a one time execution of the compiler) and `edsgerlib.a` should be present in `$EDS_LIB_PATH/`.
+be set accordingly (or just the environment if it's a one time execution of the compiler) and `edsgerlib.a` should be present in 
+`$EDS_LIB_PATH/`.
 - All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
 - `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
@@ -181,28 +183,30 @@ destination.
 - We allow casting between pointer types freely.
 #### Casting rules:
   1. To `int`
-    1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
-    2. A `bool` is converted to `1` if it is equal to `true` and to `0` otherwise.
-    3. A `double` is converted to the equivalent "floor" `int` value.
-    4. A pointer is converted to the base 10 representation of the address that it points to.
+      1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
+      2. A `bool` is converted to `1` if it is equal to `true` and to `0` otherwise.
+      3. A `double` is converted to the equivalent "floor" `int` value.
+      4. A pointer is converted to the base 10 representation of the address that it points to.
   2. To `char`
-    1. An `int` is converted to a `char` value by truncating it bits to the size of the `char` type. 
-    2. A `bool` is converted to a `char` by zero extending its bits.
-    3. A `double` is converted to a `char` by rounding it to the nearest unsigned `int` and then converting it
-    to the `char` with that ASCII Code. In case of a negative number, the result is undefined.
+      1. An `int` is converted to a `char` value by truncating it bits to the size of the `char` type. 
+      2. A `bool` is converted to a `char` by zero extending its bits.
+      3. A `double` is converted to a `char` by rounding it to the nearest unsigned `int` and then converting it
+      to the `char` with that ASCII Code. In case of a negative number, the result is undefined.
   3. To `bool`
-    1. Every non-zero `int` value is converted to `true`. Otherwise, it is converted to `false`.
-    2. Every non-zero `double` value is converted to `true`. Otherwise, it is converted to `false`.
-    3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
+      1. Every non-zero `int` value is converted to `true`. Otherwise, it is converted to `false`.
+      2. Every non-zero `double` value is converted to `true`. Otherwise, it is converted to `false`.
+      3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
   4. To `double`
-    1. An `int` value is casted to a `double` value of the same sign, with a zeroed out decimal part. 
-    2. A `char` value is casted to a positive `double` value with a zeroed out decimal part. 
-    3. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. 
+      1. An `int` value is casted to a `double` value of the same sign, with a zeroed out decimal part. 
+      2. A `char` value is casted to a positive `double` value with a zeroed out decimal part, that corresponds to the
+      character's ASCII code. 
+      4. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. It is equal to `1.0` when
+      the value is equal to `true` and `0.0` otherwise.
+      
   5. To `pointer`
-    1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
-    the compiler does **not** convert the data that the pointer points to. The pointer simply "acts" like it points
-    to bits that have the type that is implied from the casting clause. 
-
+      1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
+      the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
+      it points to data that have the type that is implied from the casting clause. 
 
 ## Miscellaneous
 ### Grammar Conflicts
@@ -237,7 +241,8 @@ We concluded that when providing an argument list, a comma operator **must** be 
 the first function named `f` we should write `f((x, y))`, while `f(x, y)` is a call corresponding to the second function named `f`. 
 In order to achieve that, we changed the production rule for a function call to: `<I>([<expression>])`. Thus, `test(x, y, z)` is at 
 first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. The only thing we have 
-to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
+to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the 
+argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
 
 Snippet of the source code that does the described flattening: 
 ```
