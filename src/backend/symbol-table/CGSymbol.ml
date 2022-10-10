@@ -130,7 +130,7 @@ let getCounter id =
   try 
     let c = H.find !count id in
     !c
-  with Not_found -> -1
+  with Not_found -> 0
    
 let updateCounter id = 
   try  
