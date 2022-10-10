@@ -178,6 +178,30 @@ destination.
 - We only allow a pointer to be cast to an `int` and no other arithmetic type.
 - We do not allow any arithmetic value to be cast into a pointer.
 - We allow casting between pointer types freely.
+#### Casting rules:
+  1. To `int`
+    1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
+    2. A `bool` is converted to `1` if it is equal to `true` and to `0` otherwise.
+    3. A `double` is converted to the equivalent "floor" `int` value.
+    4. A pointer is converted to the base 10 representation of the address that it points to.
+  2. To `char`
+    1. An `int` is converted to a `char` value by truncating it bits to the size of the `char` type. 
+    2. A `bool` is converted to a `char` by zero extending its bits.
+    3. A `double` is converted to a `char` by rounding it to the nearest unsigned `int` and then converting it
+    to the `char` with that ASCII Code. In case of a negative number, the result is undefined.
+  3. To `bool`
+    1. Every non-zero `int` value is converted to `true`. Otherwise, it is converted to `false`.
+    2. Every non-zero `double` value is converted to `true`. Otherwise, it is converted to `false`.
+    3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
+  4. To `double`
+    1. An `int` value is casted to a `double` value of the same sign, with a zeroed out decimal part. 
+    2. A `char` value is casted to a positive `double` value with a zeroed out decimal part. 
+    3. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. 
+  5. To `pointer`
+    1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
+    the compiler does **not** convert the data that the pointer points to. The pointer simply "acts" like it points
+    to bits that have the type that is implied from the casting clause. 
+
 
 ## Miscellaneous
 ### Grammar Conflicts
