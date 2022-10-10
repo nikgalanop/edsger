@@ -1,0 +1,33 @@
+#include "stdio.h"
+void f();
+void main (int b);
+
+void main (){
+	writeString("The correct main is called.\n");
+	main(5);
+	f ();
+	infinite ();
+}
+
+void f (){
+	void main (){
+		void main () {
+			void main () {
+				writeString("Zooming through mains.\n");
+			}
+			main ();
+		}
+		main ();
+	}
+	main ();
+
+}
+
+void main (int a){
+	void main (){
+		writeString("Called a nested main\n");
+	}
+	writeString("Called a different main: \n");
+	if (a == 0) main();
+	else{ writeInteger(a); writeChar('\n'); main(a-1);}
+}
