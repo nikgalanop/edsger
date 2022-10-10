@@ -6,7 +6,6 @@ void main (){
 	writeString("The correct main is called.\n");
 	main(5);
 	f ();
-	infinite ();
 }
 
 void f (){
