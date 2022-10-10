@@ -199,8 +199,8 @@ destination.
       3. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. 
   5. To `pointer`
       1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
-      the compiler does **not** convert the data that the pointer points to. The pointer simply "acts" like it points
-      to bits that have the type that is implied from the casting clause. 
+      the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
+      it points to data that have the type that is implied from the casting clause. 
 
 ## Miscellaneous
 ### Grammar Conflicts
@@ -235,7 +235,8 @@ We concluded that when providing an argument list, a comma operator **must** be 
 the first function named `f` we should write `f((x, y))`, while `f(x, y)` is a call corresponding to the second function named `f`. 
 In order to achieve that, we changed the production rule for a function call to: `<I>([<expression>])`. Thus, `test(x, y, z)` is at 
 first equivalent to `<I> -> test` and `<expression> -> Comma(Comma(x,y),z)`, since `Comma` is left-associative. The only thing we have 
-to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
+to do is to flatten this list of `Comma` nodes. That's what we do in practice. We allow the parser to use `Comma` nodes to construct the 
+argument list of a function call, but before returning this argument list, we flatten any `Comma` node that is not between parentheses.
 
 Snippet of the source code that does the described flattening: 
 ```
