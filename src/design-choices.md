@@ -183,6 +183,14 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
 
+### Erroneous Accesses
+- In this implementation of the edsger language, there are no checks for out of bounds accesses. As long as the offset
+of an access is within reasonable sizes etc. no restriction is applied. A `Segmentation Fault` might occur when the address
+is not withing the address space given to the edsger program.
+- A segmentation fault occurs when trying to store a value to a `NULL` pointer.
+- When executing an infinite recursive program, the program most probably terminates due to `Segmentation Fault` because
+of "stack overflow".
+
 ### Labels
 - We do not allow two labels in the same function to have the same name.
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
