@@ -87,6 +87,7 @@ program.
 
 ### Library Functions
 - The prepackaged static library of edsger, is written in C. (`path/to/edsger/src/lib/lib-implementation/`)
+Each function is in its own file so that we can easily avoid function redefinitions during linking. (Not the best solution 🐧)
 - The header files for this prepackaged library are provided in `path/to/edsger/src/lib/lib-headers/`.
 - When compiling a program, the necessary library headers as well as the archive file of the static library should be present in 
 the same directory as the source file. If they are, they are used for the compilation. If they are **not**, the compiler searches 
