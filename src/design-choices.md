@@ -197,8 +197,11 @@ destination.
       3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
   4. To `double`
       1. An `int` value is casted to a `double` value of the same sign, with a zeroed out decimal part. 
-      2. A `char` value is casted to a positive `double` value with a zeroed out decimal part. 
-      3. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. 
+      2. A `char` value is casted to a positive `double` value with a zeroed out decimal part, that corresponds to the
+      character's ASCII code. 
+      4. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. It is equal to `1.0` when
+      the value is equal to `true` and `0.0` otherwise.
+      
   5. To `pointer`
       1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
       the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
