@@ -50,9 +50,10 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 
 ### Installation and Usage
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
+Usage: `./edsger [options] filename.eds`
 2. Or build from [source](https://github.com/nikgalanop/edsger/src). In order to build from source, just execute the Makefile
 inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. Both the compiler and the static library are 
-made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.ml`. 
+made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. 
 It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
 
