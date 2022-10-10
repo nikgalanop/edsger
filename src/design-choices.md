@@ -19,6 +19,7 @@ reached upon, in this implementation of the edsger language. The specification o
 <details>
   <summary>Language Feature Implementation Details</summary>
   <ul>
+      <li><a href=#types> Types </a></li>
       <li><a href="#function-declarations">Function Declarations</a></li>
       <li><a href="#function-overloading">Function Overloading</a></li>
       <li><a href="#nested-functions">Nested Functions</a></li>
@@ -103,6 +104,15 @@ placing a null byte as the `size`-th character in the provided buffer. The funct
 reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
 
 ## Language Feature Implementation Details
+
+### Variable Types And Constants
+- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*` where `t` another valid type.
+- `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 64-bits long.
+- The programmer can only type unsigned constants in a program. This means that the maximum `int` constant that can be
+typed in a program is equal to `32767`. Even though `-32768` is a valid 2 bytes long value, in edgser `-` is an operator
+and not a part of the integer constant that the programmer can write. Thus, `-32768` **cannot** be written in an edsger 
+program by the programmer.
+
 ### Function Declarations
 - A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
 (C-like function declaration)
