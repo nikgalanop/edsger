@@ -1,0 +1,40 @@
+#include "stdio.h"
+
+int add (int x, int y){
+	return x + y;
+}
+
+int test (){
+	int res;
+	int add (int x, int y){
+		void add (int x, int y){
+			writeString("Very very nested = ");
+			writeInteger (x + y * 7);
+			writeChar('\n');
+		}
+		add (x, y);
+		return (x + y) % 5;
+	}
+	
+	res = add(2, 3);
+	writeString ("In test 1: 2 + 3 = ");
+	writeInteger(res);
+	writeChar('\n');
+}
+
+int test2 (){
+	int add (int x, int y){
+		return (x + y) % 3;
+	}
+	writeString ("In test 2: 2 + 3 = ");
+	writeInteger(add(2, 3));
+	writeChar('\n');
+}
+
+void main () {
+	writeString ("In main: 2 + 3 = ");
+	writeInteger(add(2, 3));
+	writeChar('\n');
+	test();
+	test2();
+}
