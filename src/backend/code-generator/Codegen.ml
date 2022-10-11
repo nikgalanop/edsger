@@ -297,7 +297,13 @@ and codegen_expr exp =
   | E_int d -> const_int' d  
   | E_char c -> const_char' (Char.code c)
   | E_double f -> const_double' f
-  | E_str s -> build_global_stringptr s "strtmp" lbuilder
+  | E_str s -> let vl = const_stringz lcontext s in
+    let str = define_global "str" vl lmodule in 
+    set_unnamed_addr true str;
+    set_global_constant true str;
+    set_linkage Linkage.Private str;
+    let zero = const_int' 0 in
+    build_gep str [|zero; zero|] "strtmp" lbuilder
   | E_bool b -> const_bool' (if b then 1 else 0)
   | E_NULL -> const_null @@ pointer_type int_type
   | E_uop (op, e) -> codegen_uop e op
