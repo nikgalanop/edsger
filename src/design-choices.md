@@ -107,13 +107,13 @@ reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included
 ## Language Feature Implementation Details
 
 ### Variable Types And Constants
-- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*` where `t` another valid type.
-- `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 64-bits long.
+- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*` where `t` is another valid type.
+- `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 8-bytes long.
 - The programmer can only type unsigned constants in a program. This means that the maximum `int` constant that can be
 typed in a program is equal to `32767`. Even though `-32768` is a valid 2 bytes long value, in edgser `-` is an operator
 and not a part of the integer constant that the programmer can write. Thus, `-32768` **cannot** be written in an edsger 
 program by the programmer.
-- When an integer variable holds a value bigger than `32768` or smaller than `-32768`, we've reached integer overflow
+- When an integer variable holds a value bigger than `32767` or smaller than `-32768`, we've reached integer overflow
 territory. Of course, nobody should depend on integer overflow behaviour when writing their programs.
 
 ### Function Declarations
@@ -183,17 +183,17 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
-- Calling `free` deletes the data of the allocated data block.
-- One may not `free` non dynamically allocated memory or already `free`d memory.
+- Calling `delete` deletes (🐧!!) the data of the allocated data block.
+- One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
 ### Erroneous Accesses
-- In this implementation of the edsger language, there are no checks for out of bounds accesses. As long as the offset
+- In this implementation of the edsger language, there are no checks for out of bounds array accesses. As long as the offset
 of an access is within reasonable sizes etc. no restriction is applied. A `Segmentation Fault` might occur when the address
 is not within the valid memory space that is accessible from the edsger program.
 - A segmentation fault occurs when trying to store a value to a `NULL` pointer.
 - When executing an infinite recursive program, the program most probably terminates due to `Segmentation Fault` because
 of "stack overflow". (Resulting in an erroneous memory access)
-- One can access a `free`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
+- One can access a `delete`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
 reallocated at any given time.
 
 ### Labels
