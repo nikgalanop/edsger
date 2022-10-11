@@ -1,0 +1,11 @@
+#include "stdio.h"
+
+void main (){
+	int * b;
+
+	b = NULL;
+	if (! (false && (bool) (b[0]=5))) writeString("Short-circuiting and\n");
+	if (true || (bool) (b[0]=5)) writeString("Short-circuiting or\n");
+	writeString("You will not avoid segmentation faults forever short-circuiter!\n");
+	b[0] = 5;
+}
