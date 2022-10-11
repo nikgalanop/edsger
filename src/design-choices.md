@@ -47,7 +47,7 @@ reached upon, in this implementation of the edsger language. The specification o
 - We used a different symbol table for semantic analysis and IR Generation. Both of these symbol tables are heavily
 inspired by the code that is provided [here](https://courses.softlab.ntua.gr/compilers/2010a/bonus-ocaml-1.0.tgz)
 - We used LLVM and the LLVM bindings for OCaml, to produce LLVM IR from the AST that we generate.
-- It calls `llc` and `clang` to convert the produced LLVM IR to assembly or executable form.
+- It calls `llc` and `clang` to convert the produced LLVM IR to x86_64 assembly or executable form.
 - We use `ar` and `clang` to create the prepackaged static library.
 
 ### Installation and Usage
@@ -66,7 +66,7 @@ current terminal session).
 
 ### Compiler Behaviour And Options
 - The standard usage of the compiler (no flags), reads from an input file `name.eds` and produces three files `name.ll`, `name.s`, 
-`name.out`. The first two contain the LLVM IR and the assembly accordingly. The `.out` file is the produced executable.
+`name.out`. The first two contain the LLVM IR and the x86_64 assembly accordingly. The `.out` file is the produced executable.
 - There are four options that can be passed to the compiler:
   1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
       `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE`.
@@ -107,7 +107,7 @@ reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included
 ## Language Feature Implementation Details
 
 ### Variable Types And Constants
-- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*` where `t` is another valid type.
+- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*`, where `t` is another valid type.
 - `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 8-bytes long.
 - The programmer can only type unsigned constants in a program. This means that the maximum `int` constant that can be
 typed in a program is equal to `32767`. Even though `-32768` is a valid 2 bytes long value, in edgser `-` is an operator
@@ -192,7 +192,7 @@ of an access is within reasonable sizes etc. no restriction is applied. A `Segme
 is not within the valid memory space that is accessible from the edsger program.
 - A segmentation fault occurs when trying to store a value to a `NULL` pointer.
 - When executing an infinite recursive program, the program most probably terminates due to `Segmentation Fault` because
-of "stack overflow". (Resulting in an erroneous memory access)
+of "stack overflow", that resulted in an erroneous memory access)
 - One can access a `delete`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
 reallocated at any given time.
 
