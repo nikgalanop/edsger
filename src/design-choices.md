@@ -19,13 +19,14 @@ reached upon, in this implementation of the edsger language. The specification o
 <details>
   <summary>Language Feature Implementation Details</summary>
   <ul>
-      <li><a href=#types> Types </a></li>
+      <li><a href="#variable-types-and-constants">Variable Types And Constants</a></li>
       <li><a href="#function-declarations">Function Declarations</a></li>
       <li><a href="#function-overloading">Function Overloading</a></li>
       <li><a href="#nested-functions">Nested Functions</a></li>
       <li><a href="#local-variable-declarations">Local Variable Declarations</a></li>
       <li><a href="#static-array-declarations">Static Array Declarations</a></li>
       <li><a href="#dynamic-memory-allocation">Dynamic Memory Allocation</a></li>
+      <li><a href="#erroneous-accesses">Erroneous Accesses</a></li>
       <li><a href="#labels">Labels</a></li>
       <li><a href="#type-casting">Type Casting</a></li>
    </ul>
@@ -182,14 +183,18 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
+- Calling `free` deletes the data of the allocated data block.
+- One may not `free` non dynamically allocated memory or already `free`d memory.
 
 ### Erroneous Accesses
 - In this implementation of the edsger language, there are no checks for out of bounds accesses. As long as the offset
 of an access is within reasonable sizes etc. no restriction is applied. A `Segmentation Fault` might occur when the address
-is not withing the address space given to the edsger program.
+is not within the valid memory space that is accessible from the edsger program.
 - A segmentation fault occurs when trying to store a value to a `NULL` pointer.
 - When executing an infinite recursive program, the program most probably terminates due to `Segmentation Fault` because
-of "stack overflow".
+of "stack overflow". (Resulting in an erroneous memory access)
+- One can access a `free`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
+reallocated at any given time.
 
 ### Labels
 - We do not allow two labels in the same function to have the same name.
