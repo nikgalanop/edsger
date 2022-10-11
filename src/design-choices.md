@@ -183,7 +183,7 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
-- Calling `delete` deletes (🐧!!) the data of the allocated data block.
+- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block.
 - One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
 ### Erroneous Accesses
