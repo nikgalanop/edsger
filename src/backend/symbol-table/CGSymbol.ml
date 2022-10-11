@@ -126,10 +126,10 @@ let newVariable id llval =
   let inf = {llval} in 
   newEntry id (ENTRY_variable inf)
 
-let getCounter id = 
+let getNextCounter id = 
   try 
     let c = H.find !count id in
-    !c
+    !c + 1
   with Not_found -> 0
    
 let updateCounter id = 

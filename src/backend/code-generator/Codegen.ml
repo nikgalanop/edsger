@@ -517,7 +517,7 @@ and codegen_header ~def rt fn ps env_opt =
   (* Careful! We need the "old" ps when creating the id. *) 
   let pstr = SemUtilities.name_mangling ps in 
   let fid = id_of_func fn pstr in
-  let num = getCounter fid in 
+  let num = getNextCounter fid in 
   let fn' = CGUtils.funStr_mangled fn pstr num in
   begin match lookup_function fn' lmodule with 
   | Some f -> delete_function f

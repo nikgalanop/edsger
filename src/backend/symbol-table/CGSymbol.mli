@@ -51,7 +51,7 @@ val initSymbolTable  : int -> unit
 val openScope        : unit -> unit
 val closeScope       : unit -> unit
 val newVariable      : Identifier.id -> Llvm.llvalue -> entry
-val getCounter       : Identifier.id -> int
+val getNextCounter       : Identifier.id -> int
 val newFunction      : Identifier.id -> Llvm.llvalue -> entry * bool
 val newEnvParameter  : string -> pass_mode -> entry -> unit 
 val newParameter     : pass_mode -> entry -> unit
