@@ -114,7 +114,7 @@ typed in a program is equal to `32767`. Even though `-32768` is a valid 2 bytes 
 and not a part of the integer constant that the programmer can write. Thus, `-32768` **cannot** be written in an edsger 
 program by the programmer.
 - When an integer variable holds a value bigger than `32767` or smaller than `-32768`, we've reached integer overflow
-territory. Of course, nobody should depend on integer overflow behaviour when writing their programs.
+territory. Of course, nobody should depend on integer overflow behaviour when writing their programs. 
 
 ### Function Declarations
 - A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
@@ -187,6 +187,7 @@ for the implementation of `malloc` and the linking, applies for `free` as well.
 - One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
 ### Erroneous Accesses
+- String constants are immutable, attempting to mutate them results in `Segmentation Fault`.
 - In this implementation of the edsger language, there are no checks for out of bounds array accesses. As long as the offset
 of an access is within reasonable sizes etc. no restriction is applied. A `Segmentation Fault` might occur when the address
 is not within the valid memory space that is accessible from the edsger program.
