@@ -190,6 +190,7 @@ and codegen_sc_binop e1 e2 op =
   position_at_end fullbb lbuilder;
   let vl2 = prepare_value e2 in
   ignore @@ build_br afterbb lbuilder;
+  let fullbb = insertion_block lbuilder in 
   position_at_end afterbb lbuilder;
   build_phi [(scconst, currbb); (vl2, fullbb)] "scbtmp" lbuilder
 and codegen_binop e1 e2 op = 
@@ -331,9 +332,11 @@ and codegen_expr exp =
       position_at_end trntbb lbuilder;
       let vl2 = prepare_value e2 in
       ignore @@ build_br afterbb lbuilder;
+      let trntbb = insertion_block lbuilder in
       position_at_end trnfbb lbuilder;
       let vl3 = prepare_value e3 in
       ignore @@ build_br afterbb lbuilder;
+      let trnfbb = insertion_block lbuilder in
       position_at_end afterbb lbuilder;
       build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
     end
