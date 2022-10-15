@@ -338,7 +338,10 @@ and codegen_expr exp =
       ignore @@ build_br afterbb lbuilder;
       let trnfbb = insertion_block lbuilder in
       position_at_end afterbb lbuilder;
-      build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
+      if (type_of vl2 <> void_type lcontext) then 
+        build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
+      else
+        undef (void_type lcontext)
     end
   | E_new (vt, e) -> let vl = prepare_value e in 
     let t = lltype_of_vartype vt in 
