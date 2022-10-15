@@ -98,6 +98,7 @@ in `$EDS_LIB_DIR/lib-headers/` for the headers, and in `$EDS_LIB_DIR/` for the s
 be set accordingly (or just the environment if it's a one time execution of the compiler) and `edsgerlib.a` should be present in 
 `$EDS_LIB_PATH/`.
 - All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
+- `writeBoolean(bool b)` prints the string "true" if b is equal to `true` and "false" otherwise.
 - `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly, by 
