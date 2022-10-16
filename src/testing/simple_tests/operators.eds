@@ -1,0 +1,109 @@
+#include "stdio.h"
+
+void writeNL(){
+	writeChar('\n');
+}
+
+void writeIntegerNL (int a){
+	writeInteger(a), writeNL();
+}
+
+void writeBooleanNL (bool b){
+	writeBoolean(b), writeNL();
+}
+
+void writeRealNL (double d){
+	writeReal(d), writeNL();
+}
+
+int* access2DRow (int** a, int i){
+	return a[i];
+}
+
+void main (){
+	int a, b;
+	int * c, d;
+	int *****f;
+	int ** g;
+	double e;
+	bool b1;
+	e = 0.1;
+	a = 5, b = 7, c = &a, d = &b;
+	writeInteger(*c); writeString(" = "); writeIntegerNL(a);;	
+	writeIntegerNL(a * b % 2);;	
+	writeBoolean(true && true || false && false); writeChar('\n');
+	writeBoolean( 3 > 4 ? true : true && false); writeChar('\n');
+	writeBoolean( 3 > 4 ? false : false || true); writeChar('\n');
+	if (true, false) writeString("Avoided\n"); else (4 < 3) ? writeString("Hm\n") : writeString("Just as planned?\n");
+	if (a+=2, writeIntegerNL(a), true) writeBoolean(4 == 6 || true); writeChar('\n'); 
+	a += 2 < 3 ? 8 : 9;
+	writeIntegerNL(a);
+	a -= a *= 3; writeIntegerNL(a);
+	a = 15;
+	a += a *= 3; writeIntegerNL(a);
+	a = 15;
+	a += a -= 3; writeIntegerNL(a);
+	a = 15;
+	a -= a += 3; writeIntegerNL(a);
+	a = 15;
+	a *= a += 3; writeIntegerNL(a);
+	a = 15; 
+	writeRealNL(e += 3.6);
+	writeRealNL(e++); 
+	writeRealNL(++e); 
+	writeRealNL(e--);
+	writeRealNL(--e);  
+	writeRealNL(e += 1.0);
+	writeRealNL(e -= 1.0);
+	writeRealNL(e *= 2.0);
+	writeRealNL(e /= 2.0);
+	writeRealNL(e += e -= 1.0);
+	writeIntegerNL(a += 1);
+	writeIntegerNL(a -= 1);
+	writeIntegerNL(a *= 2);
+	writeIntegerNL(a /= 2);
+	writeIntegerNL(a %= 15);
+	a = 15;
+	writeIntegerNL(a++); 
+	writeIntegerNL(++a); 
+	writeIntegerNL(a--);
+	writeIntegerNL(--a); 
+	writeBooleanNL(a + 5 - 6 + 6 == 20);
+	writeBooleanNL(a + 5 != 20);
+	writeBooleanNL(a + 5 < 19);
+	writeBooleanNL(a + 5 > 19);
+	writeBooleanNL(a + 4 <= 19);
+	writeBooleanNL(a + 4 > 19);
+	writeBooleanNL(5 + 5 * 5 > 50);
+	writeBooleanNL(5 + 5 * 5 == 30);
+	writeBooleanNL (5 + 5 * 5 / 5 == 10);
+	writeIntegerNL((int) true + 8);
+	writeIntegerNL(8 - (int) true - 8);
+	writeIntegerNL(16 * (int) true / 2);
+	b = 0;
+	writeBooleanNL((bool) b);
+	writeBooleanNL((bool) ++b);
+	writeIntegerNL((int) c);
+	writeRealNL((double) (int) c);
+	c = &*new int[10] + 1;
+	delete &*--c;
+	// delete &*c--; Should fail
+	// delete c; Should fail (freed twice)
+	c = &a + 1;
+	delete new int;
+	// delete delete new int;
+	writeIntegerNL((int) c);
+	writeIntegerNL((int) &a);
+	writeIntegerNL(8 - - 5 + - 7);
+	f = new int****[10];
+	f[0] = new int***[10];
+	f[0][0] = new int **[10];
+	f[0][0][0] = new int*[10];
+	f[0][0][0][0] = new int[10];
+	f[0][0][0][0][0] = 25;
+	writeIntegerNL(*****f);
+	g = new int*[2];
+	g[0] = new int[2];
+	g[0][0] = 8;
+	writeIntegerNL(access2DRow(g,0)[0]);
+}
