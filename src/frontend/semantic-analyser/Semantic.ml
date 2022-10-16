@@ -20,7 +20,7 @@ let sem_plus pos t1 t2 =
     end
   | TYPE_double -> if (equalType t1 t2) then t1 
     else sem_fail pos "Can only add/subtract a double to a double"
-  | _ -> sem_fail pos "Cannot add/subtract to something with a non-arithmetic value"
+  | _ -> sem_fail pos "Cannot add to/subtract from something with a non-arithmetic value"
 let sem_comp pos t = 
   match t with 
   | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
