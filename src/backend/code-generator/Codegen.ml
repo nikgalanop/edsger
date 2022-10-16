@@ -196,6 +196,8 @@ and codegen_sc_binop e1 e2 op =
 and codegen_binop e1 e2 op = 
   let vl1 = prepare_value e1 in 
   let vl2 = prepare_value e2 in
+  codegen_binop' vl1 vl2 op
+and codegen_binop' vl1 vl2 op = 
   let ct1 = classify_type' vl1 in 
   let ct2 = classify_type' vl2 in 
   let cond = ct1 = ct2 && ct1 = Llvm.TypeKind.Pointer in 
@@ -249,7 +251,6 @@ and codegen_binop e1 e2 op =
       | _ -> build_icmp Icmp.Ne
     in inequal vl1 vl2 "neqtmp" lbuilder
   | O_comma -> vl2
-  | _ -> cg_fail e1.meta "Invalid binary operator"
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let const = match classify_element_type lhs with 
@@ -273,13 +274,16 @@ and codegen_basgn e1 e2 op =
       const_pointer_null' lhs
     else tmp 
   end
-  else match op with 
+  else 
+    let vl2 = prepare_value e2 in
+    let vl1 = prepare_value e1 in 
+    match op with 
       | O_asgn -> failwith "Taken care of"
-      | O_mulasgn -> codegen_binop e1 e2 O_times
-      | O_divasgn -> codegen_binop e1 e2 O_div
-      | O_modasgn -> codegen_binop e1 e2 O_mod
-      | O_plasgn -> codegen_binop e1 e2 O_plus
-      | O_minasgn -> codegen_binop e1 e2 O_minus
+      | O_mulasgn -> codegen_binop' vl1 vl2 O_times 
+      | O_divasgn -> codegen_binop' vl1 vl2 O_div
+      | O_modasgn -> codegen_binop' vl1 vl2 O_mod
+      | O_plasgn -> codegen_binop' vl1 vl2 O_plus
+      | O_minasgn -> codegen_binop' vl1 vl2 O_minus
   in ignore @@ build_store rhs lhs lbuilder; 
   rhs
 and codegen_expr exp = 
