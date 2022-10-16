@@ -204,9 +204,9 @@ reallocated at any given time.
 destination.
 
 ### Type Casting
-- We allow every possible type casting between arithmetic types (`int`, `char`, `bool`, `double`).
-- We only allow a pointer to be cast to an `int` and no other arithmetic type.
-- We do not allow any arithmetic value to be cast into a pointer.
+- We allow every possible type casting between numerical types (`int`, `char`, `bool`, `double`).
+- We only allow a pointer to be cast to an `int` and no other numerical type.
+- We do not allow any numerical value to be cast into a pointer.
 - We allow casting between pointer types freely.
 #### Casting rules:
   1. To `int`
