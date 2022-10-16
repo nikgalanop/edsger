@@ -10,7 +10,7 @@ let sem_fail pos msg = raise (SemFailure (pos, msg))
 
 let sem_mul pos t = 
   if (equalType t TYPE_int || equalType t TYPE_double) then t
-  else sem_fail pos "Cannot multiply/divide non-numerical values"
+  else sem_fail pos "Cannot multiply/divide non-arithmetic values"
 let sem_plus pos t1 t2 = 
   match t2 with
   | TYPE_int -> begin
@@ -20,7 +20,7 @@ let sem_plus pos t1 t2 =
     end
   | TYPE_double -> if (equalType t1 t2) then t1 
     else sem_fail pos "Can only add/subtract a double to a double"
-  | _ -> sem_fail pos "Cannot add/subtract to something with a non-numerical value"
+  | _ -> sem_fail pos "Cannot add/subtract to something with a non-arithmetic value"
 let sem_comp pos t = 
   match t with 
   | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
@@ -42,9 +42,9 @@ let sem_uop pos e t = function
     | _ -> sem_fail pos "Tried to dereference a non-pointer"
     end
   | O_psgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t
-    else sem_fail pos "Cannot specify sign of non-numerical value"
+    else sem_fail pos "Cannot specify sign of non-arithmetic value"
   | O_nsgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t
-    else sem_fail pos "Cannot specify sign of non-numerical value"
+    else sem_fail pos "Cannot specify sign of non-arithmetic value"
   | O_neg -> if (equalType t TYPE_bool) then t 
     else sem_fail pos "Cannot negate a non-boolean"
 let sem_binop pos t1 t2 = function
@@ -67,7 +67,7 @@ let sem_binop pos t1 t2 = function
 let sem_uasgn pos t = 
   match t with 
   | TYPE_int | TYPE_double | TYPE_pointer _ -> t
-  | _ -> sem_fail pos "Cannot increment/decrement a non-numerical value or a non-pointer"
+  | _ -> sem_fail pos "Cannot increment/decrement a non-arithmetic value or a non-pointer"
 let sem_basgn pos t1 t2 = function 
   | O_asgn -> if (equalType t1 t2) then t1
     else sem_fail pos "Tried an assignment with values of different types"
@@ -276,7 +276,7 @@ and sem_expr exp =
   | E_delete e -> let t = sem_expr e in 
     if (is_ptr t) then match t with 
       | TYPE_pointer r when r.mut -> 
-        TYPE_pointer r
+        TYPE_none
       | _ -> sem_fail pos "Tried to deallocate a statically allocated array"
     else sem_fail pos "Tried to deallocate memory using a non-pointer"
   | E_fcall r -> let p_types = List.map sem_expr r.exprs in
