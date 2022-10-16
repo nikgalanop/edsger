@@ -267,26 +267,28 @@ and codegen_uasgn ~pre e op =
   ignore @@ build_store rhs lhs lbuilder; 
   ret
 and codegen_basgn e1 e2 op = 
-  let lhs = codegen_expr e1 in 
-  let rhs = if (op = O_asgn) then begin
-    let tmp = prepare_value e2 in 
+  if (op = O_asgn) then
+    let tmp = prepare_value e2 in
     let ct = classify_type' tmp in
-    if (ct = Llvm.TypeKind.Pointer && is_null tmp) then 
+    let lhs = codegen_expr e1 in
+    let rhs = if (ct = Llvm.TypeKind.Pointer && is_null tmp) then  
       const_pointer_null' lhs
-    else tmp 
-  end
+    else tmp in 
+    ignore @@ build_store rhs lhs lbuilder; 
+    rhs
   else 
-    let vl2 = prepare_value e2 in
+    let vl2 = prepare_value e2 in 
     let vl1 = prepare_value e1 in 
-    match op with 
+    let lhs = codegen_expr e1 in
+    let rhs = match op with 
       | O_asgn -> failwith "Taken care of"
       | O_mulasgn -> codegen_binop' vl1 vl2 O_times 
       | O_divasgn -> codegen_binop' vl1 vl2 O_div
       | O_modasgn -> codegen_binop' vl1 vl2 O_mod
       | O_plasgn -> codegen_binop' vl1 vl2 O_plus
       | O_minasgn -> codegen_binop' vl1 vl2 O_minus
-  in ignore @@ build_store rhs lhs lbuilder; 
-  rhs
+    in ignore @@ build_store rhs lhs lbuilder; 
+    rhs
 and codegen_expr exp = 
   match exp.expr with 
   | E_var v -> begin try
