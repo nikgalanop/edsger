@@ -41,7 +41,7 @@ let header_of_astf ft n ps =
     str_of_type ~short:false ~ptr_format:true 
     (typ_of_primitive ptyp) ^ (String.make dim '*')
   in let aux = function 
-    | Ast.BYREF (vt, _) -> "byref" ^ ptr_str vt
+    | Ast.BYREF (vt, _) -> "byref" ^ " " ^ ptr_str vt
     | Ast.BYVAL (vt, _) -> ptr_str vt
   in let pstr = sep_but_last aux ps in
   str_of_func ft n pstr
@@ -51,7 +51,7 @@ let header_of_symbolf ft n ps =
     let t = str_of_type ~short:false ~ptr_format:true p.parameter_type in
     match p.parameter_mode with
     | PASS_BY_VALUE -> t
-    | PASS_BY_REFERENCE -> "byref " ^ t
+    | PASS_BY_REFERENCE -> "byref " ^ " " ^ t
   in let aux entr = 
     match entr.entry_info with 
     | ENTRY_parameter inf -> str_of_param inf
