@@ -12,7 +12,7 @@ reached upon, in this implementation of the edsger language. The specification o
       <li><a href="#installation-and-usage">Installation and Usage</a></li>
       <li><a href="#compiler-behaviour-and-options">Compiler Behaviour And Options</a></li>
       <li><a href="#filenames">Filenames</a></li>
-      <li><a href="#macros">Macros</a></li>
+      <li><a href="#directives">Directives</a></li>
       <li><a href="#library-functions">Library Functions</a></li>
    </ul>
 </details>
@@ -83,9 +83,9 @@ current terminal session).
 - The input file to the compiler, must have the extension `.eds`.
 - An "included" file must have either the extension `.eds` or `.h`.
 
-### Macros
-- As stated in the specification, the only macro instruction allowed is `#include`. If a 'cyclical' include sequence is provided,
-then the compiler warns the user about this, omits the macro that caused the cycle and proceeds with compiling the rest of the 
+### Directives
+- As stated in the specification, the only directive allowed is `#include`. If a 'cyclical' include sequence is provided,
+then the compiler warns the user about this, omits the directive that caused the cycle and proceeds with compiling the rest of the 
 program.
 - When `file1.{h,eds}` includes `file2.{h,eds}` as following:`#include "/path/to/file2.{h,eds}"`, then the compiler checks if the 
 file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` includes another file, eg. `#include /a/new/path/to/file3.{h,eds}` then the compiler checks if this is present in `path_of_file1/path_of_file2/a/new/path/to/file3.{h,eds}`.
@@ -244,7 +244,7 @@ destination.
 - The grammar of the Edsger language is provided at p. 15, in the specification that we linked at the beggining of this document.
 It is an ambiguous grammar. 
 - Most of the conflicts (binary operators, dangling else) were solved by enforcing precedence and 
-associativity rules. (`%left`, `%right`, `%nonassoc` macros)
+associativity rules. (`%left`, `%right`, `%nonassoc` directives)
 - One of those conflicts was resolved via semantic actions. Specifically, there is a **reduce-reduce** conflict between the argument list
 of a function call and the comma operator.
 
