@@ -85,7 +85,7 @@ current terminal session).
 ### Directives
 - As stated in the specification, the only directive allowed is `#include`. If a 'cyclical' include sequence is provided,
 then the compiler warns the user about this, omits the directive that caused the cycle and proceeds with compiling the rest of the 
-program.
+program. (The same happens in any case where a file is to be included twice.)
 - When `file1.{h,eds}` includes `file2.{h,eds}` as following:`#include "/path/to/file2.{h,eds}"`, then the compiler checks if the 
 file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` includes another file, eg. `#include /a/new/path/to/file3.{h,eds}` then the compiler checks if this is present in `path_of_file1/path_of_file2/a/new/path/to/file3.{h,eds}`.
 - If the necessary file is not found with the method above, the compiler assumes that is it a library file and searches for it by
