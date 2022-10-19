@@ -157,6 +157,12 @@ when two functions have the same name and parameters but are also nested inside 
 ### Nested Functions
 - In edsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
 they are nested into, as expected. This is implemented via lambda lifting.
+- With Lambda Lifting we add extra hidden parameters to functions when they are needed.
+1. A variable does not need to be lambda lifted if it is global and it hasn't been shadowed by another variable.
+2. A variable does not need to be lambda lifted if it is defined in the function which uses it. (as a local variable or as a parameter)
+3. If a function uses a variable for which neither 1. or 2. hold, then that variable must be lambda lifted.
+4. A "parent" function should lift the "required" variables that its nested functions lambda lifted. 
+A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent function before the nested function definition.
 
 ### Local Variable Declarations 
 - It is not guaranteed that local variables are initialized to zero. 
