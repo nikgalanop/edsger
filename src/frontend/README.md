@@ -1,4 +1,5 @@
 # Frontend
-+ Λεκτικός αναλυτής
-+ Συντακτικός αναλυτής
-+ Σημασιολογικός αναλυτής
++ Lexical Analyser
++ Syntactic Analyser
++ AST Creator
++ Semantic Analyser
