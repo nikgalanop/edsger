@@ -1,5 +1,6 @@
 #include "folder1/include1.eds"
-#include "helper.eds"
+#include "help1.eds"
+#include  "help2.eds"
 #include "stdio.h"
 void main () {
 	writeInteger(h(f(2, 3))); writeChar('\n');

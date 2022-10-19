@@ -1,5 +1,8 @@
+#include "help2.eds"
 #include "folder2/include2.eds"
-
+#include "help2.eds"
+#include "folder2/include2.eds"
+#include "folder2/include2.eds"
 int f(int x,int y){
-	return g(x) + g(y);
+	return q(g(x)) + q(g(y));
 }
