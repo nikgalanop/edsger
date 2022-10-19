@@ -1,5 +1,5 @@
 # Frontend
-Υλοποίηση των:
-+ λεκτικού αναλυτή
-+ συντακτικού αναλυτή
-+ σημασιολογικού αναλυτή
++ Lexical Analyser
++ Syntactic Analyser
++ AST Creator
++ Semantic Analyser
