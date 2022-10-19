@@ -5,15 +5,27 @@
   module StringSet = Set.Make(String)
   type globalSet = StringSet.t ref
   let set : globalSet = ref StringSet.empty
+  let cdStack = Stack.create ()
 
   let add_file filename = 
     set := StringSet.add filename !set;
+    let dir = Filename.dirname filename in
+    let cd = if dir <> "" then dir 
+      else Filename.current_dir_name in
+    Stack.push cd cdStack;
     let lb = if (filename <> "stdin") then
       Stdlib.open_in filename |> 
       Lexing.from_channel
-    else Lexing.from_channel stdin in
-    Lexing.set_filename lb filename;
+    else
+      Lexing.from_channel stdin 
+    in Lexing.set_filename lb filename;
     lb
+
+  let get_cd () = 
+    Stack.top cdStack
+
+  let cd_pop () = 
+    ignore @@ Stack.pop_opt cdStack
 
   let safe_find filename (set:globalSet) = 
     try Some (StringSet.find filename !set) with
@@ -66,14 +78,16 @@ rule lexer = parse
               let line_pos = pos.pos_cnum - pos.pos_bol in
               if (line_pos <> 0) then
                 lex_fail pos "Directives should be in the beginning of a line";
-              let fn = ref filename in 
-              if (not @@ Sys.file_exists !fn) then begin
+              let fn = ref filename in
+              let cfn = Printf.sprintf "%s/%s" (get_cd ()) filename in
+              if (not @@ Sys.file_exists cfn) then begin
                 fn := Utilities.default_lib_header !fn;
                 if (not @@ Sys.file_exists !fn) then begin
                   let msg = Printf.sprintf "Cannot include non-existing file '%s'" filename in
                   lex_fail pos msg
                 end
-              end;
+              end 
+              else fn := cfn; 
               let ext = Filename.extension !fn in
               if (ext <> ".eds" && ext <> ".h") then begin
                 let msg = Printf.sprintf "Can only include files with extension \
@@ -85,6 +99,7 @@ rule lexer = parse
               | None -> let lb = add_file !fn in 
                 begin try  
                   let t = Parser.program lexer lb in
+                  cd_pop ();
                   T_include t
                 with | Parser.Error -> let pos = lb.Lexing.lex_start_p in
                   Utilities.print_diagnostic ~p:(Some pos) "Syntax Error" Utilities.Error; 

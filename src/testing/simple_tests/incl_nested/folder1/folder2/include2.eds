@@ -1,0 +1,3 @@
+int g(int z){
+	return 3 * z;
+}

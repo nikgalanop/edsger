@@ -1,0 +1,6 @@
+#include "folder1/include1.eds"
+#include "helper.eds"
+#include "stdio.h"
+void main () {
+	writeInteger(h(f(2, 3))); writeChar('\n');
+}

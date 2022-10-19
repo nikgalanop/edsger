@@ -1,0 +1,5 @@
+#include "folder2/include2.eds"
+
+int f(int x,int y){
+	return g(x) + g(y);
+}
