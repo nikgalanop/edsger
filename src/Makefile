@@ -17,4 +17,4 @@ clean:
 distclean: clean
 	dune clean;
 	make -C $(LIBPATH) distclean;
-	$(RM) *.out
+	$(RM) *.out *.opam

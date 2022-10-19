@@ -13,8 +13,6 @@
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
-
 (package
  (name edsger)
  (synopsis "A compiler for the Edsger programming language.")
@@ -24,4 +22,3 @@
   (ocaml llvm menhir dune compiler edsger)))
 
 (using menhir 2.1)
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
