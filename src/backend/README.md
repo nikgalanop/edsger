@@ -1,3 +1,3 @@
 # Backend
-+ Παραγωγή Κώδικα
-+ Βελτιστοποιήσεις
++ IR Generation
++ IR Optimizations
