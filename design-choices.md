@@ -41,7 +41,7 @@ reached upon, in this implementation of the edsger language. The specification o
 ## Compiler Structure Details
 ### Tools
 - This compiler is written in OCaml.
-- We use both `dune` and `Makefile` as our build system.
+- We use both `dune` and `GNU Make` as our build system.
 - For the lexer, it uses `ocamllex`.
 - For the parser, it uses `Menhir`.
 - We used a different symbol table for semantic analysis and IR Generation. Both of these symbol tables are heavily
@@ -49,6 +49,8 @@ inspired by the code that is provided [here](https://courses.softlab.ntua.gr/com
 - We used LLVM and the LLVM bindings for OCaml, to produce LLVM IR from the AST that we generate.
 - It calls `llc` and `clang` to convert the produced LLVM IR to x86_64 assembly or executable form.
 - We use `ar` and `clang` to create the prepackaged static library.
+
+
 
 ### Installation and Usage
 1. Either install the latest prebuilt binaries from the repository [releases](https://github.com/nikgalanop/edsger/releases).
