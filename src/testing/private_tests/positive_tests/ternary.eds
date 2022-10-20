@@ -1,0 +1,4 @@
+#include "stdio.h"
+void main () {
+	writeInteger( 3 > 4 ? 8 : 6 < 7 ? 5 : 2); writeChar('\n');
+}

@@ -1,3 +1,4 @@
+#include "stdio.h"
 void main() {
     int i;
     char c;
@@ -24,5 +25,9 @@ void main() {
     bp = &b;
     dp = &d;
     
+    writeInteger(*ip); writeChar('\n');
+    writeChar(*cp); writeChar('\n');
+    writeBoolean(*bp); writeChar('\n');
+    writeReal(*dp); writeChar('\n');
     
 }

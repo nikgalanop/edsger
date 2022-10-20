@@ -1,0 +1,26 @@
+#include "stdio.h"
+
+void main () {
+	char * s;
+	char q[10];
+	char * t;
+	t = new char[1];
+	t[0]=(char) 98;
+	writeChar(t[0]);
+	writeChar('\n');
+	s = "\x54est\\ \'String\".\n";
+	writeString(s);
+	q[0] = 'T';
+	q[1] = 'e';
+	q[2] = 's';
+	q[3] = 't';
+	q[4] = '\n';
+	q[5] = '\0';
+	writeString(q);
+	*q = 'D';
+	writeString(q);
+	delete t;
+}
+
+
+

@@ -1,0 +1,29 @@
+#include "stdio.h"
+
+void alter(byref int d){
+	d = 5;
+}
+
+void main() {
+    int i // this is a comment
+    ;
+	int *c;
+    i /* are these even legal? */ = 8;
+    
+    i = i + 5;/* they are really
+    absurd
+    who would ever do this?
+    */
+    writeInteger(i);
+    writeString("\n");
+    c = &i;
+    ++*c;
+    writeInteger (i);
+    writeString("\n");
+    i*=3;
+    writeInteger(*c);
+    writeString("\n");
+    alter(i);
+    writeInteger(*c);
+    writeString("\n");
+}

@@ -1,6 +1,7 @@
 #include "include_simple_target.eds"
-
+#include "stdio.h"
 void main() {
     int i;
     i = func(8);
+    writeInteger(i); writeChar('\n');
 }

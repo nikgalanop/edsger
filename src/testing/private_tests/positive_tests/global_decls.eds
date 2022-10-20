@@ -1,0 +1,22 @@
+#include "stdio.h"
+int a, b[10];
+char d,e,f;
+bool g,h,i[100];
+int* j,k,l,m[200];
+char n[2], o;
+double p[100], q;
+double ** r, s;
+void main () {
+	bool a;
+	char d, e[100];
+	char *  h;
+	double *** f;
+	h = "A test string";	
+	writeString(h); writeChar('\n');
+	a = (bool) (5 + 4);
+	writeBoolean(a); writeChar('\n');
+	d = (char) (8 * 10 / 11);
+	d = (d == 'a') ? 'b' : 'f';
+	writeChar(d); writeChar('\n');
+	return ; 
+}

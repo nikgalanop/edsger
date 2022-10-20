@@ -1,0 +1,69 @@
+#include "stdio.h"
+int weird(int a) 
+{
+    char c;
+    c = '\xff';
+    a = a * 7281 + 1234;
+    return ((a/305) % 32767);
+}
+
+void main(){
+    int i, j, k, l;
+	
+    void nested(){
+	    int i;
+	    lbl1 : for ( i = 0; i < 10; i ++ ){
+		    writeString ("NESTED!\n");
+		    if ( i == 5 ) break lbl1;
+	    }
+    }
+
+    int acc;
+    acc = 0;
+
+    nested ();
+    
+lbl1:
+    for(i=0; i<10; i++) {
+        writeString("Looping from lbl1\n");
+        acc += i;
+lbl2:   for(j=0; j<20; j++) {
+            writeString("Looping from lbl2\n");
+            acc += j;
+lbl3:       for(k=0; k<100; k++) {
+                writeString("Looping from lbl3\n");
+                acc += k;
+		writeString("weird = ");
+                writeInteger(weird(acc)); writeChar('\n'); 
+		if(weird(acc) % 47 == 0) {
+                    writeString("Break from lbl2\n");
+                    break lbl2;
+                }
+		writeString("Called weird\n");
+lbl4:           for(l=0; l<200; l++) {
+                    writeString("Looping from lbl4\n");
+                    acc += l;
+		    writeString("weird = ");
+                    writeInteger(weird(acc)); writeChar('\n'); 
+		    if(weird(acc) % 33 == 0){ 
+                        writeString("Continue from lbl3\n");
+                        continue lbl3;
+                    }
+                    if(weird(acc++) % (20159) == 0) {
+                        writeString("Break from lbl1\n");
+                        break lbl1;
+                    }
+                    acc--;
+                }
+                writeString("After the lbl4 loop\n");
+            }
+            writeString("After the lbl3 loop\n");
+            if(weird(acc) % (i+j) == 0) {
+                writeString("Continue from lbl1\n");
+                continue lbl1;
+            }
+        }
+        writeString("After the lbl2 loop\n");
+    }
+    writeString("After the lbl1 loop\n");
+}

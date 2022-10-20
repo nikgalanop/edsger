@@ -1,0 +1,29 @@
+#include "stdio.h"
+
+char hex_char_of_int (int n){
+	char base;
+	if (n >= 16 || n < 0) return (char) -1;
+	if (n <= 9) base = '0';
+	else {base = 'a'; n-=10;}
+	return (char) ((int) base + n); 
+}
+
+void main (){
+	int i,j;
+	char f,s;
+	for (i = 0; i < 16; i++){
+		f = hex_char_of_int(i);
+		for (j = 0; j < 16; j++){
+			/* writeString("Sum of indices in base 10 = ");
+			writeInteger(16 * i + j); writeChar('\n'); */
+			s = hex_char_of_int(j); 
+			writeString("\\x");
+			writeChar(f);
+			writeChar(s);
+			writeString (" = ");
+			writeChar((char) (16*i + j));
+			writeChar('\n');
+		}
+	}
+
+}

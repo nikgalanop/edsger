@@ -1,0 +1,13 @@
+#include "stdio.h"
+
+void main(){
+	double a,b;
+	writeString("First operand: ");
+	a = readReal();
+	writeString("Second operand: ");
+	b = readReal();
+
+	writeString("Result: ");
+	writeReal(a / b);
+	writeChar('\n');	
+}

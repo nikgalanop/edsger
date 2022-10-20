@@ -1,0 +1,16 @@
+#include "stdio.h"
+
+int fact(int i) {
+    if(i == 0) return 1;
+    return i * fact(i-1);
+}
+
+void main() {
+    int n; 
+    writeString("Insert n: ");
+    n = readInteger();
+    writeInteger(n);
+    writeString("! = ");
+    writeInteger(fact(n));
+    writeChar('\n');
+}

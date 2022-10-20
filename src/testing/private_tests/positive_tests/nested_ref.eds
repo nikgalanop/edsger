@@ -1,0 +1,33 @@
+#include "stdio.h"
+
+void main () {
+	void test (byref int a){
+		void sneaky (){
+			a += 5;
+		}
+		sneaky();
+		writeString("Inside test: ");
+		writeInteger(a); writeChar('\n');
+	}
+	
+	void test2 (int a){
+		void sneaky (){
+			a+=8;
+		}
+		sneaky();
+		writeString("Inside test2: ");
+		writeInteger(a); writeChar('\n');
+	}
+
+	int b;
+
+	b = 8;
+	writeString("Original Value: ");
+	writeInteger(b); writeChar('\n');
+	test(b);
+	writeString("After first test (should be affected): ");
+	writeInteger(b); writeChar('\n');
+	test2(b);
+	writeString("After second test (should not be affected): ");
+	writeInteger(b); writeChar('\n');
+}

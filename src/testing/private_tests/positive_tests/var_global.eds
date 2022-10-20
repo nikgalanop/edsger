@@ -1,3 +1,5 @@
+#include "stdio.h"
+
 int i;
 
 int func(int k) {
@@ -13,4 +15,6 @@ void main() {
     
     l = j + func(-2);
     m = l + i;
+    writeInteger(l); writeChar('\n');
+    writeInteger(m); writeChar('\n');
 }

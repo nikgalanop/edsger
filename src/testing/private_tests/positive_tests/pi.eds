@@ -1,0 +1,7 @@
+#include "math.h"
+#include "stdio.h"
+
+void main () {
+	writeReal(pi());
+	writeString("\n");
+}

@@ -22,7 +22,6 @@ void main() {
 	fn(i, j, a, p);
 	writeBoolean(b+1==p);
 	
-	fn(i, j, a, b);
-	writeBoolean(b==p);
-	
+	fn(i, j, a, p);
+	writeBoolean(b+1==p);
 }

@@ -1,0 +1,22 @@
+#include "stdio.h"
+
+int rec (int i);
+
+int morerec(int j) {
+    int i;
+    i = j;
+    if(i < 1) return i;
+    return i * (1-morerec(i-2));
+}
+
+int rec(int x) {
+    if (x > 100) return 3*x-rec(x-100);
+    return morerec(x);
+}
+
+void main() {
+    int i;
+    i = rec(203);
+    writeInteger(i);
+    writeChar('\n');
+}

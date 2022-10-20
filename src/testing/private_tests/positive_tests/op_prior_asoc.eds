@@ -1,0 +1,70 @@
+#include "stdio.h"
+int fun(int a) {
+   return 2 * a; 
+}
+
+int fun2(int a, int b, int c) {
+    writeInteger(a); writeChar(' '); writeInteger(b); writeChar(' ');
+    writeInteger(c); writeChar('\n');
+    return a + b + c;
+}
+
+int* next(byref int* a) {
+    return ++a;
+}
+
+int** next(byref int** a){
+   return ++a;
+}
+
+void main() {
+    int a, b, c;
+    int x, y;
+    int* p;
+    int d[10];
+    int **q, h;    
+
+    for(x=0; x<10; x++) {d[x] = x;}
+    
+    a=3; b=5; c=8;
+    
+    x = a - b - c;
+    x = x - a + b;
+    writeInteger(x); writeChar('\n');
+    y = a * b / c;
+    writeInteger(y); writeChar('\n');
+    y = a * a * b / c * c / x;
+    writeInteger(y); writeChar('\n');
+    
+    //should be parsed as implied by the spacing
+    x = a++>b ? b>--a ? c : a : c<b ? b : c;
+    writeInteger(x); writeChar('\n');
+    y = a>b? a+c : b>c ? a<b ? c : b : c>a ? b : a;
+    writeInteger(y); writeChar('\n');
+
+    writeString("d["); writeInteger(5); writeString("] = ");
+    writeInteger(d[5]); writeChar('\n');
+    d[c, a>b?a:b] /= fun(++c);
+    writeString("d["); writeInteger(5); writeString("] = ");
+    writeInteger(d[5]); writeChar('\n');
+    
+    p=d+3;
+
+    writeString("d["); writeInteger(3); writeString("] = ");
+    writeInteger(d[3]); writeChar('\n');
+
+    writeString("d["); writeInteger(7); writeString("] = ");
+    writeInteger(d[7]); writeChar('\n');
+    next(p)[2] = fun2(a, ((b,c), *p++), c);
+    writeString("d["); writeInteger(7); writeString("] = ");
+    writeInteger(p[2]); writeChar('\n');
+    q = new int*[20];
+    h = q;
+    for (a = 0; a < 20; a++) {q[a] = new int; q[a][0] = a;}
+    next(q)[1][0] += 5;
+    for (a = 0; a < 20; writeChar(' '), a++) {writeInteger(h[a][0]);}
+    writeChar('\n');
+    writeInteger(**(next(q)+9)); writeChar('\n');
+    q+=9;
+    writeInteger(**q); writeChar('\n');
+}

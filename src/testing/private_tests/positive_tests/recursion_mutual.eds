@@ -1,0 +1,27 @@
+#include "stdio.h"
+bool odd(int x);
+
+bool even(int a) {
+    if(a == 0) return true;
+    if(a == 1) return false;
+    return odd(a-1);
+}
+
+bool odd(int b) {
+    if(b == 1) return true;
+    if(b == 0) return false;
+    return even(b-1);
+}
+
+void main() {
+    bool b;
+    
+    writeBoolean(even(100));
+    writeChar('\n');
+    writeBoolean(even(105));
+    writeChar('\n');
+    writeBoolean(odd(53));
+    writeChar('\n');
+    writeBoolean(odd(32));
+    writeChar('\n');
+}

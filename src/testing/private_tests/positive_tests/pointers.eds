@@ -1,0 +1,30 @@
+#include "stdio.h"
+
+int * silly(int * d){
+	return d + 1;
+}
+
+void main() {
+    int* a[3];
+    int* b,c,w;
+    int e, f;
+    int d[3];
+    int** z;
+    int i;
+    d[0] = 10; d[1] = 15; d[2] = 20;
+    e = 30; f = 40;
+    b = &e; c = &f;
+    a[0] = b; a[1] = c; a[2] = d;
+    writeString("a[0][0] = "); writeInteger(a[0][0]); writeChar('\n');
+    writeString("a[1][0] = "); writeInteger(a[1][0]); writeChar('\n');
+    for (i = 0; i < 3; i++){
+    	writeString("a[2]["); writeInteger(i); 
+	writeString("] = "); writeInteger(a[2][i]); writeChar('\n');
+    }
+    z = a+1;
+    **z += 57;
+    writeString("CASTED AS CHAR a[1][0] = "); writeChar(((char**)a)[1][0]); writeChar('\n');
+    a[2][1] += 1000;
+    writeString("a[2][1] = "); writeInteger(*silly(d)); writeChar('\n');
+    writeString("a[2][1] = "); writeInteger(a[2][1]); writeChar('\n');
+}

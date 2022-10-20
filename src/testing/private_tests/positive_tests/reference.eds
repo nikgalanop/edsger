@@ -1,0 +1,15 @@
+#include "stdio.h"
+
+void sneaky (byref int a){
+	a+=1;
+}
+
+void main (){
+	int inp;
+ 	writeString("Insert an integer: ");
+	inp = readInteger();
+	writeString("Hehe, I increased it by one: ");
+	sneaky(inp);
+	writeInteger(inp);
+	writeChar('\n');
+}

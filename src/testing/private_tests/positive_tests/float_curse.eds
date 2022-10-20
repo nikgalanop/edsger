@@ -1,0 +1,12 @@
+#include "stdio.h"
+
+void main (){
+	writeBoolean(0.3 == 0.1 + 0.2);
+	writeChar('\n');
+	writeReal(0.1+0.2);
+	writeChar('\n');
+	writeReal(0.3);
+	writeChar('\n');
+	writeBoolean(0.4 == 0.2 + 0.2);
+	writeChar('\n');
+}

@@ -1,3 +1,4 @@
+#include "stdio.h"
 int func() {
     return 5+9;
 }
@@ -27,18 +28,23 @@ int func(int a, double d) {
 }
 
 int** func (int** a){
-	return a + 5;
+    return a + 5;
 }
 
 void main() {
     int i;
     int **a;
     i = func();
+    writeInteger(i); writeChar('\n');
     i = func(2);
+    writeInteger(i); writeChar('\n');
     i = func(true);
+    writeInteger(i); writeChar('\n');
     i = func(3, false);
+    writeInteger(i); writeChar('\n');
     i = func(false, 4);
+    writeInteger(i); writeChar('\n');
     i = func(5, 4.2);
-    a = &(&i);
-    a = func(a);
+    writeInteger(i); writeChar('\n');
+    writeBoolean(a + 5 == func(a)); writeChar('\n');
 }

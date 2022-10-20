@@ -23,5 +23,5 @@ void main() {
     a = 1; b = 2; c = 3;
     x = 5; y = 10;
     x = func(x, y);
-    y = otherfunc(x, y);
+    y = otherfunc(x);
 }

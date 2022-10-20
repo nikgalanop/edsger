@@ -1,0 +1,33 @@
+#include "stdio.h"
+
+int a;
+int b[100 + 3 * 5 + (int) 2.3];
+void main(){
+	int i;
+
+	for (i = 0; i < 100; ++i){
+		b[i] = i;
+	}
+
+	a = (b[0] != 0) ? 13 : 24;
+
+	writeInteger(a);
+	writeChar('\n');
+	writeReal(-8.0 * -1.3425);
+	writeChar('\n');
+
+	lbl1 : for (i = 0; i < 100; ++i){
+		if (i == 45) {writeString("Broke free\n"); return; writeString("Ignored :(\n");}
+		writeString("b[");
+		writeInteger(i);
+		writeString("] = ");
+		writeInteger(b[i]);
+		writeChar('\n');
+	}
+
+	writeString("I want to break free!\n");
+	writeInteger(i);
+	writeChar('\n');
+
+	return;
+}
