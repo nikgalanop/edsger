@@ -218,7 +218,7 @@ destination.
 - We only allow a pointer to be cast to an `int` and no other numerical type.
 - We do not allow any numerical value to be cast into a pointer.
 - We allow casting between pointer types freely.
-#### Casting rules:
+#### Casting rules
   1. To `int`
       1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
       2. A `bool` is converted to `1` if it is equal to `true` and to `0` otherwise.
