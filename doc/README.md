@@ -170,7 +170,7 @@ The same principle applies to parameter declaration.
 
 ### Static Array Declarations
 - When defining an array statically, the size of the array must be a **positive** constant integer expression. A constant 
-integer expression is a constant expression of type int, defined as stated below:
+integer expression is a constant expression of type int, defined as stated below: <br>
     > A constant integer expression can be:
     > 1. a constant int
     > 2. the result of the operations '+', '-', '*', '/', '%'
