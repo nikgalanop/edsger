@@ -158,6 +158,8 @@ and prepare_value e =
   (* If a pointer points to an array, then cast it to point in the "first" element. *)
   (* In any other case, do the classic rval computation. *)
   let vl = codegen_expr e in 
+  prepare_value' e vl 
+and prepare_value' e vl =
   let t = classify_element_type vl in
   match t with 
   | Llvm.TypeKind.Array -> 
@@ -278,8 +280,8 @@ and codegen_basgn e1 e2 op =
     rhs
   else 
     let vl2 = prepare_value e2 in 
-    let vl1 = prepare_value e1 in 
     let lhs = codegen_expr e1 in
+    let vl1 = prepare_value' e1 lhs in 
     let rhs = match op with 
       | O_asgn -> failwith "Taken care of"
       | O_mulasgn -> codegen_binop' vl1 vl2 O_times 
