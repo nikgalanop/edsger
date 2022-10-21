@@ -256,14 +256,13 @@ and codegen_binop' vl1 vl2 op =
 and codegen_uasgn ~pre e op =  
   let lhs = codegen_expr e in
   let const = match classify_element_type lhs with 
-    | Llvm.TypeKind.Double -> {expr = E_double 1.0;
-      meta = Lexing.dummy_pos}
-    | _ -> {expr = E_int 1;
-      meta = Lexing.dummy_pos}
+    | Llvm.TypeKind.Double -> const_double' 1.0
+    | _ -> const_int' 1
   in let op' = match op with 
     | O_plpl -> O_plus
     | O_mimi -> O_minus
-  in let rhs = codegen_binop e const op' in
+  in let rhs = codegen_binop' (prepare_value' e lhs) 
+    const op' in
   let ret = if (pre) then rhs else
     build_load lhs "loadtmp" lbuilder in
   ignore @@ build_store rhs lhs lbuilder; 
