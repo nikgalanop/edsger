@@ -2,7 +2,8 @@
 
 This is a summary of the design choices that we ([1](https://github.com/el18177), [2](https://github.com/nikgalanop))
 reached upon, in this implementation of the edsger language. The specification of the said language can be found 
-[here](https://courses.softlab.ntua.gr/compilers/2022a/edsger2022.pdf).
+[here](https://courses.softlab.ntua.gr/compilers/2022a/edsger2022.pdf). You can find some example edsger programs 
+in `edsger/src/testing` or equivalently [here](https://github.com/nikgalanop/edsger/tree/main/src/testing).
 
 ### Table Of Contents
 <details> 
@@ -208,6 +209,11 @@ of "stack overflow", that resulted in an erroneous memory access)
 - One can access a `delete`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
 reallocated at any given time.
 
+⚠️ Known issue: <br>
+When trying to change the "contents" of a `NULL` pointer, it usually results in `Segmentation Fault`. However, if the user 
+has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code).
+Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" instruction. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS)]
+
 ### Labels
 - We do not allow two labels in the same function to have the same name.
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
@@ -222,7 +228,7 @@ destination.
   1. To `int`
       1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
       2. A `bool` is converted to `1` if it is equal to `true` and to `0` otherwise.
-      3. A `double` is converted to the equivalent "floor" `int` value.
+      3. A `double` is converted to the equivalent "truncated" `int` value.
       4. A pointer is converted to the base 10 representation of the address that it points to.
   2. To `char`
       1. An `int` is converted to a `char` value by truncating it bits to the size of the `char` type. 
@@ -244,6 +250,10 @@ destination.
       1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
       the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
       it points to data that have the type that is implied from the casting clause. 
+
+⚠️ Known issue: <br>
+Accessing a type casted pointer is unstable and can give different results, depending on if the user enabled optimizations or not.
+In general, pointer type casting is to be avoided. :)
 
 ## Miscellaneous
 ### Grammar Conflicts
@@ -290,3 +300,10 @@ let rec flatten ex acc =
 ```
 
 <ins>Note:</ins> The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
+
+### Order of Evaluations
+- The operator `op =` is right associative. Thus, we choose to evaluate the operands from right to left (!) unlike the other binary 
+operators where the operands are evaluated from left to right.
+
+eg. Consider the expression `b += b *= 2;` with `b` initialized to 10. Then, the expression is computed as `b += (b *= 2)` and 
+`(b *= 2)` is evaluated before the `b` on the LHS of the expression. Thus, after the expression, `b` is equal to 40 and not 30.

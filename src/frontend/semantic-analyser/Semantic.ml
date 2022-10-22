@@ -15,7 +15,7 @@ let sem_plus pos t1 t2 =
   match t2 with
   | TYPE_int -> begin
       match t1 with 
-      | TYPE_int | TYPE_pointer _ -> t1 
+      | TYPE_int | TYPE_null| TYPE_pointer _ -> t1 
       | _ -> sem_fail pos "Can only add an integer to an integer or a pointer"
     end
   | TYPE_double -> if (equalType t1 t2) then t1 

@@ -12,8 +12,7 @@ let rec equalType t1 t2 =
    | TYPE_pointer {typ = et1; dim = d1; mut = _},
      TYPE_pointer {typ = et2; dim = d2; mut = _} -> 
       d1 = d2 && equalType et1 et2 
-   | TYPE_pointer r, TYPE_null | TYPE_null, TYPE_pointer r -> 
-      r.mut 
+   | TYPE_pointer _, TYPE_null | TYPE_null, TYPE_pointer _ -> true
    | _                                            -> t1 = t2
 
 let primitive_of_typ = function 
