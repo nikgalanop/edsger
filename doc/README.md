@@ -53,7 +53,7 @@ LLVM IR from the AST that we generate.
 - We use `ar` and `clang` to create the prepackaged static library.
 
 #### System Requirements
-- The compiler has been built from source successfully in two different systems with the following configuration:
+The compiler has been built from source successfully in two different systems with the following configuration:
   |             Target               |  OCaml   |  opam   |  dune   |  GNU Make  |  ocamllex  |  Menhir  |   LLVM   |  LLVM Bindings  |      Clang       |
   | :------------------------------: | :------: | :-----: | :-----: | :--------: | :--------: | :------: | :------: | :-------------: | :--------------: |
   |        Arch Linux, x86_64        |  4.14.0  |  2.1.3  |  3.5.0  |    4.3     |   4.14.0   |  4.14.0  |  14.0.6  |     14.0.6      |      14.0.6      |
