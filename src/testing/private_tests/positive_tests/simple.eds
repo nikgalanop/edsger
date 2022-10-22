@@ -1,0 +1,21 @@
+#include "stdio.h"
+
+// Only semantically correct!!
+
+void main () {
+	int f[100];
+	char a;
+	bool b;
+	double c;
+	char * d;
+	int e; 
+	f[100] = (int) a;
+	(int) b;
+	(int) c;
+	*d = (char) b;
+	*f = 6;
+	d = &d[0];
+	d = d+1;
+	e = (int) *(d+2);
+	writeInteger(5 - - 6);
+}
