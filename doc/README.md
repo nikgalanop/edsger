@@ -73,7 +73,7 @@ Both the compiler and the static library are made. The static library is located
     1. `make` creates both the compiler executable as well as the prepackaged static library
     2. `make clean` clears the obj. files that have been created inside `path/to/edsger/src/lib/` during the creation of the static library.
     3. `make distclean` at first executes `clean` and then clears the `path/to/edsger/src/_build` folder that is created from `dune` 
-    (deletes the whole compiler build), as well as the `.opam` file that is created during the build of the compiler.
+    (deletes the whole compiler build), as well as the `edsger.opam` file that is created during the build of the compiler.
 
 #### Note ⚠️ 
 The user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
@@ -81,13 +81,14 @@ restarting the terminal session or just exporting the variable via the terminal 
 current terminal session).
 
 ### Compiler Behaviour And Options
-- The standard usage of the compiler (no flags), reads from an input file `name.eds` and produces three files `name.ll`, `name.s`, 
-`name.out`. The first two contain the LLVM IR and the x86_64 assembly accordingly. The `.out` file is the produced executable.
+- The standard behaviour of the compiler, when no options are provided, is to read from an input file `name.eds` and produce
+three files `name.ll`, `name.s`, `name.out`. The first two contain the LLVM IR and the x86_64 assembly accordingly. The `.out` 
+file is the produced executable.
 - There are four options that can be passed to the compiler:
   1. `-O`: when provided, enables the LLVM IR optimization. The optimization process consists of the following passes:
       `mem2reg`, `Instruction Combining`, `Reassociation`, `CFG Simplification`, `Global Value Numbering (GVN)`, `Aggressive DCE`.
-      Regardless of the usage of this option, when our compiler calls `llc`, the `llc` optimization level is set to `-O2`, 
-      meaning that the produced assembly code will always be optimized.
+      Regardless of the usage of this option, when the compiler calls `llc`, the `llc` optimization level is set to `-O2`, the
+      default `llc` setting, meaning that the produced assembly code will always be optimized.
   2. `-i`: when provided, the compiler reads from `stdin` and outputs the produced LLVM IR to `stdout`. No input file should 
       be provided. No output file is produced.
   3. `-f`: when provided, the compiler reads from `stdin` and outputs the produced assembly to `stdout`. No input file should 
@@ -103,11 +104,13 @@ current terminal session).
 ### Directives
 - As stated in the specification, the only directive allowed is `#include`. If a 'cyclical' include sequence is provided,
 then the compiler warns the user about this, omits the directive that caused the cycle and proceeds with compiling the rest of the 
-program. (The same happens in any case where a file is to be included twice.)
+program. The same happens in any case where a file is to be included twice.
 - The source file that is provided to the compiler is assumed to be "`include`d", meaning that if any descendant file, includes the
-source file, the compiler handles the case as if the source file has been already included.
+source file, the compiler handles the case as if the source file has already been included.
 - When `file1.{h,eds}` includes `file2.{h,eds}` as following:`#include "/path/to/file2.{h,eds}"`, then the compiler checks if the 
-file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` includes another file, eg. `#include /a/new/path/to/file3.{h,eds}` then the compiler checks if this is present in `path_of_file1/path_of_file2/a/new/path/to/file3.{h,eds}`.
+file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` 
+includes another file, eg. `#include /a/new/path/to/file3.{h,eds}` then the compiler checks if this is present in 
+`path_of_file1/path_of_file2/a/new/path/to/file3.{h,eds}`.
 - If the necessary file is not found with the method above, the compiler assumes that is it a library file and searches for it by
 following the method that is described in the next section about Library Functions.
 
@@ -126,12 +129,13 @@ be set accordingly (or just the environment if it's a one time execution of the 
 - `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly, by 
 placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has not 
-reached `EOF` or it not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
+reached `EOF` or it has not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
 
 ## Language Feature Implementation Details
 
 ### Variable Types And Constants
 - In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*`, where `t` is another valid type.
+We call `int`, `bool`, `char`, `double` numerical types, and `int`, `double` arithmetic types specifically.
 - `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 8-bytes long.
 - The programmer can only type unsigned constants in a program. This means that the maximum `int` constant that can be
 typed in a program is equal to `32767`. Even though `-32768` is a valid 2 bytes long value, in edgser `-` is an operator
@@ -143,6 +147,16 @@ territory. Of course, nobody should depend on integer overflow behaviour when wr
 ### Function Declarations
 - A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
 (C-like function declaration)
+eg.
+```
+void f(int a, int b);
+
+// ^^^ This declaration declares this function vvv
+
+void f(int c, int d){
+  // some code
+}
+```
 - A declaration of a function cannot be placed after the definition of the same function.
 
 ### Function Overloading
@@ -153,7 +167,7 @@ if they have the same type. (We do not care about the pass method) Two parameter
 For the LLVM IR representation, the name mangling convention is the following:
 
 ```
-<mangled> ::= <original_name>_<parameters_str>_counter
+<mangled> ::= <original_name>_<parameters_str>_<counter>
 <parameters_str> ::= <parameter_str>* 
 ```
 
@@ -169,18 +183,18 @@ explicit parameters in order and create a string for each parameter with the fol
 ```
 
 We also use a counter in case that two functions have the same name and explicit parameters. This can happen in the case 
-of function shadowing (a nested function shadows a function with the same name and parameters from an outer scope), or 
-when two functions have the same name and parameters but are also nested inside different functions.
+of function shadowing (a nested function shadows a function with the same name and equivalent parameters from an outer scope),
+or when two functions have the same name and equivalent parameters but are also nested inside different functions.
 
 ### Nested Functions
-- In edsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
+- In Εdsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
 they are nested into, as expected. This is implemented via lambda lifting.
 - With Lambda Lifting we add extra hidden parameters to functions when they are needed.
-1. A variable does not need to be lambda lifted if it is global and it hasn't been shadowed by another variable.
-2. A variable does not need to be lambda lifted if it is defined in the function which uses it. (as a local variable or as a parameter)
-3. If a function uses a variable for which neither 1. or 2. hold, then that variable must be lambda lifted.
-4. A "parent" function should lift the "required" variables that its nested functions lambda lifted. 
-A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent function before the nested function definition.
+> 1. A variable does not need to be lambda lifted if it is global and it hasn't been shadowed by another variable.
+> 2. A variable does not need to be lambda lifted if it is defined in the function which uses it. (as a local variable or as a parameter)
+> 3. If a function uses a variable for which neither 1. or 2. hold, then that variable must be lambda lifted.
+> 4. A "parent" function should lift the "required" variables that its nested functions lambda lifted. 
+> A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent function before the nested function definition.
 
 ### Local Variable Declarations
 - It is not guaranteed that local variables are initialized to zero. 
@@ -190,13 +204,13 @@ The same principle applies to parameter declaration.
 ### Static Array Declarations
 - When defining an array statically, the size of the array must be a **positive** constant integer expression. A constant 
 integer expression is a constant expression of type int, defined as stated below: <br>
-    > A constant integer expression can be:
-    > 1. a constant int
-    > 2. the result of the operations '+', '-', '*', '/', '%'
-    > between two <ins>constant integer expressions</ins>
-    > 3. a constant double, casted to an int
-    > 4. the result of the operations '+', '-', '*', '/', '%'
-    > between two constant doubles, casted to an int.
+> A constant integer expression can be:
+> 1. a constant int
+> 2. the result of the operations '+', '-', '*', '/', '%'
+> between two <ins>constant integer expressions</ins>
+> 3. a constant double, casted to an int
+> 4. the result of the operations '+', '-', '*', '/', '%'
+> between two constant doubles, casted to an int.
 - These constant integer expressions are computed by the compiler during compile time.
 - Global arrays are initialized to contain zeros. This is not guaranteed when declaring a local static array.
 
@@ -210,11 +224,12 @@ file with the prepackaged static library.
 The `new` operator (or the equivalent `malloc` call) does not fail when the provided size is equal to 0 or a negative 
 number. Special care should be given, if the `new` operator is called with a negative number as its size, since `malloc`
 accepts unsigned integers, thus it will allocate memory with the equivalent unsigned size.
-
+- It is not guaranteed that the allocated memory is initialized to zero.
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
-- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block.
+- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block. It is not guaranteed that all of the allocated
+memory will be set to zero.
 - One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
 ### Erroneous Accesses
@@ -232,18 +247,31 @@ reallocated at any given time.
 When trying to change the "contents" of a `NULL` pointer, it usually results in `Segmentation Fault`. However, if the user 
 has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code), 
 or no messages at all depending on the user's setup & LLVM version.
-Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" instruction. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS) etc.]
+Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" 
+instruction or handles it in a different version dependent way. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS) etc.]
 
 ### Labels
-- We do not allow two labels in the same function to have the same name.
+- We do not allow two labels in the same function to have the same name, in order to avoid confusive code.
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
 destination.
+eg. The following `continue` statement is illegal
+```
+  void main (){
+    lbl1 : for ( .. ; .. ; .. ){
+    
+    }
+    
+    for ( .. ; .. ; .. ){
+      if (true) continue lbl1;
+    }
+  }
+```
 
 ### Type Casting
 - We allow every possible type casting between numerical types (`int`, `char`, `bool`, `double`).
 - We only allow a pointer to be cast to an `int` and no other numerical type.
 - We do not allow any numerical value to be cast into a pointer.
-- We allow casting between pointer types freely.
+- We allow casting between pointer types.
 #### Casting rules
   1. To `int`
       1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
@@ -254,18 +282,17 @@ destination.
       1. An `int` is converted to a `char` value by truncating it bits to the size of the `char` type. 
       2. A `bool` is converted to a `char` by zero extending its bits.
       3. A `double` is converted to a `char` by rounding it to the nearest unsigned `int` and then converting it
-      to the `char` with that ASCII Code. In case of a negative number, the result is undefined.
+      to the `char` with that ASCII Code. In case of a negative `double`, the result is **undefined**.
   3. To `bool`
       1. Every non-zero `int` value is converted to `true`. Otherwise, it is converted to `false`.
       2. Every non-zero `double` value is converted to `true`. Otherwise, it is converted to `false`.
       3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
   4. To `double`
-      1. An `int` value is casted to a `double` value of the same sign, with a zeroed out decimal part. 
-      2. A `char` value is casted to a positive `double` value with a zeroed out decimal part, that corresponds to the
+      1. An `int` value is casted to a `double` value of the same sign, with a zeroed out fractional part. 
+      2. A `char` value is casted to a positive `double` value with a zeroed out fractional part, that corresponds to the
       character's ASCII code. 
-      4. A `bool` value is casted to a positive `double` value with a zeroed out decimal part. It is equal to `1.0` when
-      the value is equal to `true` and `0.0` otherwise.
-      
+      3. A `bool` value is casted to a positive `double` value with a zeroed out fractional part. It is equal to `1.0` when
+      the value is equal to `true` and `0.0` otherwise.  
   5. To `pointer`
       1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
       the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
@@ -300,7 +327,8 @@ int f (int x, int y){
 void main (){
   int x, int y;
   // some code
-  f(x, y); // This should be interpreted as two arguments? Or should this return y? (Comma operator)
+  f(x, y); // Should this be interpreted as two arguments? 
+           // Or should this return y and be considered one argument?
   // More code
 } 
 ```
