@@ -41,17 +41,23 @@ in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgal
 
 ## Compiler Structure Details
 ### Tools
-- This compiler is written in OCaml.
-- We use both `dune` and `GNU Make` as our build system.
+- This compiler is written in [OCaml](https://ocaml.org/).
+- We use both [`dune`](https://dune.build/) and `GNU Make` as our build system.
 - For the lexer, it uses `ocamllex`.
-- For the parser, it uses `Menhir`.
+- For the parser, it uses [`Menhir`](http://gallium.inria.fr/~fpottier/menhir/).
 - We used a different symbol table for semantic analysis and IR Generation. Both of these symbol tables are heavily
 inspired by the code that is provided [here](https://courses.softlab.ntua.gr/compilers/2010a/bonus-ocaml-1.0.tgz)
-- We used LLVM and the LLVM bindings for OCaml, to produce LLVM IR from the AST that we generate.
+- We used [LLVM](https://llvm.org/) and the [LLVM bindings](https://opam.ocaml.org/packages/llvm/) for OCaml, to produce 
+LLVM IR from the AST that we generate.
 - It calls `llc` and `clang` to convert the produced LLVM IR to x86_64 assembly or executable form.
 - We use `ar` and `clang` to create the prepackaged static library.
 
-
+#### System Requirements
+- The compiler has been built from source successfully in two different systems with the following configuration:
+  |             Target               |  OCaml   |  opam   |  dune   |  GNU Make  |  ocamllex  |  Menhir  |   LLVM   |  LLVM Bindings  |      Clang       |
+  | :------------------------------: | :------: | :-----: | :-----: | :--------: | :--------: | :------: | :------: | :-------------: | :--------------: |
+  |        Arch Linux, x86_64        |  4.14.0  |  2.1.3  |  3.5.0  |    4.3     |   4.14.0   |  4.14.0  |  14.0.6  |     14.0.6      |      14.0.6      |
+  | Ubuntu 20.0.4 LTS @ WSL2, x86_64 |  4.14.0  |  2.1.0  |  3.4.1  |   4.2.1    |   4.14.0   |  4.14.0  |  10.0.0  |     12.0.1      |  10.0.0-4ubuntu1 |
 
 ### Installation and Usage
 - Build from [source](https://github.com/nikgalanop/edsger/src). <br>
@@ -60,7 +66,7 @@ inside `path/to/edsger/src/` by writing `make` and executing it in your terminal
 made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
 
-⚠️ In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
+#### ⚠️ In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
 current terminal session).
 
@@ -190,7 +196,7 @@ memory space is variable. (And is resolved during runtime) The `new` operator is
 The implementation of `malloc` is linked when our compiler is calling the `clang` compiler, to link the produced assembly 
 file with the prepackaged static library. 
 
-⚠️ The `new` operator (or the equivalent `malloc` call) does not fail when the provided size is equal to 0 or a negative 
+#### ⚠️ The `new` operator (or the equivalent `malloc` call) does not fail when the provided size is equal to 0 or a negative 
 number. Special care should be given, if the `new` operator is called with a negative number as its size, since `malloc`
 accepts unsigned integers, thus it will allocate memory with the equivalent unsigned size.
 
@@ -211,10 +217,11 @@ of "stack overflow", that resulted in an erroneous memory access)
 - One can access a `delete`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
 reallocated at any given time.
 
-⚠️ Known issue: <br>
+#### ⚠️ Known issue: <br>
 When trying to change the "contents" of a `NULL` pointer, it usually results in `Segmentation Fault`. However, if the user 
-has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code).
-Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" instruction. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS)]
+has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code), 
+or no messages at all depending on the user's setup & LLVM version.
+Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" instruction. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS) etc.]
 
 ### Labels
 - We do not allow two labels in the same function to have the same name.
@@ -253,7 +260,7 @@ destination.
       the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
       it points to data that have the type that is implied from the casting clause. 
 
-⚠️ Known issue: <br>
+#### ⚠️ Known issue: <br>
 Accessing a type casted pointer is unstable and can give different results, depending on if the user enabled optimizations or not.
 In general, pointer type casting is to be avoided. :)
 
@@ -301,7 +308,8 @@ let rec flatten ex acc =
     | _ -> ex :: acc
 ```
 
-<ins>Note:</ins> The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
+##### Note: 
+The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
 
 ### Order of Evaluations
 - The operator `op =` is right associative. Thus, we choose to evaluate the operands from right to left (!) unlike the other binary 
