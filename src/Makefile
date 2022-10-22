@@ -12,9 +12,8 @@ library:
 
 clean:
 	make -C $(LIBPATH) clean;
-	$(RM) *.{ll, s}
 
 distclean: clean
 	dune clean;
 	make -C $(LIBPATH) distclean;
-	$(RM) *.out *.opam
+	$(RM) *.opam
