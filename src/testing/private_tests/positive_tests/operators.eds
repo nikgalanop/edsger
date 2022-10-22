@@ -90,8 +90,11 @@ void main (){
 	// delete &*c--; Should fail
 	// delete c; Should fail (freed twice)
 	c = &a + 1;
+	writeString("e\n");writeIntegerNL((int) &e);
+	writeIntegerNL((int) (&e + 1)); 
 	delete new int;
 	// delete delete new int;
+	writeString("a\n");
 	writeIntegerNL((int) c);
 	writeIntegerNL((int) &a);
 	writeIntegerNL(8 - - 5 + - 7);
