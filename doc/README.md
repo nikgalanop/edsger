@@ -55,18 +55,25 @@ LLVM IR from the AST that we generate.
 - We use `ar` and `clang` to create the prepackaged static library.
 
 #### System Requirements
-The compiler has been built from source successfully in two different systems with the following configuration:
+The compiler has been built from source successfully in two different systems with the following configurations:
   |             Target               |  OCaml   |  opam   |  dune   |  GNU Make  |  ocamllex  |   Menhir   |   LLVM   |  LLVM Bindings  |      Clang       |
   | :------------------------------: | :------: | :-----: | :-----: | :--------: | :--------: | :--------: | :------: | :-------------: | :--------------: |
   |        Arch Linux, x86_64        |  4.14.0  |  2.1.3  |  3.5.0  |    4.3     |   4.14.0   |  20220210  |  14.0.6  |     14.0.6      |      14.0.6      |
   | Ubuntu 20.0.4 LTS @ WSL2, x86_64 |  4.14.0  |  2.1.0  |  3.4.1  |   4.2.1    |   4.14.0   |  20220210  |  10.0.0  |     12.0.1      |  10.0.0-4ubuntu1 |
 
+It is advised to use a proper combination of the versions above.
+
 ### Installation and Usage
 - Build from [source](https://github.com/nikgalanop/edsger/src). <br>
-In order to build from source, just execute the Makefile
-inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. Both the compiler and the static library are 
-made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
+In order to build from source, just execute the Makefile inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. 
+Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
+
+- Usage of the provided Makefile in `path/to/edsger/src`:
+  1. `make` creates both the compiler executable as well as the prepackaged static library
+  2. `make clean` clears the obj. files that have been created inside `path/to/edsger/src/lib/` during the creation of the static library.
+  3. `make distclean` at first executes `clean` and then clears the `path/to/edsger/src/_build` folder that is created from `dune` 
+  (deletes the whole compiler build), as well as the `.opam` file that is created during the build of the compiler.
 
 #### Note ⚠️ 
 In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
