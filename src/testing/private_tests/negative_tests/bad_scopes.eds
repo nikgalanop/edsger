@@ -16,7 +16,7 @@ void main() {
     
     int otherfunc(int h) {
         int d;
-        d = h+k;
+        d = h+k; //k not accessible in this scope
         return ++d;
     }
     
