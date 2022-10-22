@@ -14,9 +14,9 @@ void main() {
     *z += 100;
     a[2][1] += 1000;
     
-    p = d;
+    p = d; // different types
     *(p+1) += 10000;
-    d = c;
+    d = c; // non-assignable (lhs is immutable)
     (*d)++;
-    d = p;
+    d = p; // non-assignable (lhs is immutable)
 }
