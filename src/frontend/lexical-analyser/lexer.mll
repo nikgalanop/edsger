@@ -10,9 +10,7 @@
   let add_file filename = 
     set := StringSet.add filename !set;
     let dir = Filename.dirname filename in
-    let cd = if dir <> "" then dir 
-      else Filename.current_dir_name in
-    Stack.push cd cdStack;
+    Stack.push dir cdStack;
     let lb = if (filename <> "stdin") then
       Stdlib.open_in filename |> 
       Lexing.from_channel
@@ -79,7 +77,9 @@ rule lexer = parse
               if (line_pos <> 0) then
                 lex_fail pos "Directives should be in the beginning of a line";
               let fn = ref filename in
-              let cfn = Printf.sprintf "%s/%s" (get_cd ()) filename in
+              let cd = get_cd () in 
+              let cfn = if cd <> "." then Printf.sprintf "%s/%s" cd filename
+                else filename in 
               if (not @@ Sys.file_exists cfn) then begin
                 fn := Utilities.default_lib_header !fn;
                 if (not @@ Sys.file_exists !fn) then begin
