@@ -3,7 +3,7 @@ char * str;
 void main (){
 	char * s, q;
 	int i;
-	s = "random\0 string \0 is \0 useless\n\0";
+	s = "random\0 string \0 is \0 the one to be feared\n\0";
 	q = s + 7;
 	writeString(s);
 	writeString(q); writeChar('\n');
