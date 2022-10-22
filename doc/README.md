@@ -36,10 +36,12 @@ in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgal
     <summary>Miscellaneous</summary>
   <ul>
       <li><a href="#grammar-conflicts">Grammar Conflicts</a></li>
+      <li><a href="#order-of-evalutations">Order of Evaluations</a></li>
    </ul>
 </details>
 
 ## Compiler Structure Details
+
 ### Tools
 - This compiler is written in [OCaml](https://ocaml.org/).
 - We use both [`dune`](https://dune.build/) and `GNU Make` as our build system.
@@ -173,7 +175,7 @@ they are nested into, as expected. This is implemented via lambda lifting.
 4. A "parent" function should lift the "required" variables that its nested functions lambda lifted. 
 A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent function before the nested function definition.
 
-### Local Variable Declarations 
+### Local Variable Declarations
 - It is not guaranteed that local variables are initialized to zero. 
 - It is not allowed to declare a variable that has the same name as a parameter or another variable inside a function.
 The same principle applies to parameter declaration.
@@ -267,6 +269,7 @@ Accessing a type casted pointer is unstable and can give different results, depe
 In general, pointer type casting is to be avoided. :)
 
 ## Miscellaneous
+
 ### Grammar Conflicts
 - The grammar of the Edsger language is provided at p. 15, in the specification that we linked at the beggining of this document.
 It is an ambiguous grammar. 
