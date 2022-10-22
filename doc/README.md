@@ -5,7 +5,7 @@ reached upon, in this implementation of the edsger language. The specification o
 [here](https://courses.softlab.ntua.gr/compilers/2022a/edsger2022.pdf). You can find some example edsger programs 
 in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgalanop/edsger/tree/main/src/testing).
 
-### Table Of Contents
+## Table Of Contents
 <details> 
   <summary>Compiler Structure Details</summary>
   <ul>
