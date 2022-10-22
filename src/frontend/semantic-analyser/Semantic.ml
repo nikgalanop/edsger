@@ -15,7 +15,7 @@ let sem_plus pos t1 t2 =
   match t2 with
   | TYPE_int -> begin
       match t1 with 
-      | TYPE_int | TYPE_null| TYPE_pointer _ -> t1 
+      | TYPE_int | TYPE_null | TYPE_pointer _ -> t1 
       | _ -> sem_fail pos "Can only add an integer to an integer or a pointer"
     end
   | TYPE_double -> if (equalType t1 t2) then t1 
@@ -23,7 +23,7 @@ let sem_plus pos t1 t2 =
   | _ -> sem_fail pos "Cannot add to/subtract from something with a non-arithmetic value"
 let sem_comp pos t = 
   match t with 
-  | TYPE_int | TYPE_double | TYPE_bool | TYPE_pointer _ -> TYPE_bool
+  | TYPE_int | TYPE_double | TYPE_null | TYPE_bool | TYPE_pointer _ -> TYPE_bool
   | _ -> sem_fail pos "Cannot compare values with the provided type" 
 
 let sem_uop pos e t = function 
