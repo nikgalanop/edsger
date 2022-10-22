@@ -76,7 +76,7 @@ Both the compiler and the static library are made. The static library is located
     (deletes the whole compiler build), as well as the `.opam` file that is created during the build of the compiler.
 
 #### Note ⚠️ 
-In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
+The user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
 current terminal session).
 
