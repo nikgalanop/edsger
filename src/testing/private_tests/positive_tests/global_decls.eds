@@ -15,7 +15,7 @@ void main () {
 	writeString(h); writeChar('\n');
 	a = (bool) (5 + 4);
 	writeBoolean(a); writeChar('\n');
-	d = (char) (8 * 10 / 11);
+	d = (char) (8 * 10 / 11 + 90);
 	d = (d == 'a') ? 'b' : 'f';
 	writeChar(d); writeChar('\n');
 	return ; 

@@ -3,7 +3,7 @@
 This is a summary of the design choices that we ([1](https://github.com/el18177), [2](https://github.com/nikgalanop))
 reached upon, in this implementation of the edsger language. The specification of the said language can be found 
 [here](https://courses.softlab.ntua.gr/compilers/2022a/edsger2022.pdf). You can find some example edsger programs 
-in `edsger/src/testing` or equivalently [here](https://github.com/nikgalanop/edsger/tree/main/src/testing).
+in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgalanop/edsger/tree/main/src/testing).
 
 ### Table Of Contents
 <details> 

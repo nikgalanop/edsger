@@ -10,6 +10,10 @@ void main() {
     char* q;
     int z[100];
 
+    void writeBooleanNL(bool b){
+	writeBoolean(b); writeChar('\n');
+    }
+
     z[3] = 2;
     i = 0;
     i = 345;
@@ -35,21 +39,23 @@ void main() {
    
     s = "t"; 
     q = "hello\n";
+    writeString("s = "); writeString(s); writeChar('\n');
     s = "text\ttext\n\\\"";
+    writeString("q = "); writeString(q); writeChar('\n');
+    writeString("s = "); writeString(s); writeChar('\n');
     // s[0] = 'c';
     // q[0] = 'c';
 
-    b = i == 0;
-    b = i != 0;
-    b = i > 5;
-    b = (s+2) < (s+5);
-    b = z < (z+5);
+    writeBooleanNL(b = i == 0);
+    writeBooleanNL(b = i != 0);
+    writeBooleanNL(b = i > 5);
+    writeBooleanNL(b = (s+2) < (s+5));
+    writeBooleanNL(b = z < (z+5));
 
     p = new int [3];
-    for (i=0; i<3; i++) {p[i] = i;}
+    for (i=0; i<3; writeChar(' '), i++) {p[i] = i; writeInteger(*(p+i));}
+    writeChar('\n');
     ++*(p+2);
     delete p;
-    i = b?3:4;
-    
-    
+    writeInteger(i = b?3:4), writeChar('\n');
 }

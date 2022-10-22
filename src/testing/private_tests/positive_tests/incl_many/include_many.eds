@@ -1,5 +1,4 @@
 #include "include_many_target_1.eds"
-
 void main() {
     int i;
     i = 8;

@@ -39,6 +39,7 @@ let sem_uop pos e t = function
     | TYPE_pointer r when (r.dim > 0) -> 
       if (r.dim = 1) then r.typ 
       else TYPE_pointer { r with dim = r.dim - 1; mut = true } 
+    | TYPE_null -> sem_fail pos "Tried to dereference a null-pointer"
     | _ -> sem_fail pos "Tried to dereference a non-pointer"
     end
   | O_psgn -> if (equalType t TYPE_int || equalType t TYPE_double) then t
@@ -248,9 +249,7 @@ and sem_expr exp =
     if (is_assignable t e) then sem_uasgn pos t 
     else sem_fail pos "Tried to increment/decrement something non-assignable"
   | E_basgn (e1, op, e2) -> let t1 = sem_expr e1 in
-    if (is_assignable t1 e1) then 
-      if (is_lval e1) then let t2 = sem_expr e2 in sem_basgn pos t1 t2 op
-      else sem_fail pos "Tried a binary assignment to a non-lvalue"
+    if (is_assignable t1 e1) then let t2 = sem_expr e2 in sem_basgn pos t1 t2 op
     else sem_fail pos "Tried to assign a value to something non-assignable"  
   | E_tcast (v, e) -> let t1 = sem_expr e in
     let t2 = vartype_sem v None in

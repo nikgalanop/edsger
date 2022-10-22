@@ -1,5 +1,5 @@
 #include "include_many_target_2.eds"
-
+#include "stdio.h"
 bool func(int v) {
     int i;
     i = func2(v);

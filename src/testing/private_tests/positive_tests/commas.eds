@@ -24,7 +24,7 @@ void fn(int i, int j, int k) {
 int g(int i) {
   writeChar('-');
   writeChar('\n');
-  return -i;
+  return i *= -1;
 }
 
 void main() {
