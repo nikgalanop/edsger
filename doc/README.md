@@ -54,10 +54,10 @@ LLVM IR from the AST that we generate.
 
 #### System Requirements
 The compiler has been built from source successfully in two different systems with the following configuration:
-  |             Target               |  OCaml   |  opam   |  dune   |  GNU Make  |  ocamllex  |  Menhir  |   LLVM   |  LLVM Bindings  |      Clang       |
-  | :------------------------------: | :------: | :-----: | :-----: | :--------: | :--------: | :------: | :------: | :-------------: | :--------------: |
-  |        Arch Linux, x86_64        |  4.14.0  |  2.1.3  |  3.5.0  |    4.3     |   4.14.0   |  4.14.0  |  14.0.6  |     14.0.6      |      14.0.6      |
-  | Ubuntu 20.0.4 LTS @ WSL2, x86_64 |  4.14.0  |  2.1.0  |  3.4.1  |   4.2.1    |   4.14.0   |  4.14.0  |  10.0.0  |     12.0.1      |  10.0.0-4ubuntu1 |
+  |             Target               |  OCaml   |  opam   |  dune   |  GNU Make  |  ocamllex  |   Menhir   |   LLVM   |  LLVM Bindings  |      Clang       |
+  | :------------------------------: | :------: | :-----: | :-----: | :--------: | :--------: | :--------: | :------: | :-------------: | :--------------: |
+  |        Arch Linux, x86_64        |  4.14.0  |  2.1.3  |  3.5.0  |    4.3     |   4.14.0   |  20220210  |  14.0.6  |     14.0.6      |      14.0.6      |
+  | Ubuntu 20.0.4 LTS @ WSL2, x86_64 |  4.14.0  |  2.1.0  |  3.4.1  |   4.2.1    |   4.14.0   |  20220210  |  10.0.0  |     12.0.1      |  10.0.0-4ubuntu1 |
 
 ### Installation and Usage
 - Build from [source](https://github.com/nikgalanop/edsger/src). <br>
