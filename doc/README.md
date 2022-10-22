@@ -66,7 +66,7 @@ inside `path/to/edsger/src/` by writing `make` and executing it in your terminal
 made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
 `dune exec -- edsger [options] filename.eds`
 
-#### ⚠️ 
+#### Note ⚠️ 
 In both cases the user must `export EDS_LIB_DIR=/path/to/lib/` to their environment, either by adding it in `~/.bashrc` and 
 restarting the terminal session or just exporting the variable via the terminal (the latter stores the variable only for the 
 current terminal session).
@@ -197,7 +197,7 @@ memory space is variable. (And is resolved during runtime) The `new` operator is
 The implementation of `malloc` is linked when our compiler is calling the `clang` compiler, to link the produced assembly 
 file with the prepackaged static library. 
 
-#### ⚠️ 
+#### Note ⚠️ 
 The `new` operator (or the equivalent `malloc` call) does not fail when the provided size is equal to 0 or a negative 
 number. Special care should be given, if the `new` operator is called with a negative number as its size, since `malloc`
 accepts unsigned integers, thus it will allocate memory with the equivalent unsigned size.
@@ -219,7 +219,7 @@ of "stack overflow", that resulted in an erroneous memory access)
 - One can access a `delete`d "memory block" and modify its values. However this is not suggested, as this "block" can be 
 reallocated at any given time.
 
-#### ⚠️ Known issue: <br>
+#### Known issue ⚠️ <br>
 When trying to change the "contents" of a `NULL` pointer, it usually results in `Segmentation Fault`. However, if the user 
 has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code), 
 or no messages at all depending on the user's setup & LLVM version.
@@ -262,7 +262,7 @@ destination.
       the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
       it points to data that have the type that is implied from the casting clause. 
 
-#### ⚠️ Known issue: <br>
+#### Known issue ⚠️ <br>
 Accessing a type casted pointer is unstable and can give different results, depending on if the user enabled optimizations or not.
 In general, pointer type casting is to be avoided. :)
 
@@ -310,7 +310,7 @@ let rec flatten ex acc =
     | _ -> ex :: acc
 ```
 
-##### Note: 
+#### Note
 The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
 
 ### Order of Evaluations
