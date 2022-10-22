@@ -1,4 +1,4 @@
-## Edsger Implementation Details
+# Edsger Documentation
 
 This is a summary of the design choices that we ([1](https://github.com/el18177), [2](https://github.com/nikgalanop))
 reached upon, in this implementation of the edsger language. The specification of the said language can be found 
