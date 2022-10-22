@@ -36,7 +36,7 @@ in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgal
     <summary>Miscellaneous</summary>
   <ul>
       <li><a href="#grammar-conflicts">Grammar Conflicts</a></li>
-      <li><a href="#order-of-evalutations">Order of Evaluations</a></li>
+      <li><a href="#order-of-evaluations">Order of Evaluations</a></li>
    </ul>
 </details>
 
