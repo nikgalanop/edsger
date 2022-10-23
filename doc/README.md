@@ -266,7 +266,9 @@ Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS)
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
 destination.
 
-eg. The following `continue` statement is illegal
+eg. 
+
+The following `continue` statement is illegal
 ```
   void main (){
     lbl1 : for ( .. ; .. ; .. ){
