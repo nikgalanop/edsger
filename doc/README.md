@@ -66,8 +66,10 @@ It is advised to use a proper combination of the versions above.
 ### Installation and Usage
 - Build from [source](https://github.com/nikgalanop/edsger/src). <br>
 In order to build from source, just execute the Makefile inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. 
-Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler via dune: 
-`dune exec -- edsger [options] filename.eds`
+Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is 
+located in `/path/to/edsger/src/_build/default/bin/Main.exe`. It can either be copied from there and renamed or it can be executed via dune 
+as following: `dune exec edsger filename.eds`. In order to provide compiler options, the user must add two dashes, when executing the compiler 
+via dune: `dune exec -- edsger [options] filename.eds`
 
   - Usage of the provided Makefile in `path/to/edsger/src`:
     1. `make` creates both the compiler executable (build via `dune`) as well as the prepackaged static library
@@ -165,8 +167,9 @@ void f(int c, int d){
 
 ### Function Overloading
 - We allow function overloading.
-- We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters are equivalent
-if they have the same type. (We do not care about the pass method) Two parameter lists are equivalent if their contents are equivalent.
+- We do not allow the declaration of two functions with the same name and equivalent parameter lists. Two parameters are 
+equivalent if they have the same type. (We do not care about the pass method) Two parameter lists are equivalent if their 
+contents are equivalent.
 - We use name mangling in both the symbol tables (Semantic analysis and IR Generation) and in the LLVM IR representation.
 For the LLVM IR representation, the name mangling convention is the following:
 
@@ -187,18 +190,20 @@ explicit parameters in order and create a string for each parameter with the fol
 ```
 
 We also use a counter in case that two functions have the same name and explicit parameters. This can happen in the case 
-of function shadowing (a nested function shadows a function with the same name and equivalent parameters from an outer scope),
-or when two functions have the same name and equivalent parameters but are also nested inside different functions.
+of function shadowing (a nested function shadows a function with the same name and equivalent parameters from an outer 
+scope), or when two functions have the same name and equivalent parameters but are also nested inside different functions.
 
 ### Nested Functions
 - In Εdsger, the programmer can nest functions. The nested functions can access variables from the outer scopes in which 
 they are nested into, as expected. This is implemented via lambda lifting.
 - With Lambda Lifting we add extra hidden parameters to functions when they are needed.
 > 1. A variable does not need to be lambda lifted if it is global and it hasn't been shadowed by another variable.
-> 2. A variable does not need to be lambda lifted if it is defined in the function which uses it. (as a local variable or as a parameter)
+> 2. A variable does not need to be lambda lifted if it is defined in the function which uses it. (as a local variable or 
+as a parameter)
 > 3. If a function uses a variable for which neither 1. or 2. hold, then that variable must be lambda lifted.
 > 4. A "parent" function should lift the "required" variables that its nested functions lambda lifted. 
-> A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent function before the nested function definition.
+> A variable that has been lifted by a nested function, is "required" to be lifted if it has not been bound by the parent 
+function before the nested function definition.
 
 ### Local Variable Declarations
 - It is not guaranteed that local variables are initialized to zero. 
@@ -232,8 +237,8 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
-- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block. It is not guaranteed that all of the allocated
-memory will be set to zero.
+- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block. It is not guaranteed that all of the 
+allocated memory will be set to zero.
 - One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
 ### Erroneous Accesses
@@ -249,15 +254,18 @@ reallocated at any given time.
 
 #### Known issue ⚠️ <br>
 When trying to change the "contents" of a `NULL` pointer, it usually results in `Segmentation Fault`. However, if the user 
-has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of code), 
-or no messages at all depending on the user's setup & LLVM version.
-Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined opcode" 
-instruction or handles it in a different version dependent way. [Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS) etc.]
+has enabled optimizations, they might face an `Illegal instruction` message (and the program terminates on the same line of 
+code), or no messages at all depending on the user's setup & LLVM version.
+Since the erroneous access results in Undefined Behaviour, the LLVM optimizer simply replaces this access with an "undefined 
+opcode" instruction or handles it in a different version dependent way. 
+
+Related terms: `llvm.trap()` (LLVM API) & `ud2` (x86 IS)
 
 ### Labels
 - We do not allow two labels in the same function to have the same name, in order to avoid confusive code.
 - We only allow jumps to a label if the "jump" command is nested in the body of the labeled for-loop that is the jump 
 destination.
+
 eg. The following `continue` statement is illegal
 ```
   void main (){
@@ -293,28 +301,28 @@ eg. The following `continue` statement is illegal
       3. Every non-zero ASCII Code `char` value is converted to `true`. Otherwise, it is converted to `false`.
   4. To `double`
       1. An `int` value is casted to a `double` value of the same sign, with a zeroed out fractional part. 
-      2. A `char` value is casted to a positive `double` value with a zeroed out fractional part, that corresponds to the
-      character's ASCII code. 
-      3. A `bool` value is casted to a positive `double` value with a zeroed out fractional part. It is equal to `1.0` when
-      the value is equal to `true` and `0.0` otherwise.  
+      2. A `char` value is casted to a positive `double` value with a zeroed out fractional part, that corresponds 
+	  to the character's ASCII code. 
+      3. A `bool` value is casted to a positive `double` value with a zeroed out fractional part. It is equal to 
+	  `1.0` when the value is equal to `true` and `0.0` otherwise.  
   5. To `pointer`
-      1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced by 
-      the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" like 
-      it points to data that have the type that is implied from the casting clause. 
+      1. Only a pointer can be converted to another pointer. When converting a pointer, the code that is produced 
+	  by the compiler does **not** convert the data that the pointer points to. The resulting pointer simply "acts" 
+	  like it points to data that have the type that is implied from the casting clause. 
 
 #### Known issue ⚠️ <br>
-Accessing a type casted pointer is unstable and can give different results, depending on if the user enabled optimizations or not.
-In general, pointer type casting is to be avoided. :)
+Accessing a type casted pointer is unstable and can give different results, depending on if the user enabled optimizations 
+or not. In general, pointer type casting is to be avoided. :)
 
 ## Miscellaneous
 
 ### Grammar Conflicts
-- The grammar of the Edsger language is provided at p. 15, in the specification that we linked at the beggining of this document.
-It is an ambiguous grammar. 
-- Most of the conflicts (binary operators, dangling else) were solved by enforcing precedence and 
-associativity rules. (`%left`, `%right`, `%nonassoc` directives)
-- One of those conflicts was resolved via semantic actions. Specifically, there is a **reduce-reduce** conflict between the argument list
-of a function call and the comma operator.
+- The grammar of the Edsger language is provided at p. 15, in the specification that we linked at the beggining of this 
+document. It is an ambiguous grammar. 
+- Most of the conflicts (binary operators, dangling else) were solved by enforcing precedence and associativity rules. 
+(`%left`, `%right`, `%nonassoc` directives)
+- One of those conflicts was resolved via semantic actions. Specifically, there is a **reduce-reduce** conflict between 
+the argument list of a function call and the comma operator.
 
 eg. 
 ``` 
@@ -353,11 +361,14 @@ let rec flatten ex acc =
 ```
 
 #### Note
-The preceding snippet is a modified version of the `flatten_commas` function that exists in this [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
+The preceding snippet is a modified version of the `flatten_commas` function that exists in this 
+[repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
 
 ### Order of Evaluations
 - The operator `op =` is right associative. Thus, we choose to evaluate the operands from right to left (!) unlike the other binary 
 operators where the operands are evaluated from left to right.
 
-eg. Consider the expression `b += b *= 2;` with `b` initialized to 10. Then, the expression is computed as `b += (b *= 2)` and 
+eg. 
+
+Consider the expression `b += b *= 2;` with `b` initialized to 10. Then, the expression is computed as `b += (b *= 2)` and 
 `(b *= 2)` is evaluated before the `b` on the LHS of the expression. Thus, after the expression, `b` is equal to 40 and not 30.
