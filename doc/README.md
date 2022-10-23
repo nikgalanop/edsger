@@ -70,7 +70,9 @@ Both the compiler and the static library are made. The static library is located
 `dune exec -- edsger [options] filename.eds`
 
   - Usage of the provided Makefile in `path/to/edsger/src`:
-    1. `make` creates both the compiler executable as well as the prepackaged static library
+    1. `make` creates both the compiler executable (build via `dune`) as well as the prepackaged static library
+    2. `make compiler` builds the compiler executable only
+    3. `make library` builds the static library only
     2. `make clean` clears the obj. files that have been created inside `path/to/edsger/src/lib/` during the creation of the static library.
     3. `make distclean` at first executes `clean` and then clears the `path/to/edsger/src/_build` folder that is created from `dune` 
     (deletes the whole compiler build), as well as the `edsger.opam` file that is created during the build of the compiler.
