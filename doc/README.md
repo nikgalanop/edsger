@@ -36,7 +36,7 @@ in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgal
     <summary>Miscellaneous</summary>
   <ul>
       <li><a href="#grammar-conflicts">Grammar Conflicts</a></li>
-      <li><a href="#order-of-evaluations">Order of Evaluations</a></li>
+      <li><a href="#order-of-evaluations">Order Of Evaluations</a></li>
    </ul>
 </details>
 
@@ -366,7 +366,7 @@ let rec flatten ex acc =
 The preceding snippet is a modified version of the `flatten_commas` function that exists in this 
 [repository](https://github.com/angelakis/Edsger-Compiler/blob/master/Parser.mly).
 
-### Order of Evaluations
+### Order Of Evaluations
 - The operator `op =` is right associative. Thus, we choose to evaluate the operands from right to left (!) unlike the other binary 
 operators where the operands are evaluated from left to right.
 
