@@ -108,7 +108,7 @@ file is the produced executable.
 - As stated in the specification, the only directive allowed is `#include`. If a 'cyclical' include sequence is provided,
 then the compiler warns the user about this, omits the directive that caused the cycle and proceeds with compiling the rest of the 
 program. The same happens in any case where a file is to be included twice.
-- The source file that is provided to the compiler is assumed to be "`include`d", meaning that if any descendant file, includes the
+- The source file that is provided to the compiler is assumed to be "included", meaning that if any descendant file, includes the
 source file, the compiler handles the case as if the source file has already been included.
 - When `file1.{h,eds}` includes `file2.{h,eds}` as following:`#include "/path/to/file2.{h,eds}"`, then the compiler checks if the 
 file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` 
