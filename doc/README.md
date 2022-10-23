@@ -150,6 +150,7 @@ territory. Of course, nobody should depend on integer overflow behaviour when wr
 ### Function Declarations
 - A declaration of a function and a definition of the same function do not have to agree in the name of the parameters.
 (C-like function declaration)
+
 eg.
 ```
 void f(int a, int b);
