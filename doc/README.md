@@ -10,7 +10,7 @@ in `path/to/edsger/src/testing` or equivalently [here](https://github.com/nikgal
   <summary>Compiler Structure Details</summary>
   <ul>
       <li><a href="#tools">Tools</a></li>
-      <li><a href="#installation-and-usage">Installation and Usage</a></li>
+      <li><a href="#installation-and-usage">Installation And Usage</a></li>
       <li><a href="#compiler-behaviour-and-options">Compiler Behaviour And Options</a></li>
       <li><a href="#filenames">Filenames</a></li>
       <li><a href="#directives">Directives</a></li>
@@ -63,7 +63,7 @@ The compiler has been built from source successfully in two different systems wi
 
 It is advised to use a proper combination of the versions above.
 
-### Installation and Usage
+### Installation And Usage
 - Build from [source](https://github.com/nikgalanop/edsger/src). <br>
 In order to build from source, just execute the Makefile inside `path/to/edsger/src/` by writing `make` and executing it in your terminal. 
 Both the compiler and the static library are made. The static library is located in `path/to/edsger/src/lib/`, the compiler executable is 
