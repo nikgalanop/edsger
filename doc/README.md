@@ -114,7 +114,7 @@ source file, the compiler handles the case as if the source file has already bee
 file is present in `path_of_file_1/path/to/file2.{h,eds}`. This reposition happens recursively, meaning that if now `file2.{h,eds}` 
 includes another file, eg. `#include /a/new/path/to/file3.{h,eds}` then the compiler checks if this is present in 
 `path_of_file1/path_of_file2/a/new/path/to/file3.{h,eds}`.
-- If the necessary file is not found with the method above, the compiler assumes that is it a library file and searches for it by
+- If the necessary file is not found with the method above, the compiler assumes that it is a library file and searches for it by
 following the method that is described in the next section about Library Functions.
 
 ### Library Functions
