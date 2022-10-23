@@ -286,6 +286,7 @@ The following `continue` statement is illegal
 - We only allow a pointer to be cast to an `int` and no other numerical type.
 - We do not allow any numerical value to be cast into a pointer.
 - We allow casting between pointer types.
+
 #### Casting rules
   1. To `int`
       1. A `char` is converted to its respective ASCII code. (equivalent to the `ord` function of `stdlib.h`)
