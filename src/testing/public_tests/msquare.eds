@@ -27,9 +27,9 @@ void main () {
         void generateSquare () {
             int * a[33]; // "int * a[side_len]" Is such declaration allowed? (It is syntactically for sure).
             int i, j, k, h, m;
-            int aux1, aux2;
+            int aux, order;
 
-            for (aux1 = side_len * side_len, aux2 = 1; (bool) (aux1 /= 10) ; aux2 *= 10);
+            for (aux = side_len * side_len, order = 1; (bool) (aux /= 10) ; order *= 10);
  
             for (i = 0; i < side_len; i++){
                 a[i] = new int[side_len];
@@ -51,7 +51,7 @@ void main () {
             
             for (i = 0; i < side_len; i++) {
                 for (j = 0; j < side_len; j++){
-		    for (aux1 = aux2; !(bool) (a[i][j] >= aux1) && aux1 > 1; aux1 /= 10) writeChar(' ');
+		    for (aux = order; !(bool) (a[i][j] >= aux) && aux > 1; aux /= 10) writeChar(' ');
 		    writeInteger(a[i][j]);
                     writeChar(' ');
                 }
