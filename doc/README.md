@@ -131,7 +131,6 @@ be set accordingly (or just the environment if it's a one time execution of the 
 - All `writeXYZ()` functions do not print any newline characters but only the input they are provided.
 - `writeBoolean(bool b)` prints the string "true" if b is equal to `true` and "false" otherwise.
 - `writeString(char *s)` prints the characters of the string s, until the first null byte is found.
-- `readChar ()` does not "read" whitespaces. It is implemented by calling `scanf(" %c", &ref)`.
 - `readString (int size, char * s)` reads at most `size - 1` characters from `stdin` and null-terminates the string properly, by 
 placing a null byte as the `size`-th character in the provided buffer. The function reads from `stdin` as long as it has not 
 reached `EOF` or it has not read the newline char `'\n'`. The `'\n'` is not included in the returned string.
@@ -139,7 +138,7 @@ reached `EOF` or it has not read the newline char `'\n'`. The `'\n'` is not incl
 ## Language Feature Implementation Details
 
 ### Variable Types And Constants
-- In edsger the available variable types are `int`, `bool`, `char`, `double` and `t*`, where `t` is another valid type.
+- In edsger, the available variable types are `int`, `bool`, `char`, `double` and `t*`, where `t` is another valid type.
 We call `int`, `bool`, `char`, `double` numerical types, and `int`, `double` arithmetic types specifically.
 - `int`s are 2 bytes long, `bool`s are 1 byte long as well as `char`s. `double`s are 8-bytes long.
 - The programmer can only type unsigned constants in a program. This means that the maximum `int` constant that can be
@@ -237,7 +236,7 @@ accepts unsigned integers, thus it will allocate memory with the equivalent unsi
 - The programmer can and should deallocate the dynamically allocated memory via the `delete` operator. In this implementation
 of edsger, no garbage collector exists. The `delete` operator is equivalent to a call to the `free` function. Whatever applied
 for the implementation of `malloc` and the linking, applies for `free` as well.
-- Using the `delete` operator, deletes (🐧!!) the data of the allocated data block. It is not guaranteed that all of the 
+- Using the `delete` operator, it deletes (🐧!!) the data of the allocated data block. It is not guaranteed that all of the 
 allocated memory will be set to zero.
 - One may not `delete` non dynamically allocated memory or already `delete`d memory.
 
