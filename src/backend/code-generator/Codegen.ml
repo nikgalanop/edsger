@@ -567,11 +567,9 @@ and codegen_header ~def rt fn ps env_opt =
   end;
   entr
 and codegen_fdecl rt fn ps = 
-  (* We only care to declare global scope functions, since some of 
-    these will be the ones that we will have to link with later on. *)
-  if (inOuterScope ()) then
-    ignore @@ codegen_header ~def:false
-      rt fn ps None
+  (* We must declare functions everywhere, not only in outer scope. 
+    Eg. mutual recursion of nested functions. (nested odd & even functions) *)
+  ignore @@ codegen_header ~def:false rt fn ps None
 and name_parameters ps f =  
   let fname = value_name f in 
   Array.iteri (fun i a -> 
