@@ -348,8 +348,7 @@ and codegen_expr exp =
       position_at_end afterbb lbuilder;
       if (type_of vl2 <> void_type lcontext) then 
         build_phi [(vl2, trntbb); (vl3, trnfbb)] "trntmp" lbuilder
-      else
-        undef (void_type lcontext)
+      else undef (void_type lcontext)
     end
   | E_new (vt, e) -> let vl = prepare_value e in 
     let t = lltype_of_vartype vt in 
@@ -371,8 +370,19 @@ and codegen_expr exp =
     in 
     let exprs = List.map expr_of_env envpars |> 
       List.append (List.combine r.exprs ps) in 
-    let prepare = function 
-    | e, PASS_BY_REFERENCE -> codegen_expr e 
+    let prepare_reference e = 
+      let vl = codegen_expr e in 
+      let t = classify_element_type vl in
+      match t with 
+      | Llvm.TypeKind.Array -> 
+        let t1 =  element_type @@ element_type @@ type_of vl in 
+        let typ = pointer_type t1 in 
+        let ptr = build_bitcast vl (typ) "arrptrref" lbuilder in 
+        let alloca = build_alloca typ "arrtmpref" lbuilder in 
+        ignore @@ build_store ptr alloca lbuilder; alloca
+      | _ -> vl
+    in let prepare = function 
+    | e, PASS_BY_REFERENCE -> prepare_reference e 
     | e, PASS_BY_VALUE -> prepare_value e 
     in let args = Array.of_list @@ 
       List.map prepare exprs in 
