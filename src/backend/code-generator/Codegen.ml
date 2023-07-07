@@ -486,7 +486,14 @@ and codegen_stmt stm =
     | None -> peekLoop ()
     in ignore @@ build_br jl.afterbb lbuilder
   | S_ret o -> begin match o with
-      | Some e -> let retvl = prepare_value e in 
+      | Some e -> let vl = prepare_value e in
+        let retvl = if is_null vl then 
+             let currbb = insertion_block lbuilder in
+             let f = block_parent @@ currbb in
+             let ft = element_type @@ type_of f in
+             let llrt = return_type ft  in
+             const_null llrt 
+        else vl in
         ignore @@ build_ret retvl lbuilder
       | None -> ignore @@ build_ret_void lbuilder
     end
@@ -621,7 +628,7 @@ and codegen_fdef rt fn ps b env =
     match rt with 
     | VOID -> ignore @@ build_ret_void lbuilder;
     | _ -> let ft = element_type @@ type_of f in
-      let llrt = return_type ft  in 
+      let llrt = return_type ft in  
       let zero = const_null llrt in
       ignore @@ build_ret zero lbuilder;
 and codegen_decl dec = 
